@@ -1297,12 +1297,13 @@ export default function SetupDrawer({ connectorType, existingConnector, onClose 
                 {/* Left: form */}
                 <div className="flex flex-col gap-3 flex-shrink-0 w-[380px]">
                   {/* Icon + hint + buttons */}
+                  <label className="block text-[12px] font-semibold text-[#323130] mb-1">Source icon</label>
                   <div className="flex items-center gap-4">
                     <ConnectorIcon src={editIconPreview ?? resolvedLogoUrl} name={editName || typeName} size={64} />
                     <div className="flex flex-col gap-2">
                       <p className="text-[12px] text-[#605e5c]">Min 256×256 px • SVG format preferred</p>
                       <div className="flex items-center gap-2">
-                        <label className="flex items-center gap-1.5 h-[32px] px-3 text-[14px] text-[#323130] border border-[#8a8886] rounded-[2px] bg-white hover:bg-[#f3f2f1] cursor-pointer transition-colors">
+                        <label className="flex items-center gap-1.5 h-[32px] px-2 text-[14px] text-[#323130] rounded-[2px] hover:bg-[#f3f2f1] cursor-pointer transition-colors">
                           <UploadIcon style={{ fontSize: 14 }} />
                           Upload
                           <input type="file" accept="image/png,image/svg+xml,image/jpeg" className="hidden"
@@ -1312,7 +1313,7 @@ export default function SetupDrawer({ connectorType, existingConnector, onClose 
                             }} />
                         </label>
                         <button onClick={() => setEditIconPreview(null)}
-                          className="flex items-center gap-1.5 h-[32px] px-3 text-[14px] text-[#323130] border border-[#8a8886] rounded-[2px] bg-white hover:bg-[#f3f2f1] transition-colors">
+                          className="flex items-center gap-1.5 h-[32px] px-2 text-[14px] text-[#323130] rounded-[2px] hover:bg-[#f3f2f1] transition-colors">
                           <RefreshIcon style={{ fontSize: 14 }} />
                           Reset
                         </button>
