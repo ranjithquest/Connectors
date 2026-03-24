@@ -2,68 +2,272 @@
 
 import React, { useState } from 'react';
 import type { Connector, AuthMethod, UserCriteriaType, DiagnosticIssue, IssueSource, SyncEvent } from '@/lib/types';
+import { CONNECTOR_CATALOG } from '@/lib/gallery-data';
 import {
   SearchIcon, ChromeCloseIcon, EditIcon, SettingsIcon,
   ChevronDownIcon, ChevronLeftIcon, CheckMarkIcon, InfoIcon,
   OpenInNewWindowIcon, NavigateBackIcon, DiagnosticIcon,
   StatusCircleCheckmarkIcon, ErrorBadgeIcon, StatusCircleSyncIcon,
   WarningSolidIcon, AlertSolidIcon, LightbulbIcon,
-  RepairIcon, SyncIcon, AddIcon, DeleteIcon,
+  RepairIcon, SyncIcon, AddIcon, DeleteIcon, UploadIcon, RefreshIcon,
 } from '@fluentui/react-icons-mdl2';
 
-// ─── Guidance panel (for new connections) ────────────────────────────────────
+// ─── Guidance panel ───────────────────────────────────────────────────────────
 
-const GUIDANCE_SECTIONS = [
+type GuidanceSection = { id: string; title: string; defaultOpen: boolean; content: React.ReactNode };
+
+const GUIDANCE_SECTIONS: GuidanceSection[] = [
   {
-    id: 'setup',
-    title: 'Simple/Advanced setup',
-    defaultOpen: true,
+    id: 'icon-name',
+    title: 'Source icon and name',
+    defaultOpen: false,
     content: (
-      <div className="text-[12px] text-[#323130] leading-4 flex flex-col gap-3">
-        <p>Quick way to setup a connection. Users can create a connection by providing few basic configurations only. All other values are provided default by Microsoft.</p>
-        <p>Use advanced setup if you want a setup the connector with your own custom settings. Custom user mapping, add/edit properties, change schedule etc.</p>
+      <div className="text-[12px] text-[#323130] leading-[16px]">
+        Source Icon &amp; name are displayed to the end users on Copilot search
       </div>
     ),
   },
-  { id: 'display-name', title: 'Connection display name', defaultOpen: false, content: null },
-  { id: 'icon-name', title: 'Display icon & name', defaultOpen: false, content: null },
-  { id: 'user-criteria', title: 'User criteria setup in ServiceNow', defaultOpen: false, content: null },
-  { id: 'instance-url', title: 'ServiceNow Instance URL', defaultOpen: false, content: null },
-  { id: 'auth-types', title: 'Authentication types', defaultOpen: false, content: null },
-  { id: 'staged-rollout', title: 'Staged rollout', defaultOpen: false, content: null },
-  { id: 'troubleshooting', title: 'Troubleshooting', defaultOpen: false, content: null },
+  {
+    id: 'display-name', title: 'Connector name', defaultOpen: false,
+    content: (
+      <div className="text-[12px] text-[#323130] leading-[18px] flex flex-col gap-2">
+        <p>The connector name is a unique label used to manage and identify this connection in the admin portal. It is not shown to end users.</p>
+        <p>Use a descriptive name that reflects the data source, e.g. <span className="font-semibold">HR Policies – ServiceNow</span>.</p>
+      </div>
+    ),
+  },
+  {
+    id: 'user-criteria', title: 'User criteria setup in ServiceNow', defaultOpen: false,
+    content: (
+      <div className="text-[12px] text-[#323130] leading-[18px] flex flex-col gap-2">
+        <p><span className="font-semibold">Simple</span> — Restrict access using a single user-criteria rule defined in ServiceNow. Best for most deployments.</p>
+        <p><span className="font-semibold">Advanced</span> — Combine multiple user-criteria rules with AND / OR logic for fine-grained access control.</p>
+        <p>Ensure matching user criteria exist in your ServiceNow instance before saving.</p>
+      </div>
+    ),
+  },
+  {
+    id: 'instance-url', title: 'ServiceNow Instance URL', defaultOpen: false,
+    content: (
+      <div className="text-[12px] text-[#323130] leading-[18px] flex flex-col gap-2">
+        <p>Enter the base URL of your ServiceNow instance, e.g. <span className="font-semibold">example.service-now.com</span>.</p>
+        <p>Do not include a path or trailing slash. The connector will append the required API endpoints automatically.</p>
+        <p>Make sure your instance is reachable from Microsoft's indexing service and that the API user has the necessary roles.</p>
+      </div>
+    ),
+  },
+  {
+    id: 'auth-types', title: 'Authentication types', defaultOpen: false,
+    content: (
+      <div className="text-[12px] text-[#323130] leading-[18px] flex flex-col gap-2">
+        <p><span className="font-semibold">Basic auth</span> — Authenticate with a ServiceNow username and password. Simple to set up but less secure; rotate credentials regularly.</p>
+        <p><span className="font-semibold">OAuth 2.0</span> — Recommended. Uses a client ID and secret to obtain short-lived tokens. Requires an OAuth application record in ServiceNow.</p>
+        <p>Credentials are stored encrypted in Microsoft's secure vault and are never exposed in logs.</p>
+      </div>
+    ),
+  },
+  {
+    id: 'staged-rollout', title: 'Staged rollout', defaultOpen: false,
+    content: (
+      <div className="text-[12px] text-[#323130] leading-[18px] flex flex-col gap-2">
+        <p>Limit who can search indexed content by selecting specific users or groups. Useful for piloting the connector before a broad release.</p>
+        <p>Leave this field empty to make content available to all users in your organisation.</p>
+        <p>Changes to the rollout list take effect on the next sync cycle.</p>
+      </div>
+    ),
+  },
+  {
+    id: 'troubleshooting', title: 'Troubleshooting', defaultOpen: false,
+    content: (
+      <div className="text-[12px] text-[#323130] leading-[18px] flex flex-col gap-2">
+        <p>If the connector shows an error, check:</p>
+        <ul className="list-disc list-inside flex flex-col gap-1 pl-1">
+          <li>The ServiceNow instance URL is correct and reachable.</li>
+          <li>The API user has the <span className="font-semibold">snc_read</span> role in ServiceNow.</li>
+          <li>OAuth credentials have not expired or been revoked.</li>
+          <li>Firewall rules allow outbound traffic from Microsoft's crawl IPs.</li>
+        </ul>
+        <a href="https://learn.microsoft.com/en-us/microsoftsearch/servicenow-connector" target="_blank" rel="noreferrer" className="text-[#0078d4] hover:underline mt-1">View full troubleshooting guide →</a>
+      </div>
+    ),
+  },
 ];
 
-function GuidanceRail() {
-  const [openSections, setOpenSections] = useState<Set<string>>(
-    new Set(GUIDANCE_SECTIONS.filter((s) => s.defaultOpen).map((s) => s.id))
+const USERS_GUIDANCE_SECTIONS: GuidanceSection[] = [
+  {
+    id: 'access-permissions', title: 'Access permissions', defaultOpen: false,
+    content: (
+      <div className="text-[12px] text-[#323130] leading-[18px] flex flex-col gap-2">
+        <p><span className="font-semibold">Only people with access to this data source</span> — Respects the access controls already set in ServiceNow. Only users who can see an item in ServiceNow will be able to find it in search results.</p>
+        <p><span className="font-semibold">Everyone</span> — All users in your organisation can discover indexed content, regardless of their permissions in ServiceNow. Use this only for publicly available knowledge bases.</p>
+      </div>
+    ),
+  },
+  {
+    id: 'user-mapping', title: 'User identity mapping', defaultOpen: false,
+    content: (
+      <div className="text-[12px] text-[#323130] leading-[18px] flex flex-col gap-2">
+        <p>The connector maps ServiceNow user identities to Azure AD accounts using the <span className="font-semibold">email address</span> field by default.</p>
+        <p>If your ServiceNow users have a different primary identifier, update the mapping field to match — for example, <span className="font-semibold">user_name</span> or a custom attribute.</p>
+        <p>Unmapped users will not receive personalised results even if ACL-based access is enabled.</p>
+      </div>
+    ),
+  },
+  {
+    id: 'external-groups', title: 'External groups', defaultOpen: false,
+    content: (
+      <div className="text-[12px] text-[#323130] leading-[18px] flex flex-col gap-2">
+        <p>External groups allow you to replicate ServiceNow group memberships in Microsoft Search without syncing the full directory.</p>
+        <p>Enable this option if your ServiceNow ACLs use groups. The connector will index group membership alongside content and apply it during search-time access checks.</p>
+      </div>
+    ),
+  },
+];
+
+const CONTENT_GUIDANCE_SECTIONS: GuidanceSection[] = [
+  {
+    id: 'include-data', title: 'Include data to index', defaultOpen: false,
+    content: (
+      <div className="text-[12px] text-[#323130] leading-[18px] flex flex-col gap-2">
+        <p>Use query filters to restrict which records are indexed. For example, index only active knowledge articles in the <span className="font-semibold">HR</span> category.</p>
+        <p>Filters follow ServiceNow encoded query syntax. Leave empty to index all accessible records.</p>
+        <p>Tip: Start with a narrow filter, validate results, then broaden scope incrementally.</p>
+      </div>
+    ),
+  },
+  {
+    id: 'manage-properties', title: 'Manage properties', defaultOpen: false,
+    content: (
+      <div className="text-[12px] text-[#323130] leading-[18px] flex flex-col gap-2">
+        <p>Properties control which fields from ServiceNow are indexed and surfaced in search results.</p>
+        <p>Assign semantic labels — <span className="font-semibold">Title</span>, <span className="font-semibold">URL</span>, <span className="font-semibold">Author</span> — to help Microsoft Search understand the meaning of each field.</p>
+        <p>Only properties marked as <span className="font-semibold">Searchable</span> are included in the full-text index. Mark fields as <span className="font-semibold">Retrievable</span> to show them in result cards.</p>
+      </div>
+    ),
+  },
+  {
+    id: 'result-layout', title: 'Search result layout', defaultOpen: false,
+    content: (
+      <div className="text-[12px] text-[#323130] leading-[18px] flex flex-col gap-2">
+        <p>The result layout determines how indexed items appear in Microsoft Search and Copilot responses.</p>
+        <p>Choose an adaptive card template or create a custom layout using the <span className="font-semibold">Result Type Designer</span> in the Microsoft 365 admin centre.</p>
+      </div>
+    ),
+  },
+];
+
+const SYNC_GUIDANCE_SECTIONS: GuidanceSection[] = [
+  {
+    id: 'full-crawl', title: 'Full crawl', defaultOpen: false,
+    content: (
+      <div className="text-[12px] text-[#323130] leading-[18px] flex flex-col gap-2">
+        <p>A full crawl re-indexes every item in the data source from scratch. It ensures the index is fully consistent but uses more resources.</p>
+        <p>Schedule full crawls weekly or monthly depending on how frequently your data changes. The first crawl is always a full crawl.</p>
+      </div>
+    ),
+  },
+  {
+    id: 'incremental-crawl', title: 'Incremental crawl', defaultOpen: false,
+    content: (
+      <div className="text-[12px] text-[#323130] leading-[18px] flex flex-col gap-2">
+        <p>Incremental crawls only index items that have been created, modified, or deleted since the last crawl. They are faster and lighter on both your ServiceNow instance and Microsoft's indexing service.</p>
+        <p>Set the frequency based on how time-sensitive your data is — every 15 minutes for high-velocity data, daily for more static content.</p>
+      </div>
+    ),
+  },
+  {
+    id: 'timezone', title: 'Timezone', defaultOpen: false,
+    content: (
+      <div className="text-[12px] text-[#323130] leading-[18px] flex flex-col gap-2">
+        <p>Set the timezone to match your ServiceNow instance to ensure accurate change-detection timestamps during incremental crawls.</p>
+        <p>A mismatch can cause records to be skipped or re-indexed unnecessarily.</p>
+      </div>
+    ),
+  },
+];
+
+const TAB_GUIDANCE: Record<string, GuidanceSection[]> = {
+  Setup: GUIDANCE_SECTIONS,
+  Users: USERS_GUIDANCE_SECTIONS,
+  Content: CONTENT_GUIDANCE_SECTIONS,
+  Sync: SYNC_GUIDANCE_SECTIONS,
+};
+
+function InlineGuidance({ sectionId, active }: { sectionId: string; active?: string }) {
+  const section = GUIDANCE_SECTIONS.find((s) => s.id === sectionId);
+  if (!section?.content || active !== sectionId) return <div />;
+  return (
+    <div className="bg-[#f0f6ff] border border-[#c7e0f4] rounded-[4px] px-3 py-3">
+      <p className="text-[11px] font-semibold text-[#0078d4] mb-1.5 uppercase tracking-wide">{section.title}</p>
+      {section.content}
+    </div>
   );
+}
+
+function ConnectorIcon({ src, name, size, rounded = '8px' }: { src?: string | null; name: string; size: number; rounded?: string }) {
+  const [failed, setFailed] = React.useState(false);
+  const initials = name.split(' ').slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('');
+  const fontSize = size <= 32 ? 10 : size <= 48 ? 13 : 16;
+
+  if (src && !failed) {
+    return (
+      <div className="flex-shrink-0 overflow-hidden bg-white" style={{ width: size, height: size, borderRadius: rounded }}>
+        <img src={src} alt={name} className="w-full h-full object-contain" onError={() => setFailed(true)} />
+      </div>
+    );
+  }
+  return (
+    <div className="flex-shrink-0 flex items-center justify-center text-white font-semibold bg-[#0d2137]"
+      style={{ width: size, height: size, borderRadius: rounded, fontSize }}>
+      {initials}
+    </div>
+  );
+}
+
+function GuidanceRail({ highlightSection, accordionRefsCallback, sections = GUIDANCE_SECTIONS }: {
+  highlightSection?: string;
+  accordionRefsCallback?: (refs: Record<string, HTMLDivElement | null>) => void;
+  sections?: GuidanceSection[];
+}) {
+  const [openSection, setOpenSection] = useState<string | null>(
+    sections.find((s) => s.defaultOpen)?.id ?? null
+  );
+  const accordionRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
+
+  // When a section is highlighted from outside, open it exclusively
+  React.useEffect(() => {
+    if (highlightSection) setOpenSection(highlightSection);
+  }, [highlightSection]);
+
+  // Expose refs to parent after each render
+  React.useEffect(() => {
+    accordionRefsCallback?.(accordionRefs.current);
+  });
+
   function toggle(id: string) {
-    setOpenSections((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
+    setOpenSection((prev) => (prev === id ? null : id));
   }
   return (
     <div className="flex flex-col gap-4 w-full">
-      <div className="flex items-start justify-between">
-        <span className="text-[16px] font-bold text-[#323130]">Setup guidance</span>
+      <div className="flex items-center justify-between">
+        <span className="text-[14px] font-semibold text-[#323130]">Setup guidance</span>
         <a href="https://learn.microsoft.com/en-us/microsoftsearch/connectors-overview" target="_blank" rel="noreferrer"
           className="text-[13px] text-[#0078d4] whitespace-nowrap hover:underline">
-          Read detailed documentation
+          Read docs
         </a>
       </div>
       <div className="flex flex-col">
-        {GUIDANCE_SECTIONS.map((section) => {
-          const isOpen = openSections.has(section.id);
+        {sections.map((section) => {
+          const isOpen = openSection === section.id;
+          const isHighlighted = highlightSection === section.id;
           return (
-            <div key={section.id} className="flex flex-col border-t border-[#e1e1e1]">
+            <div key={section.id} ref={(el) => { accordionRefs.current[section.id] = el; }}
+              className={`flex flex-col border-t ${isHighlighted ? 'border-[#0078d4]' : 'border-[#e1e1e1]'}`}>
               <button
                 className="flex items-center justify-between h-10 w-full text-left"
                 onClick={() => toggle(section.id)}
               >
-                <span className="text-[13px] font-semibold text-[#323130]">{section.title}</span>
+                <span className={`text-[13px] font-semibold ${isHighlighted ? 'text-[#0078d4]' : 'text-[#323130]'}`}>{section.title}</span>
                 <ChevronDownIcon style={{ fontSize: 14 }}
                   className={`text-[#605e5c] flex-shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
               </button>
@@ -82,7 +286,7 @@ function GuidanceRail() {
 
 const SEVERITY_CONFIG = {
   blocker: { label: 'Blocker', bg: 'bg-[#fdf1f1]', text: 'text-[#a80000]', border: 'border-[#f0c8c8]', dot: 'bg-[#a80000]', badgeBg: 'bg-[#a80000]' },
-  warning: { label: 'Warning', bg: 'bg-[#fdf5e8]', text: 'text-[#6b4010]', border: 'border-[#f0d898]', dot: 'bg-[#f0a30a]', badgeBg: 'bg-[#f0a30a]' },
+  warning: { label: 'Blocker', bg: 'bg-[#fdf1f1]', text: 'text-[#a80000]', border: 'border-[#f0c8c8]', dot: 'bg-[#a80000]', badgeBg: 'bg-[#a80000]' },
   suggestion: { label: 'Suggestion', bg: 'bg-[#f0f7ec]', text: 'text-[#2a5a18]', border: 'border-[#c8e0b8]', dot: 'bg-[#107c10]', badgeBg: 'bg-[#107c10]' },
 };
 
@@ -280,22 +484,9 @@ function IssueCard({ issue, expanded, onToggle, onDiagnose, detectedSyncLabel }:
 
           {/* Inline resolution */}
           {issue.resolution && !issue.requiresDiagnostic && (
-            <div className="flex flex-col gap-2">
-              <div className="flex items-start gap-2 bg-[#f5f5f5] rounded-[4px] px-3 py-2">
-                <CheckMarkIcon style={{ fontSize: 14 }} className="flex-shrink-0 mt-0.5 text-[#107c10]" />
-                <p className="text-[12px] text-[#242424] leading-5">{issue.resolution}</p>
-              </div>
-              {issue.resolutionAction === 'fix-in-connector' && (
-                <button className="self-start px-3 py-1.5 text-[12px] font-semibold bg-[#0078d4] text-white rounded-[4px] hover:bg-[#106ebe] transition-colors shadow-[0px_1px_2px_rgba(0,0,0,0.14)]">
-                  Fix in connector settings
-                </button>
-              )}
-              {issue.resolutionAction === 'fix-in-servicenow' && (
-                <button className="self-start px-3 py-1.5 text-[12px] font-semibold text-[#242424] bg-white border border-[#d1d1d1] rounded-[4px] hover:bg-[#f5f5f5] transition-colors flex items-center gap-1.5 shadow-[0px_1px_2px_rgba(0,0,0,0.14)]">
-                  View ServiceNow steps
-                  <OpenInNewWindowIcon style={{ fontSize: 10 }} />
-                </button>
-              )}
+            <div className="flex items-start gap-2 bg-[#f5f5f5] rounded-[4px] px-3 py-2">
+              <CheckMarkIcon style={{ fontSize: 14 }} className="flex-shrink-0 mt-0.5 text-[#107c10]" />
+              <p className="text-[12px] text-[#242424] leading-5">{issue.resolution}</p>
             </div>
           )}
 
@@ -319,6 +510,23 @@ function IssueCard({ issue, expanded, onToggle, onDiagnose, detectedSyncLabel }:
               </svg>
               <p className="text-[12px] text-[#0078d4] leading-5"><span className="font-semibold">Copilot impact: </span>{issue.copilotImpact}</p>
             </div>
+          )}
+
+          {/* Action buttons — at the bottom */}
+          {issue.resolution && !issue.requiresDiagnostic && (
+            <>
+              {issue.resolutionAction === 'fix-in-connector' && (
+                <button className="self-start px-3 py-1.5 text-[12px] font-semibold bg-[#0078d4] text-white rounded-[4px] hover:bg-[#106ebe] transition-colors shadow-[0px_1px_2px_rgba(0,0,0,0.14)]">
+                  Fix in connector settings
+                </button>
+              )}
+              {issue.resolutionAction === 'fix-in-servicenow' && (
+                <button className="self-start px-3 py-1.5 text-[12px] font-semibold text-[#242424] bg-white border border-[#d1d1d1] rounded-[4px] hover:bg-[#f5f5f5] transition-colors flex items-center gap-1.5 shadow-[0px_1px_2px_rgba(0,0,0,0.14)]">
+                  View ServiceNow steps
+                  <OpenInNewWindowIcon style={{ fontSize: 10 }} />
+                </button>
+              )}
+            </>
           )}
         </div>
       )}
@@ -996,9 +1204,38 @@ type SetupTab = typeof SETUP_TABS[number];
 
 export default function SetupDrawer({ connectorType, existingConnector, onClose }: SetupDrawerProps) {
   const isEdit = !!existingConnector;
-  const typeName = existingConnector?.connectorType ?? connectorType ?? 'ServiceNow Knowledge';
+  const [typeName, setTypeName] = useState(existingConnector?.connectorType ?? connectorType ?? 'ServiceNow Knowledge');
+
+  // Resolve logo from gallery catalog when no existingConnector logo available
+  const catalogItem = CONNECTOR_CATALOG.find(
+    (c) => c.name.toLowerCase() === (existingConnector?.connectorType ?? connectorType ?? '').toLowerCase()
+  );
+  const resolvedLogoUrl = existingConnector?.logoUrl ?? catalogItem?.logoUrl;
   const [activeTab, setActiveTab] = useState<SetupTab>('Setup');
-  const [rightRailTab, setRightRailTab] = useState<'health' | 'guide'>('health');
+  const [rightRailTab, setRightRailTab] = useState<'health' | 'guide'>(isEdit ? 'health' : 'guide');
+
+  const [editingHeader, setEditingHeader] = useState(false);
+  const [editName, setEditName] = useState(existingConnector?.connectorType ?? '');
+  const [editIconPreview, setEditIconPreview] = useState<string | null>(null);
+  const [guidanceHighlight, setGuidanceHighlight] = useState<string | undefined>(undefined);
+  const fieldRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
+  const formScrollRef = React.useRef<HTMLDivElement>(null);
+  const railScrollRef = React.useRef<HTMLDivElement>(null);
+  const accordionRefsCache = React.useRef<Record<string, HTMLDivElement | null>>({});
+
+  // Sync right rail scroll so open accordion aligns with the focused field
+  React.useEffect(() => {
+    if (!guidanceHighlight) return;
+    const fieldEl = fieldRefs.current[guidanceHighlight];
+    const railEl = railScrollRef.current;
+    const accordionEl = accordionRefsCache.current[guidanceHighlight];
+    if (!fieldEl || !railEl || !accordionEl) return;
+
+    const formScroll = formScrollRef.current;
+    const fieldTop = fieldEl.getBoundingClientRect().top - (formScroll?.getBoundingClientRect().top ?? 0) + (formScroll?.scrollTop ?? 0);
+    const accordionOffsetInRail = accordionEl.offsetTop;
+    railEl.scrollTop = accordionOffsetInRail - fieldTop;
+  }, [guidanceHighlight]);
 
   const [sourceName, setSourceName] = useState(existingConnector?.displayName ?? '');
   const [displayName, setDisplayName] = useState(existingConnector?.displayName ?? '');
@@ -1053,35 +1290,115 @@ export default function SetupDrawer({ connectorType, existingConnector, onClose 
 
           {/* Header */}
           <div className="px-8 pt-12">
-            <div className="flex items-start justify-between pb-4">
-              <div className="flex items-center gap-4">
-                <div className="w-[64px] h-[64px] rounded-[8px] overflow-hidden flex-shrink-0">
-                  <img
-                    src={existingConnector?.logoUrl ?? '/8ea55b65f2f4f34a4a05e79ddc164a85f0b2572d.png'}
-                    alt={typeName}
-                    className="w-full h-full object-cover"
-                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                  />
+            {editingHeader ? (
+              /* ── Edit mode ── */
+              <div className="flex items-start gap-16 pb-6 border-b border-[#e1e1e1] mb-6">
+
+                {/* Left: form */}
+                <div className="flex flex-col gap-3 flex-shrink-0 w-[380px]">
+                  {/* Icon + hint + buttons */}
+                  <div className="flex items-center gap-4">
+                    <ConnectorIcon src={editIconPreview ?? resolvedLogoUrl} name={editName || typeName} size={64} />
+                    <div className="flex flex-col gap-2">
+                      <p className="text-[12px] text-[#605e5c]">Min 256×256 px • SVG format preferred</p>
+                      <div className="flex items-center gap-2">
+                        <label className="flex items-center gap-1.5 h-[32px] px-3 text-[14px] text-[#323130] border border-[#8a8886] rounded-[2px] bg-white hover:bg-[#f3f2f1] cursor-pointer transition-colors">
+                          <UploadIcon style={{ fontSize: 14 }} />
+                          Upload
+                          <input type="file" accept="image/png,image/svg+xml,image/jpeg" className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) { const reader = new FileReader(); reader.onload = (ev) => setEditIconPreview(ev.target?.result as string); reader.readAsDataURL(file); }
+                            }} />
+                        </label>
+                        <button onClick={() => setEditIconPreview(null)}
+                          className="flex items-center gap-1.5 h-[32px] px-3 text-[14px] text-[#323130] border border-[#8a8886] rounded-[2px] bg-white hover:bg-[#f3f2f1] transition-colors">
+                          <RefreshIcon style={{ fontSize: 14 }} />
+                          Reset
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Source name */}
+                  <div>
+                    <label className="block text-[12px] font-semibold text-[#323130] mb-1">
+                      Source name <span className="text-[#a80000]">*</span>
+                    </label>
+                    <div className="flex items-center border border-[#8a8886] rounded-[2px] bg-white focus-within:border-[#0078d4]">
+                      <input
+                        type="text"
+                        value={editName}
+                        autoFocus
+                        onChange={(e) => setEditName(e.target.value)}
+                        className="flex-1 px-2 py-[5px] text-[14px] text-[#323130] outline-none bg-transparent"
+                      />
+                      <ChevronDownIcon style={{ fontSize: 12 }} className="mr-2 text-[#605e5c] flex-shrink-0" />
+                    </div>
+                  </div>
+
+                  {/* Save / Cancel */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => { setTypeName(editName); setEditingHeader(false); setGuidanceHighlight(undefined); markChanged(); }}
+                      className="h-[32px] px-4 text-[14px] font-semibold bg-[#0078d4] text-white rounded-[2px] hover:bg-[#106ebe] transition-colors"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => { setEditName(existingConnector?.connectorType || typeName); setEditIconPreview(null); setEditingHeader(false); setGuidanceHighlight(undefined); }}
+                      className="h-[32px] px-4 text-[14px] font-semibold text-[#323130] border border-[#8a8886] rounded-[2px] bg-white hover:bg-[#f3f2f1] transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
+
+                {/* Live preview */}
+                <div className="flex-shrink-0 w-[220px]">
+                  <p className="text-[13px] font-semibold text-[#323130] mb-3">Live preview</p>
+                  <div className="border border-[#e1e1e1] rounded-[4px] bg-[#faf9f8] p-4 flex flex-col gap-3">
+                    <div className="self-start flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#c8c6c4] rounded-full shadow-[0px_1px_2px_rgba(0,0,0,0.1)]">
+                      <span className="text-[13px] text-[#323130]">All Sources</span>
+                      <ChevronDownIcon style={{ fontSize: 10 }} className="text-[#605e5c]" />
+                    </div>
+                    <div className="flex items-center gap-2.5 px-1">
+                      <ConnectorIcon src={editIconPreview ?? resolvedLogoUrl} name={editName || typeName} size={28} rounded="4px" />
+                      <span className="text-[14px] text-[#323130] truncate">{editName || typeName}</span>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            ) : (
+              /* ── View mode: normal header ── */
+              <div className="flex items-start gap-4 pb-4">
+                <ConnectorIcon src={editIconPreview ?? resolvedLogoUrl} name={typeName} size={64} />
                 <div className="flex flex-col gap-0.5">
                   <h1 className="text-[20px] font-bold text-[#323130] leading-7">{typeName}</h1>
-                  <p className="text-[14px] text-[#605e5c] leading-5">{displayName || (isEdit ? existingConnector?.displayName : 'Connection display name')}</p>
-                  {isEdit && (
-                    <button className="flex items-center gap-1 text-[13px] text-[#0078d4] hover:underline mt-0.5 w-fit">
-                      <EditIcon style={{ fontSize: 12 }} />
-                      Edit
+                  <button
+                      onClick={() => {
+                        setEditName(existingConnector?.connectorType || typeName);
+                        setEditIconPreview(null);
+                        setEditingHeader(true);
+                        setRightRailTab('guide');
+                        setGuidanceHighlight('icon-name');
+                      }}
+                      className="flex items-center gap-1 text-[13px] mt-0.5 w-fit hover:opacity-80"
+                    >
+                      <span className="text-[#323130]">Source name &amp; icon</span>
+                      <EditIcon style={{ fontSize: 12 }} className="text-[#0078d4]" />
                     </button>
-                  )}
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Tabs */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mt-6">
               <div className="flex">
                 {SETUP_TABS.map((tab) => (
                   <button key={tab}
-                    onClick={() => setActiveTab(tab)}
+                    onClick={() => { setActiveTab(tab); setGuidanceHighlight(undefined); }}
                     className={`pb-2 mr-6 text-[14px] border-b-2 -mb-px transition-colors ${
                       activeTab === tab
                         ? 'font-semibold text-[#0078d4] border-[#0078d4]'
@@ -1095,14 +1412,14 @@ export default function SetupDrawer({ connectorType, existingConnector, onClose 
           </div>
 
           {/* Form body */}
-          <div className="flex-1 overflow-y-auto px-8 pt-12 pb-6">
+          <div ref={formScrollRef} className="flex-1 overflow-y-auto px-8 pt-12 pb-6">
             {activeTab === 'Users' && <UsersTabContent />}
             {activeTab === 'Content' && <ContentTabContent />}
             {activeTab === 'Sync' && <SyncTabContent />}
             {activeTab !== 'Users' && activeTab !== 'Content' && activeTab !== 'Sync' && <div className="max-w-[528px] flex flex-col gap-6">
 
-              {/* Source name */}
-              <div>
+              {/* Connection name */}
+              <div ref={(el) => { fieldRefs.current['display-name'] = el; }}>
                 <p className="text-[14px] font-semibold text-[#323130] mb-1">Enter a unique name to manage this connection</p>
                 <label className="flex items-center gap-1 text-[12px] text-[#323130] py-[5px]">
                   Connection name <span className="text-[#a80000]">*</span>
@@ -1110,19 +1427,20 @@ export default function SetupDrawer({ connectorType, existingConnector, onClose 
                 </label>
                 <div className="relative flex items-center border border-[#8a8886] rounded-[2px] bg-white focus-within:border-[#0078d4]">
                   <input type="text" value={displayName} onChange={(e) => { setDisplayName(e.target.value); setSourceName(e.target.value); markChanged(); }}
+                    onFocus={() => { setGuidanceHighlight('display-name'); setRightRailTab('guide'); }}
                     className="flex-1 px-2 py-[5px] text-[14px] text-[#323130] outline-none bg-transparent placeholder:text-[#9f9f9f]" />
                   {displayName && <span className="pr-2 text-[#107c10] text-[12px]">✓</span>}
                 </div>
               </div>
 
               {/* User criteria */}
-              <div>
+              <div ref={(el) => { fieldRefs.current['user-criteria'] = el; }}>
                 <p className="text-[14px] font-semibold text-[#323130] mb-1">User criteria setup in ServiceNow</p>
                 <div className="flex items-center gap-6">
                   {(['simple', 'advanced'] as UserCriteriaType[]).map((v) => (
                     <label key={v} className="flex items-center gap-2 cursor-pointer">
                       <div
-                        onClick={() => { setUserCriteria(v); markChanged(); }}
+                        onClick={() => { setUserCriteria(v); markChanged(); setGuidanceHighlight('user-criteria'); setRightRailTab('guide'); }}
                         className={`w-4 h-4 rounded-full border-2 flex items-center justify-center cursor-pointer ${userCriteria === v ? 'border-[#0078d4]' : 'border-[#8a8886]'}`}
                       >
                         {userCriteria === v && <div className="w-2 h-2 rounded-full bg-[#0078d4]" />}
@@ -1134,7 +1452,7 @@ export default function SetupDrawer({ connectorType, existingConnector, onClose 
               </div>
 
               {/* Instance URL */}
-              <div>
+              <div ref={(el) => { fieldRefs.current['instance-url'] = el; }}>
                 <p className="text-[14px] font-semibold text-[#323130] mb-1">Provide basic information about your ServiceNow instance</p>
                 <label className="flex items-center gap-1 text-[12px] text-[#323130] py-[5px]">
                   ServiceNow instance URL <span className="text-[#a80000]">*</span>
@@ -1145,19 +1463,21 @@ export default function SetupDrawer({ connectorType, existingConnector, onClose 
                   </div>
                   <input type="text" value={instanceUrl.replace(/^https?:\/\//, '')}
                     onChange={(e) => { setInstanceUrl(e.target.value ? `https://${e.target.value}` : ''); markChanged(); }}
+                    onFocus={() => { setGuidanceHighlight('instance-url'); setRightRailTab('guide'); }}
                     placeholder="example.servicenow.com"
                     className="flex-1 px-2 py-[5px] text-[14px] text-[#323130] outline-none placeholder:text-[#9f9f9f]" />
                 </div>
               </div>
 
               {/* Authentication */}
-              <div>
+              <div ref={(el) => { fieldRefs.current['auth-types'] = el; }}>
                 <p className="text-[14px] font-semibold text-[#323130] mb-1">Authenticate your ServiceNow instance</p>
                 <label className="flex items-center gap-1 text-[12px] text-[#323130] py-[5px]">
                   Authentication type <span className="text-[#a80000]">*</span>
                 </label>
                 <div className="relative">
                   <select value={authMethod === 'none' ? '' : authMethod} onChange={(e) => { setAuthMethod((e.target.value || 'none') as AuthMethod); markChanged(); }}
+                    onFocus={() => { setGuidanceHighlight('auth-types'); setRightRailTab('guide'); }}
                     className="w-full appearance-none border border-[#605e5c] rounded-[2px] bg-white px-2 py-[5px] text-[14px] text-[#605e5c] outline-none focus:border-[#0078d4] cursor-pointer">
                     <option value="">Select</option>
                     {AUTH_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -1167,7 +1487,7 @@ export default function SetupDrawer({ connectorType, existingConnector, onClose 
               </div>
 
               {/* Staged rollout */}
-              <div>
+              <div ref={(el) => { fieldRefs.current['staged-rollout'] = el; }}>
                 <p className="text-[14px] font-semibold text-[#323130] mb-1">Staged rollout</p>
                 <label className="flex items-center gap-1 text-[12px] text-[#323130] py-[5px]">
                   Select users and user groups <span className="text-[#a80000]">*</span>
@@ -1175,7 +1495,7 @@ export default function SetupDrawer({ connectorType, existingConnector, onClose 
                 </label>
                 <div className="flex items-center border border-[#8a8886] rounded-[2px] bg-white focus-within:border-[#0078d4]">
                   <SearchIcon style={{ fontSize: 16 }} className="ml-2 text-[#0078d4]" />
-                  <input type="text" placeholder="Search" className="flex-1 px-2 py-[5px] text-[14px] text-[#605e5c] outline-none placeholder:text-[#605e5c]" />
+                  <input type="text" placeholder="Search" onFocus={() => { setGuidanceHighlight('staged-rollout'); setRightRailTab('guide'); }} className="flex-1 px-2 py-[5px] text-[14px] text-[#605e5c] outline-none placeholder:text-[#605e5c]" />
                 </div>
               </div>
 
@@ -1207,33 +1527,43 @@ export default function SetupDrawer({ connectorType, existingConnector, onClose 
         </div>
 
         {/* Right rail */}
-        <div className="w-[400px] flex-shrink-0 bg-[#faf9f8] border-l border-[#e1e1e1] flex flex-col overflow-hidden">
+        <div className="w-[360px] flex-shrink-0 bg-[#faf9f8] border-l border-[#e1e1e1] flex flex-col overflow-hidden">
+          {/* Tabs — only show Connector health tab in edit mode */}
           {isEdit && existingConnector ? (
-            <>
-              {/* Tabs — aligned with HR Web title baseline */}
-              <div className="flex px-6 flex-shrink-0 pt-12">
+            <div className="flex px-6 flex-shrink-0 pt-12 border-b border-[#e1e1e1]">
+              {(['health', 'guide'] as const).map((tab) => (
                 <button
-                  onClick={() => setRightRailTab('health')}
-                  className={`pb-2 mr-6 text-[14px] border-b-2 -mb-px pt-3 transition-colors ${rightRailTab === 'health' ? 'font-semibold text-[#0078d4] border-[#0078d4]' : 'text-[#323130] border-transparent hover:text-[#0078d4]'}`}
+                  key={tab}
+                  onClick={() => setRightRailTab(tab)}
+                  className={`pb-2 mr-6 text-[14px] border-b-2 -mb-px transition-colors ${
+                    rightRailTab === tab
+                      ? 'font-semibold text-[#0078d4] border-[#0078d4]'
+                      : 'text-[#323130] border-transparent hover:text-[#0078d4]'
+                  }`}
                 >
-                  Connector health
+                  {tab === 'health' ? 'Connector health' : 'Setup guidance'}
                 </button>
-                <button
-                  onClick={() => setRightRailTab('guide')}
-                  className={`pb-2 mr-6 text-[14px] border-b-2 -mb-px pt-3 transition-colors ${rightRailTab === 'guide' ? 'font-semibold text-[#0078d4] border-[#0078d4]' : 'text-[#323130] border-transparent hover:text-[#0078d4]'}`}
-                >
-                  Setup guide
-                </button>
-              </div>
-              <div className="flex-1 overflow-y-auto px-6 pt-6 pb-6">
-                {rightRailTab === 'health' ? <HealthRail connector={existingConnector} /> : <GuidanceRail />}
-              </div>
-            </>
+              ))}
+            </div>
           ) : (
-            <div className="flex-1 overflow-y-auto px-6 pt-12 pb-6">
-              <GuidanceRail />
+            <div className="flex items-center justify-between px-6 pt-12 pb-4 flex-shrink-0">
+              <span className="text-[14px] font-semibold text-[#323130]">Setup guidance</span>
+              <a href="https://learn.microsoft.com/en-us/microsoftsearch/connectors-overview" target="_blank" rel="noreferrer"
+                className="text-[13px] text-[#0078d4] whitespace-nowrap hover:underline">
+                Read detailed documentation
+              </a>
             </div>
           )}
+          <div ref={railScrollRef} className="flex-1 overflow-y-auto px-6 pt-6 pb-6">
+            {isEdit && existingConnector && rightRailTab === 'health'
+              ? <HealthRail connector={existingConnector} />
+              : <GuidanceRail
+                  highlightSection={guidanceHighlight}
+                  accordionRefsCallback={(refs) => { accordionRefsCache.current = refs; }}
+                  sections={TAB_GUIDANCE[activeTab] ?? GUIDANCE_SECTIONS}
+                />
+            }
+          </div>
         </div>
         </div>{/* end content row */}
 

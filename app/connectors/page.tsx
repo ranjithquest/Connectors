@@ -128,7 +128,7 @@ export default function ConnectorsPage() {
     <div className="min-h-screen bg-white" onClick={() => setOpenMenu(null)}>
 
       {/* ── Page header ───────────────────────────────────────────── */}
-      <div className="pt-3 pb-0" style={{ paddingInline: '48px' }}>
+      <div className="pt-3 pb-0 px-4 sm:px-8 lg:px-12">
 
         {/* Breadcrumb */}
         <nav className="flex items-center gap-1 text-[12px] text-[#616161] mb-4">
@@ -155,15 +155,15 @@ export default function ConnectorsPage() {
       </div>
 
       {/* Description — below tabs, above command bar */}
-      <p className="text-[14px] text-[#605e5c] pt-8 pb-8 pr-8" style={{ paddingLeft: '48px', paddingRight: '48px' }}>
+      <p className="text-[14px] text-[#605e5c] pt-8 pb-8 px-4 sm:px-8 lg:px-12">
         Connect your organization&apos;s data to improve insights and information provided by Copilot, agents, and Microsoft Search.
       </p>
 
       {/* ── Command bar ───────────────────────────────────────────── */}
-      <div style={{ paddingInline: '48px' }}>
+      <div className="px-4 sm:px-8 lg:px-12">
         <div className="border-t border-[#edebe9]" />
       </div>
-      <div className="flex items-center justify-between h-[44px]" style={{ paddingInline: '48px' }}>
+      <div className="flex items-center justify-between h-[44px] px-4 sm:px-8 lg:px-12">
         {/* Left actions */}
         <div className="flex items-center h-full">
           <Link
@@ -201,8 +201,8 @@ export default function ConnectorsPage() {
       </div>
 
       {/* ── Table ─────────────────────────────────────────────────── */}
-      <div style={{ paddingInline: '48px' }}>
-        <table className="w-full border-collapse">
+      <div className="px-4 sm:px-8 lg:px-12 overflow-x-auto">
+        <table className="w-full border-collapse min-w-[480px]">
           <thead>
             <tr className="border-b border-[#edebe9]">
               {/* Source name — sortable */}
@@ -211,7 +211,7 @@ export default function ConnectorsPage() {
                   className="flex items-center gap-1 h-[36px] text-[12px] font-semibold text-[#323130] hover:text-[#0078d4] transition-colors"
                   onClick={() => handleSort('connectorType')}
                 >
-                  Display name
+                  Source name
                   <SortIndicator col="connectorType" />
                 </button>
               </th>
@@ -223,7 +223,7 @@ export default function ConnectorsPage() {
                 </div>
               </th>
               {/* Connection State */}
-              <th className="py-0 pr-4 text-left w-1/4">
+              <th className="py-0 pr-4 text-left w-1/4 hidden sm:table-cell">
                 <button
                   className="flex items-center gap-1 h-[36px] text-[12px] font-semibold text-[#323130] hover:text-[#0078d4] transition-colors"
                   onClick={() => handleSort('healthStatus')}
@@ -233,7 +233,7 @@ export default function ConnectorsPage() {
                 </button>
               </th>
               {/* Last sync */}
-              <th className="py-0 text-left w-1/4">
+              <th className="py-0 text-left w-1/4 hidden md:table-cell">
                 <button
                   className="flex items-center gap-1 h-[36px] text-[12px] font-semibold text-[#323130] hover:text-[#0078d4] transition-colors"
                   onClick={() => handleSort('lastSyncAt')}
@@ -276,14 +276,14 @@ export default function ConnectorsPage() {
                 </td>
 
                 {/* Connection State */}
-                <td className="py-0 pr-4 w-1/4">
+                <td className="py-0 pr-4 w-1/4 hidden sm:table-cell">
                   <div className="h-12 flex items-center">
                     <StatusBadge status={connector.healthStatus} blockerCount={0} />
                   </div>
                 </td>
 
                 {/* Last sync */}
-                <td className="py-0 w-1/4">
+                <td className="py-0 w-1/4 hidden md:table-cell">
                   <div className="h-12 flex items-center text-[13px] text-[#605e5c]">
                     {formatLastSync(connector.lastSyncAt)}
                   </div>

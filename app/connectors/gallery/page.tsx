@@ -2,7 +2,6 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import Breadcrumb from '@/components/layout/Breadcrumb';
 import { CONNECTOR_CATALOG, CATEGORIES, type ConnectorCatalogItem } from '@/lib/gallery-data';
 import SetupDrawer from '@/components/connectors/SetupDrawer';
 
@@ -55,7 +54,7 @@ function ConnectorTile({ connector, onAdd }: { connector: ConnectorCatalogItem; 
 
 function SectionGrid({ connectors, onAdd }: { connectors: ConnectorCatalogItem[]; onAdd: (name: string) => void }) {
   return (
-    <div className="grid grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
       {connectors.map((c) => (
         <ConnectorTile key={c.id} connector={c} onAdd={onAdd} />
       ))}
@@ -68,6 +67,7 @@ export default function GalleryPage() {
   const [filter, setFilter] = useState<'all' | 'recommended'>('all');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [setupType, setSetupType] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const filtered = useMemo(() => {
     return CONNECTOR_CATALOG.filter((c) => {
@@ -91,9 +91,9 @@ export default function GalleryPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Page header — DetailPageHeader spec */}
-      <div className="pt-3 pb-0 bg-white" style={{ paddingInline: '48px' }}>
-        {/* Breadcrumb */}
+
+      {/* Page header */}
+      <div className="pt-3 pb-0 bg-white px-4 sm:px-8 lg:px-12">
         <nav className="flex items-center gap-1 text-[12px] text-[#616161] mb-4">
           <Link href="/" className="hover:text-[#0078d4] hover:underline">Home</Link>
           <span className="text-[#c8c6c4]">›</span>
@@ -102,32 +102,27 @@ export default function GalleryPage() {
           <span className="text-[#242424]">Gallery</span>
         </nav>
 
-        <h1 className="text-[28px] font-bold text-[#323130] leading-[36px] mb-6">Connectors</h1>
+        <h1 className="text-[24px] sm:text-[28px] font-bold text-[#323130] leading-[36px] mb-6">Connectors</h1>
 
-        {/* Tabs */}
-        <div className="flex gap-0">
-          <Link
-            href="/connectors/gallery"
-            className="px-0 pb-2 mr-6 text-[14px] font-semibold text-[#0078d4] border-b-2 border-[#0078d4]"
-          >
+        <div className="flex">
+          <Link href="/connectors/gallery" className="pb-2 mr-6 text-[14px] font-semibold text-[#0078d4] border-b-2 border-[#0078d4]">
             Gallery
           </Link>
-          <Link
-            href="/connectors"
-            className="px-0 pb-2 mr-6 text-[14px] text-[#424242] hover:text-[#0078d4] border-b-2 border-transparent transition-colors"
-          >
+          <Link href="/connectors" className="pb-2 mr-6 text-[14px] text-[#424242] hover:text-[#0078d4] border-b-2 border-transparent transition-colors">
             Your connections
           </Link>
         </div>
       </div>
-      <div className="mt-8 border-b border-[#e1e1e1]" style={{ marginInline: '48px' }} />
+      <div className="border-b border-[#e1e1e1] mx-4 sm:mx-8 lg:mx-12 mt-6" />
 
       {/* Main layout */}
-      <div className="flex" style={{ paddingInline: '48px' }}>
+      <div className="flex flex-col lg:flex-row px-4 sm:px-8 lg:px-12">
+
         {/* Sidebar */}
-        <aside className="w-[260px] shrink-0 border-r border-[#e1e1e1] pt-6 pb-6 flex flex-col gap-6">
+        <aside className="lg:w-[260px] lg:shrink-0 lg:border-r border-[#e1e1e1] lg:pt-6 lg:pb-6 lg:flex lg:flex-col lg:gap-4">
+
           {/* Search */}
-          <div className="pr-6">
+          <div className="pt-4 lg:pt-0 lg:pr-6">
             <div className="flex items-center gap-2 border border-[#605e5c] rounded-[2px] px-2 py-[5px] bg-white">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0 text-[#0078d4]">
                 <path d="M10.5 10.5L14 14M6.5 12C3.46243 12 1 9.53757 1 6.5C1 3.46243 3.46243 1 6.5 1C9.53757 1 12 3.46243 12 6.5C12 9.53757 9.53757 12 6.5 12Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -142,122 +137,110 @@ export default function GalleryPage() {
             </div>
           </div>
 
-          {/* All / Recommended */}
-          <div className="flex flex-col gap-1 pr-6">
+          {/* Filter + category chips — horizontal scroll on mobile, vertical list on desktop */}
+          <div className="flex lg:flex-col gap-1 overflow-x-auto py-3 lg:py-0 lg:overflow-visible lg:pr-6"
+            style={{ scrollbarWidth: 'none' }}>
+
             <button
               onClick={() => { setFilter('all'); setActiveCategory(null); }}
-              className={`flex items-center gap-2 h-8 pl-2 pr-2 text-[14px] w-full text-left transition-colors ${filter === 'all' && !activeCategory ? 'bg-[#ededed] font-semibold text-[#323130]' : 'text-[#323130] hover:bg-[#f5f5f5]'}`}
+              className={`shrink-0 flex items-center h-8 px-3 lg:px-2 lg:w-full text-left text-[14px] rounded-full lg:rounded-none transition-colors whitespace-nowrap
+                ${filter === 'all' && !activeCategory ? 'bg-[#ededed] font-semibold text-[#323130]' : 'text-[#323130] hover:bg-[#f5f5f5]'}`}
             >
               All
             </button>
             <button
               onClick={() => { setFilter('recommended'); setActiveCategory(null); }}
-              className={`flex items-center gap-2 h-8 pl-2 pr-2 text-[14px] w-full text-left transition-colors ${filter === 'recommended' && !activeCategory ? 'bg-[#ededed] font-semibold text-[#323130]' : 'text-[#323130] hover:bg-[#f5f5f5]'}`}
+              className={`shrink-0 flex items-center h-8 px-3 lg:px-2 lg:w-full text-left text-[14px] rounded-full lg:rounded-none transition-colors whitespace-nowrap
+                ${filter === 'recommended' && !activeCategory ? 'bg-[#ededed] font-semibold text-[#323130]' : 'text-[#323130] hover:bg-[#f5f5f5]'}`}
             >
               Recommended
             </button>
-          </div>
 
-          {/* Categories */}
-          <div className="flex flex-col">
-            <div className="flex items-center justify-between h-[47px] pl-2 pr-6 border-t border-[#e1e1e1]">
-              <span className="text-[16px] font-semibold text-[#323130]">Categories</span>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-[#605e5c]">
-                <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+            {/* Categories label — desktop only */}
+            <div className="hidden lg:flex items-center h-[40px] pl-2 border-t border-[#e1e1e1] mt-1">
+              <span className="text-[14px] font-semibold text-[#323130]">Categories</span>
             </div>
-            <div className="flex flex-col gap-1 pr-6">
-              {CATEGORIES.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => { setActiveCategory(cat); setFilter('all'); }}
-                  className={`flex items-center h-8 pl-2 pr-2 text-[14px] w-full text-left transition-colors ${activeCategory === cat ? 'bg-[#ededed] font-semibold text-[#323130]' : 'text-[#323130] hover:bg-[#f5f5f5]'}`}
-                >
-                  <span className="truncate">{cat}</span>
-                </button>
-              ))}
-            </div>
+
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => { setActiveCategory(cat === activeCategory ? null : cat); setFilter('all'); }}
+                className={`shrink-0 flex items-center h-8 px-3 lg:px-2 lg:w-full text-left text-[14px] rounded-full lg:rounded-none transition-colors whitespace-nowrap
+                  ${activeCategory === cat ? 'bg-[#ededed] font-semibold text-[#323130]' : 'text-[#323130] hover:bg-[#f5f5f5]'}`}
+              >
+                {cat}
+              </button>
+            ))}
           </div>
         </aside>
 
         {/* Content */}
-        <main className="flex-1 overflow-auto">
-          {/* Hero banner — only when no filter/search active */}
+        <main className="flex-1 min-w-0">
+
+          {/* Hero banner */}
           {!search && !activeCategory && filter === 'all' && (
-            <div className="mt-6 mx-6 rounded-[4px] relative h-[256px] overflow-hidden" style={{ background: 'linear-gradient(162.2deg, rgb(221, 218, 240) 0%, rgb(232, 226, 238) 50%, rgb(242, 232, 228) 100%)' }}>
-              {/* Illustration — right side, horizontally flipped */}
+            <div className="mt-4 lg:mt-6 lg:mx-6 rounded-[4px] relative overflow-hidden h-[160px] sm:h-[210px] lg:h-[256px]"
+              style={{ background: 'linear-gradient(162.2deg, rgb(221,218,240) 0%, rgb(232,226,238) 50%, rgb(242,232,228) 100%)' }}>
               <div className="absolute right-0 top-0 h-full w-[65%] overflow-hidden">
-                <img
-                  src="/banner-copilot.png"
-                  alt=""
-                  className="absolute h-[180%] w-auto object-contain"
-                  style={{ top: '-40%', right: '-5%', transform: 'scaleX(-1)' }}
-                />
+                <img src="/banner-copilot.png" alt="" className="absolute h-[180%] w-auto object-contain"
+                  style={{ top: '-40%', right: '-5%', transform: 'scaleX(-1)' }} />
               </div>
-              {/* Text — left side */}
-              <div className="relative z-10 flex h-full flex-col justify-center px-10 max-w-[460px]">
-                <h2 className="text-[22px] font-bold text-[#1a1a2e] leading-[1.25] mb-2">
+              <div className="relative z-10 flex h-full flex-col justify-center px-6 sm:px-10 max-w-[460px]">
+                <h2 className="text-[15px] sm:text-[19px] lg:text-[22px] font-bold text-[#1a1a2e] leading-[1.25] mb-2">
                   Power decision-making with your organization&apos;s data
                 </h2>
-                <p className="text-[13px] text-[#323130] leading-[20px]">
+                <p className="hidden sm:block text-[13px] text-[#323130] leading-[20px]">
                   Connect your organization&apos;s data to Copilot to give users tailored, relevant, and meaningful insights across their Microsoft apps.
                 </p>
               </div>
-              {/* Copilot logo — floating in center */}
               <div className="absolute z-10" style={{ left: '42%', top: '50%', transform: 'translate(-50%, -50%)' }}>
-                <img src="/copilot-icon-48.png" alt="Copilot" className="w-[64px] h-[64px]" style={{ objectFit: 'contain', mixBlendMode: 'multiply' }} />
+                <img src="/copilot-icon-48.png" alt="Copilot"
+                  className="w-[40px] h-[40px] sm:w-[52px] sm:h-[52px] lg:w-[64px] lg:h-[64px]"
+                  style={{ objectFit: 'contain', mixBlendMode: 'multiply' }} />
               </div>
             </div>
           )}
 
           {/* Connector sections */}
-          <div className="px-8 py-8 flex flex-col gap-12">
-            {/* Recommended section */}
+          <div className="py-6 lg:px-8 lg:py-8 flex flex-col gap-10 lg:gap-12">
+
             {showRecommended && (
               <section>
-                <h2 className="text-[20px] font-semibold text-[#323130] mb-4">Recommended</h2>
+                <h2 className="text-[18px] sm:text-[20px] font-semibold text-[#323130] mb-4">Recommended</h2>
                 <SectionGrid connectors={recommended} onAdd={setSetupType} />
               </section>
             )}
 
-            {/* All / Recommended-only flat view */}
             {filter === 'recommended' && (
               <section>
-                <h2 className="text-[20px] font-semibold text-[#323130] mb-4">Recommended</h2>
+                <h2 className="text-[18px] sm:text-[20px] font-semibold text-[#323130] mb-4">Recommended</h2>
                 <SectionGrid connectors={recommended} onAdd={setSetupType} />
               </section>
             )}
 
-            {/* Active category view */}
             {activeCategory && (
               <section>
-                <h2 className="text-[20px] font-semibold text-[#323130] mb-4">{activeCategory}</h2>
-                {filtered.length > 0 ? (
-                  <SectionGrid connectors={filtered} onAdd={setSetupType} />
-                ) : (
-                  <p className="text-[14px] text-[#605e5c]">No connectors found.</p>
-                )}
+                <h2 className="text-[18px] sm:text-[20px] font-semibold text-[#323130] mb-4">{activeCategory}</h2>
+                {filtered.length > 0
+                  ? <SectionGrid connectors={filtered} onAdd={setSetupType} />
+                  : <p className="text-[14px] text-[#605e5c]">No connectors found.</p>}
               </section>
             )}
 
-            {/* Search results flat view */}
             {search && (
               <section>
-                <h2 className="text-[20px] font-semibold text-[#323130] mb-4">
+                <h2 className="text-[18px] sm:text-[20px] font-semibold text-[#323130] mb-4">
                   {filtered.length} result{filtered.length !== 1 ? 's' : ''} for &ldquo;{search}&rdquo;
                 </h2>
-                {filtered.length > 0 ? (
-                  <SectionGrid connectors={filtered} onAdd={setSetupType} />
-                ) : (
-                  <p className="text-[14px] text-[#605e5c]">No connectors match your search.</p>
-                )}
+                {filtered.length > 0
+                  ? <SectionGrid connectors={filtered} onAdd={setSetupType} />
+                  : <p className="text-[14px] text-[#605e5c]">No connectors match your search.</p>}
               </section>
             )}
 
-            {/* Default: all categories */}
             {!search && !activeCategory && filter === 'all' && byCategory.map(({ label, items }) => (
-              <section key={label} id={label.toLowerCase().replace(/[^a-z]/g, '-')}>
-                <h2 className="text-[20px] font-semibold text-[#323130] mb-4">{label}</h2>
+              <section key={label}>
+                <h2 className="text-[18px] sm:text-[20px] font-semibold text-[#323130] mb-4">{label}</h2>
                 <SectionGrid connectors={items} onAdd={setSetupType} />
               </section>
             ))}
@@ -265,12 +248,8 @@ export default function GalleryPage() {
         </main>
       </div>
 
-      {/* Setup drawer */}
       {setupType && (
-        <SetupDrawer
-          connectorType={setupType}
-          onClose={() => setSetupType(null)}
-        />
+        <SetupDrawer connectorType={setupType} onClose={() => setSetupType(null)} />
       )}
     </div>
   );
