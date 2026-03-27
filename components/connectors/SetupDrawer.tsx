@@ -5,7 +5,7 @@ import type { Connector, AuthMethod, UserCriteriaType, DiagnosticIssue, IssueSou
 import { CONNECTOR_CATALOG } from '@/lib/gallery-data';
 import {
   SearchIcon, ChromeCloseIcon, EditIcon, SettingsIcon,
-  ChevronDownIcon, ChevronLeftIcon, CheckMarkIcon, InfoIcon,
+  ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, CheckMarkIcon, InfoIcon,
   OpenInNewWindowIcon, NavigateBackIcon, DiagnosticIcon,
   StatusCircleCheckmarkIcon, ErrorBadgeIcon, StatusCircleSyncIcon,
   WarningSolidIcon, AlertSolidIcon, LightbulbIcon,
@@ -339,12 +339,22 @@ const SOURCE_CONFIG: Record<IssueSource, { label: string; bg: string; text: stri
   },
 };
 
-function SourceTag({ source }: { source: IssueSource }) {
+function SourceTag({ source, connectorTab, onNavigate }: { source: IssueSource; connectorTab?: string; onNavigate?: () => void }) {
   const cfg = SOURCE_CONFIG[source];
+  const label = (source === 'connector' && connectorTab) ? `${connectorTab} tab` : cfg.label;
+  if (source === 'connector' && connectorTab && onNavigate) {
+    return (
+      <button onClick={(e) => { e.stopPropagation(); onNavigate(); }}
+        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[2px] text-[10px] font-semibold ${cfg.bg} ${cfg.text} hover:opacity-80 transition-opacity cursor-pointer`}>
+        {cfg.icon}
+        {label}
+      </button>
+    );
+  }
   return (
     <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[2px] text-[10px] font-semibold ${cfg.bg} ${cfg.text}`}>
       {cfg.icon}
-      {cfg.label}
+      {label}
     </span>
   );
 }
@@ -453,91 +463,216 @@ function getSyncCycleLabel(detectedAt: string, syncHistory: SyncEvent[]): string
   return new Date(match.startedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' sync';
 }
 
-function IssueCard({ issue, expanded, onToggle, onDiagnose, detectedSyncLabel }: { issue: DiagnosticIssue; expanded: boolean; onToggle: () => void; onDiagnose?: () => void; detectedSyncLabel?: string }) {
+function IssueCard({ issue, onToggle, detectedSyncLabel, isChecked, onCheck, onDismiss }: { issue: DiagnosticIssue; expanded: boolean; onToggle: () => void; onDiagnose?: () => void; detectedSyncLabel?: string; onNavigateToField?: (tab: string, fieldId: string) => void; isChecked?: boolean; onCheck?: () => void; onDismiss?: () => void }) {
   const cfg = SEVERITY_CONFIG[issue.severity];
+  const isBlocker = issue.severity === 'blocker' || issue.severity === 'warning';
 
-  // Fluent UI card: white bg, neutral border, shadow4 default, shadow8 on hover, borderRadius medium (8px)
   return (
-    <div className="bg-white border border-[#d1d1d1] rounded-[8px] overflow-hidden shadow-[0px_2px_4px_rgba(0,0,0,0.14),0px_0px_2px_rgba(0,0,0,0.12)] transition-shadow hover:shadow-[0px_4px_8px_rgba(0,0,0,0.14),0px_0px_2px_rgba(0,0,0,0.12)]">
-      {/* Card header */}
-      <button
-        onClick={onToggle}
-        className="w-full flex items-start gap-3 px-3 py-3 text-left hover:bg-[#f5f5f5] transition-colors"
-      >
-        <span className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${cfg.dot}`} />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 flex-wrap mb-1">
-            <span className={`text-[10px] font-bold uppercase tracking-wide ${cfg.text}`}>{cfg.label}</span>
-            <SourceTag source={issue.source} />
-            <span className="text-[10px] text-[#a19f9d] ml-auto flex-shrink-0">Detected on {detectedSyncLabel ?? '—'}</span>
-          </div>
-          <p className="text-[13px] font-semibold text-[#242424] leading-5">{issue.title}</p>
-        </div>
-        <ChevronDownIcon style={{ fontSize: 12 }}
-          className={`flex-shrink-0 mt-1.5 text-[#605e5c] transition-transform ${expanded ? 'rotate-180' : ''}`} />
-      </button>
+    <div
+      onClick={onToggle}
+      className="bg-white border border-[#e1e1e1] rounded-[8px] px-4 pt-3 pb-3 flex flex-col gap-3 cursor-pointer hover:border-[#c8c6c4] hover:shadow-[0px_2px_8px_rgba(0,0,0,0.08)] transition-all"
+    >
+      {/* Top row: source label + severity badge */}
+      <div className="flex items-center justify-between">
+        <SourceTag source={issue.source} connectorTab={issue.connectorTab} />
+        <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${
+          issue.severity === 'blocker' ? 'bg-[#fde7e9] text-[#a80000]'
+          : issue.severity === 'warning' ? 'bg-[#fff4ce] text-[#7a5200]'
+          : 'bg-[#f0f0f0] text-[#616161]'
+        }`}>{cfg.label}</span>
+      </div>
 
-      {/* Expanded body */}
-      {expanded && (
-        <div className="px-3 pb-4 pt-0 border-t border-[#f0f0f0] flex flex-col gap-3 bg-white">
-          <p className="text-[12px] text-[#616161] leading-5 pt-3">{issue.description}</p>
+      {/* Title */}
+      <p className="text-[13px] font-semibold text-[#242424] leading-5">{issue.title}</p>
 
-          {/* Inline resolution */}
-          {issue.resolution && !issue.requiresDiagnostic && (
-            <div className="flex items-start gap-2 bg-[#f5f5f5] rounded-[4px] px-3 py-2">
-              <CheckMarkIcon style={{ fontSize: 14 }} className="flex-shrink-0 mt-0.5 text-[#107c10]" />
-              <p className="text-[12px] text-[#242424] leading-5">{issue.resolution}</p>
-            </div>
-          )}
-
-          {/* AI diagnostic entry point */}
-          {issue.requiresDiagnostic && (
-            <button
-              onClick={onDiagnose}
-              className="self-start flex items-center gap-2 px-3 py-1.5 text-[12px] font-semibold text-[#0078d4] border border-[#0078d4] rounded-[4px] hover:bg-[#f0f6ff] transition-colors"
-            >
-              <DiagnosticIcon style={{ fontSize: 12 }} />
-              Let&apos;s diagnose together
-            </button>
-          )}
-
-          {/* Copilot impact */}
-          {issue.copilotImpact && (
-            <div className="flex items-start gap-2 bg-[#f0f6ff] rounded-[4px] px-3 py-2">
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="flex-shrink-0 mt-0.5">
-                <circle cx="7" cy="7" r="6.5" stroke="#0078d4" strokeWidth="1"/>
-                <path d="M4.5 7.5 L6.5 9.5 L9.5 5" stroke="#0078d4" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              <p className="text-[12px] text-[#0078d4] leading-5"><span className="font-semibold">Copilot impact: </span>{issue.copilotImpact}</p>
-            </div>
-          )}
-
-          {/* Action buttons — at the bottom */}
-          {issue.resolution && !issue.requiresDiagnostic && (
-            <>
-              {issue.resolutionAction === 'fix-in-connector' && (
-                <button className="self-start px-3 py-1.5 text-[12px] font-semibold bg-[#0078d4] text-white rounded-[4px] hover:bg-[#106ebe] transition-colors shadow-[0px_1px_2px_rgba(0,0,0,0.14)]">
-                  Fix in connector settings
-                </button>
-              )}
-              {issue.resolutionAction === 'fix-in-servicenow' && (
-                <button className="self-start px-3 py-1.5 text-[12px] font-semibold text-[#242424] bg-white border border-[#d1d1d1] rounded-[4px] hover:bg-[#f5f5f5] transition-colors flex items-center gap-1.5 shadow-[0px_1px_2px_rgba(0,0,0,0.14)]">
-                  View ServiceNow steps
-                  <OpenInNewWindowIcon style={{ fontSize: 10 }} />
-                </button>
-              )}
-            </>
-          )}
+      {/* Impact pill */}
+      {issue.copilotImpact && (
+        <div className="flex items-center gap-1.5 self-start bg-[#fff8ec] border border-[#f5dfa0] rounded-full px-2 py-0.5">
+          <LightbulbIcon style={{ fontSize: 10 }} className="text-[#c87e00] flex-shrink-0" />
+          <span className="text-[10px] text-[#7a5200] font-medium">{issue.copilotImpact}</span>
         </div>
       )}
+
+      {/* Footer: detected date + checkbox */}
+      <div className="flex items-center justify-between pt-1 border-t border-[#f0f0f0]">
+        <span className="text-[10px] text-[#a19f9d]">{detectedSyncLabel ?? '—'}</span>
+        {(onCheck || onDismiss) && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onCheck ? onCheck() : onDismiss?.(); }}
+            className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all duration-200 flex-shrink-0 ${
+              isChecked ? 'bg-[#107c10] border-[#107c10]' : isBlocker ? 'border-[#c8c6c4] bg-white hover:border-[#0078d4]' : 'border-[#c8c6c4] bg-white hover:border-[#605e5c]'
+            }`}
+          >
+            {isChecked && (
+              <svg width="9" height="7" viewBox="0 0 9 7" fill="none">
+                <path d="M1 3.5L3.5 6L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            )}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Guide section ────────────────────────────────────────────────────────────
+
+function GuideSection({ steps }: { steps: { step: number; title: string; description: string }[] }) {
+  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+
+  const toggleStep = (step: number) => {
+    setCompletedSteps((prev) => {
+      const next = new Set(prev);
+      next.has(step) ? next.delete(step) : next.add(step);
+      return next;
+    });
+  };
+
+  return (
+    <div className="flex flex-col gap-3">
+      {steps.map(({ step, title, description }) => {
+        const done = completedSteps.has(step);
+        return (
+          <div key={step} className="flex items-start gap-3">
+            <button
+              onClick={() => toggleStep(step)}
+              className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 mt-0.5 ${
+                done ? 'bg-[#107c10] border-[#107c10]' : 'border-[#c8c6c4] bg-white hover:border-[#0078d4]'
+              }`}
+            >
+              {done ? (
+                <svg width="9" height="7" viewBox="0 0 9 7" fill="none">
+                  <path d="M1 3.5L3.5 6L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              ) : (
+                <span className="text-[9px] font-bold text-[#605e5c]">{step}</span>
+              )}
+            </button>
+            <div className="flex-1 min-w-0">
+              <p className={`text-[12px] font-semibold leading-4 mb-0.5 ${done ? 'text-[#a19f9d] line-through' : 'text-[#242424]'}`}>{title}</p>
+              <p className={`text-[11px] leading-4 ${done ? 'text-[#c8c6c4]' : 'text-[#616161]'}`}>{description}</p>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Issue focused view ───────────────────────────────────────────────────────
+
+function IssueFocusView({ issue, onBack, detectedSyncLabel, onNavigateToField, isChecked, onCheck, onDismiss, currentIndex, total, onPrev, onNext }: {
+  issue: DiagnosticIssue; onBack: () => void; detectedSyncLabel?: string;
+  onNavigateToField?: (tab: string, fieldId: string) => void;
+  isChecked?: boolean; onCheck?: () => void; onDismiss?: () => void;
+  currentIndex?: number; total?: number; onPrev?: () => void; onNext?: () => void;
+}) {
+  const cfg = SEVERITY_CONFIG[issue.severity];
+  const isBlocker = issue.severity === 'blocker' || issue.severity === 'warning';
+  const handleNavigate = (issue.connectorTab && issue.connectorFieldId && onNavigateToField)
+    ? () => onNavigateToField!(issue.connectorTab!, issue.connectorFieldId!)
+    : undefined;
+
+  // Where is it happening
+  const whereLabel = issue.source === 'connector'
+    ? { text: `In connector settings${issue.connectorTab ? ` · ${issue.connectorTab} tab` : ''}`, external: false }
+    : issue.source === 'servicenow'
+      ? { text: 'In ServiceNow — outside Microsoft', external: true }
+      : issue.source === 'mismatch'
+        ? { text: 'Mismatch between connector and ServiceNow', external: true }
+        : { text: 'Unsupported configuration', external: true };
+
+  return (
+    <div className="flex flex-col h-full -mx-6 -mt-6 bg-white">
+      {/* Back nav */}
+      <div className="px-6 pt-6 flex-shrink-0">
+        <button onClick={onBack} className="flex items-center gap-1.5 text-[12px] text-[#605e5c] hover:text-[#242424] transition-colors mb-4 w-fit">
+          <NavigateBackIcon style={{ fontSize: 13 }} />
+          Connector health
+        </button>
+      </div>
+
+      {/* Scrollable body */}
+      <div className="flex-1 overflow-y-auto">
+      <div className="flex flex-col gap-5 px-6 pb-4">
+
+        {/* Header */}
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className={`text-[10px] font-bold uppercase tracking-wide ${cfg.text}`}>{cfg.label}</span>
+            <SourceTag source={issue.source} connectorTab={issue.connectorTab} onNavigate={handleNavigate} />
+            <span className="text-[10px] text-[#a19f9d] ml-auto">{detectedSyncLabel ?? '—'}</span>
+          </div>
+          <h2 className="text-[15px] font-semibold text-[#242424] leading-snug">{issue.title}</h2>
+          <p className="text-[12px] text-[#616161] leading-5">{issue.description}</p>
+        </div>
+
+        {/* Impact pill */}
+        {issue.copilotImpact && (
+          <div className="flex items-center gap-1.5 self-start bg-[#fff8ec] border border-[#f5dfa0] rounded-full px-2.5 py-1">
+            <LightbulbIcon style={{ fontSize: 11 }} className="flex-shrink-0 text-[#c87e00]" />
+            <span className="text-[11px] text-[#7a5200] font-medium">{issue.copilotImpact}</span>
+          </div>
+        )}
+
+        {/* Steps */}
+        {issue.guideSteps && issue.guideSteps.length > 0 && (
+          <GuideSection steps={issue.guideSteps} />
+        )}
+
+        {/* AI diagnostic fallback */}
+        {issue.requiresDiagnostic && (
+          <button className="self-start flex items-center gap-2 px-3 py-1.5 text-[12px] font-semibold text-[#0078d4] border border-[#0078d4] rounded-[4px] hover:bg-[#f0f6ff] transition-colors">
+            <DiagnosticIcon style={{ fontSize: 12 }} />
+            Let&apos;s diagnose together
+          </button>
+        )}
+      </div>{/* end inner padding div */}
+      </div>{/* end scroll container */}
+
+      {/* Footer */}
+      <div className="px-6 pt-3 pb-6 border-t border-[#e1e1e1] flex items-center justify-between flex-shrink-0 gap-2">
+        <div className="flex items-center gap-2">
+          {isBlocker && onCheck && (
+            <button
+              onClick={onCheck}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-[4px] text-[12px] font-semibold transition-colors ${
+                isChecked ? 'bg-[#dff6dd] text-[#107c10] border border-[#a6d8a6]' : 'bg-[#107c10] text-white hover:bg-[#0b5a0b]'
+              }`}
+            >
+              {isChecked ? <StatusCircleCheckmarkIcon style={{ fontSize: 14 }} /> : <CheckMarkIcon style={{ fontSize: 13 }} />}
+              {isChecked ? 'Marked as fixed' : 'Mark as fixed'}
+            </button>
+          )}
+          {!isBlocker && onDismiss && (
+            <button onClick={() => { onDismiss(); onBack(); }} className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-[#605e5c] bg-white border border-[#d1d1d1] rounded-[4px] hover:bg-[#f5f5f5] transition-colors">
+              Dismiss
+            </button>
+          )}
+        </div>
+        {total !== undefined && total > 1 && (
+          <div className="flex items-center gap-1">
+            <span className="text-[11px] text-[#a19f9d] mr-1">{(currentIndex ?? 0) + 1} / {total}</span>
+            <button onClick={onPrev} disabled={!onPrev} className="p-1.5 rounded-[4px] border border-[#d1d1d1] bg-white hover:bg-[#f5f5f5] disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+              <ChevronLeftIcon style={{ fontSize: 12 }} className="text-[#323130]" />
+            </button>
+            <button onClick={onNext} disabled={!onNext} className="p-1.5 rounded-[4px] border border-[#d1d1d1] bg-white hover:bg-[#f5f5f5] disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+              <ChevronRightIcon style={{ fontSize: 12 }} className="text-[#323130]" />
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
 // ─── Diagnostic drill-down view ───────────────────────────────────────────────
 
-function DiagnosticDrillDown({ issue, onBack, detectedSyncLabel }: { issue: DiagnosticIssue; onBack: () => void; detectedSyncLabel?: string }) {
+function DiagnosticDrillDown({ issue, onBack, detectedSyncLabel, onNavigateToField }: { issue: DiagnosticIssue; onBack: () => void; detectedSyncLabel?: string; onNavigateToField?: (tab: string, fieldId: string) => void }) {
   const cfg = SEVERITY_CONFIG[issue.severity];
+  const handleNavigate = (issue.connectorTab && issue.connectorFieldId && onNavigateToField)
+    ? () => onNavigateToField!(issue.connectorTab!, issue.connectorFieldId!)
+    : undefined;
   return (
     <div className="flex flex-col h-full">
       {/* Back nav */}
@@ -551,10 +686,12 @@ function DiagnosticDrillDown({ issue, onBack, detectedSyncLabel }: { issue: Diag
 
       {/* Issue identity */}
       <div className="flex flex-col gap-2 mb-5 pb-5 border-b border-[#e1e1e1]">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className={`text-[10px] font-bold uppercase tracking-wide ${cfg.text}`}>{cfg.label}</span>
-          <SourceTag source={issue.source} />
-          <span className="text-[10px] text-[#a19f9d] ml-auto">Detected on {detectedSyncLabel ?? '—'}</span>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className={`text-[10px] font-bold uppercase tracking-wide flex-shrink-0 ${cfg.text}`}>{cfg.label}</span>
+            <SourceTag source={issue.source} connectorTab={issue.connectorTab} onNavigate={handleNavigate} />
+          </div>
+          <span className="text-[10px] text-[#a19f9d] flex-shrink-0 whitespace-nowrap">Detected on {detectedSyncLabel ?? '—'}</span>
         </div>
         <h2 className="text-[15px] font-semibold text-[#242424] leading-5">{issue.title}</h2>
         <p className="text-[12px] text-[#616161] leading-5">{issue.description}</p>
@@ -574,215 +711,203 @@ function formatSyncDate(iso: string): string {
 }
 
 function SyncHealthChart({ connector }: { connector: Connector }) {
-  const [chartView, setChartView] = useState<'detected' | 'resolved'>('detected');
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
-  const [hoveredAnn, setHoveredAnn] = useState<number | null>(null);
 
-  if (connector.syncHistory.length <= 1) return null;
+  if (connector.syncHistory.length === 0) return null;
 
   const history = [...connector.syncHistory]
     .sort((a, b) => new Date(a.startedAt).getTime() - new Date(b.startedAt).getTime())
-    .slice(-3);
+    .slice(-6);
 
-  const W = 320, H = 90, ML = 24, MR = 4, MT = 14, MB = 18;
-  const cW = W - ML - MR, cH = H - MT - MB;
   const labelFormat = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
-  // Compute cumulative blocker & suggestion counts at each sync cycle
   const syncData = history.map((evt) => {
     const t = new Date(evt.startedAt).getTime();
-    const blockers = connector.issues.filter((i) =>
+    const blockerIssues = connector.issues.filter((i) =>
       (i.severity === 'blocker' || i.severity === 'warning') &&
       new Date(i.detectedAt).getTime() <= t &&
       (!i.resolvedAt || new Date(i.resolvedAt).getTime() > t)
-    ).length;
-    const suggestions = connector.issues.filter((i) =>
+    );
+    const suggestionIssues = connector.issues.filter((i) =>
       i.severity === 'suggestion' &&
       new Date(i.detectedAt).getTime() <= t &&
       (!i.resolvedAt || new Date(i.resolvedAt).getTime() > t)
-    ).length;
-    return { blockers, suggestions };
+    );
+    const dotColor = blockerIssues.length > 0 ? '#a80000' : suggestionIssues.length >= 3 ? '#a80000' : suggestionIssues.length > 0 ? '#c87e00' : '#107c10';
+    return { date: evt.startedAt, blockerIssues, suggestionIssues, dotColor };
   });
 
-  const maxVal = Math.max(1, ...syncData.map((d) => Math.max(d.blockers, d.suggestions)));
-  const yTicks = Array.from({ length: maxVal + 1 }, (_, i) => i);
-  const yTicksFiltered = yTicks.length > 5
-    ? [0, Math.round(maxVal / 2), maxVal]
-    : yTicks;
-
+  const W = 320, H = 100, ML = 26, MR = 8, MT = 10, MB = 18;
+  const cW = W - ML - MR, cH = H - MT - MB;
+  const yTicks = [0, 2, 4, 6];
+  const maxY = 6;
+  const toY = (val: number) => MT + (1 - Math.min(val, maxY) / maxY) * cH;
   const xStep = history.length > 1 ? cW / (history.length - 1) : 0;
-  const bPts = syncData.map((d, i) => ({ x: ML + i * xStep, y: MT + (1 - d.blockers / maxVal) * cH }));
-  const sPts = syncData.map((d, i) => ({ x: ML + i * xStep, y: MT + (1 - d.suggestions / maxVal) * cH }));
-  const bPath = bPts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
-  const sPath = sPts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
-
-  const tStart = new Date(history[0].startedAt).getTime();
-  const tEnd = new Date(history[history.length - 1].startedAt).getTime();
-
-  const resolutionAnnotations = connector.issues.filter((i) => i.resolvedAt).flatMap((issue) => {
-    const resolvedMs = new Date(issue.resolvedAt!).getTime();
-    if (tEnd === tStart) return [];
-    const ratio = Math.max(0, Math.min(1, (resolvedMs - tStart) / (tEnd - tStart)));
-    const x = ML + ratio * cW;
-    return [{ x, fullTitle: issue.title, color: '#107c10', date: new Date(issue.resolvedAt!).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }];
-  });
-
-  const tooltipW = 110, tooltipH = 86;
-
-  function handleMouseMove(e: React.MouseEvent<SVGSVGElement>) {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const svgX = ((e.clientX - rect.left) / rect.width) * W;
-    let nearest = 0, minDist = Infinity;
-    bPts.forEach((p, i) => { const d = Math.abs(p.x - svgX); if (d < minDist) { minDist = d; nearest = i; } });
-    setHoveredIdx(nearest);
-    setHoveredAnn(null);
-  }
-
+  const pts = syncData.map((d, i) => ({
+    x: ML + i * xStep,
+    y: toY(d.blockerIssues.length > 0 ? d.blockerIssues.length : d.suggestionIssues.length),
+  }));
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="flex items-center justify-between">
-        <span className="text-[11px] font-semibold text-[#323130]">Health trend</span>
-        <div className="flex items-center rounded-[4px] border border-[#e1e1e1] overflow-hidden">
-          {(['detected', 'resolved'] as const).map((v) => (
-            <button key={v} onClick={() => { setChartView(v); setHoveredIdx(null); setHoveredAnn(null); }}
-              className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${chartView === v ? 'bg-[#0078d4] text-white' : 'bg-white text-[#605e5c] hover:bg-[#f5f5f5]'}`}>
-              {v === 'detected' ? 'Detected' : 'Resolved'}
-            </button>
-          ))}
-        </div>
-      </div>
+      <span className="text-[11px] font-semibold text-[#323130]">Health trend</span>
 
       <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet"
-        style={{ overflow: 'visible', cursor: 'crosshair' }}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={() => { setHoveredIdx(null); setHoveredAnn(null); }}>
+        style={{ overflow: 'visible', cursor: 'default' }}
+        onMouseLeave={() => setHoveredIdx(null)}>
 
         {/* Y-axis grid lines + labels */}
-        {yTicksFiltered.map((val) => {
-          const y = MT + (1 - val / maxVal) * cH;
+        {yTicks.map((val) => {
+          const y = toY(val);
           return (
             <g key={val}>
-              <line x1={ML} y1={y} x2={ML + cW} y2={y} stroke="#e1e1e1" strokeWidth="1" />
-              <text x={ML - 4} y={y + 3.5} textAnchor="end" fontSize="9" fill="#a19f9d" fontFamily="'Segoe UI', sans-serif">{val}</text>
+              <line x1={ML} y1={y} x2={ML + cW} y2={y} stroke="#e1e1e1" strokeWidth="1" strokeDasharray="3,2" />
+              <text x={ML - 4} y={y + 3.5} textAnchor="end" fontSize="9" fill="#a19f9d" fontFamily="'Segoe UI', sans-serif">
+                {val === 6 ? '6+' : val}
+              </text>
             </g>
           );
         })}
 
-        {/* Detected view: blocker + suggestion lines */}
-        {chartView === 'detected' && (
-          <>
-            <path d={bPath} stroke="#a80000" strokeWidth="4" fill="none" strokeLinejoin="round" strokeLinecap="round" />
-            <path d={sPath} stroke="#0078d4" strokeWidth="4" fill="none" strokeLinejoin="round" strokeLinecap="round" />
-            {bPts.map((p, i) => (
-              <circle key={`b-${i}`} cx={p.x} cy={p.y} r={hoveredIdx === i ? 0 : 5} fill="#a80000" stroke="white" strokeWidth="1.5" />
-            ))}
-            {sPts.map((p, i) => (
-              <circle key={`s-${i}`} cx={p.x} cy={p.y} r={hoveredIdx === i ? 0 : 5} fill="#0078d4" stroke="white" strokeWidth="1.5" />
-            ))}
-          </>
-        )}
-
-        {/* Resolved view: dots only */}
-        {chartView === 'resolved' && resolutionAnnotations.map((ann, i) => (
-          <g key={`ann-${i}`} style={{ cursor: 'pointer' }}
-            onMouseEnter={() => { setHoveredAnn(i); setHoveredIdx(null); }}
-            onMouseLeave={() => setHoveredAnn(null)}>
-            <circle cx={ann.x} cy={MT + cH / 2} r="5" fill={ann.color} stroke="white" strokeWidth="1.5" />
+        {/* Dots */}
+        {syncData.map((d, i) => (
+          <g key={i} style={{ cursor: 'pointer' }} onMouseEnter={() => setHoveredIdx(i)}>
+            <circle cx={pts[i].x} cy={pts[i].y} r="12" fill="transparent" />
+            {hoveredIdx === i ? (
+              <>
+                <circle cx={pts[i].x} cy={pts[i].y} r="9" fill="white" stroke={d.dotColor} strokeWidth="2.5" />
+                <circle cx={pts[i].x} cy={pts[i].y} r="4" fill={d.dotColor} />
+              </>
+            ) : (
+              <circle cx={pts[i].x} cy={pts[i].y} r="6" fill={d.dotColor} stroke="white" strokeWidth="2" />
+            )}
           </g>
         ))}
 
-        {/* Hover callout — Fluent UI style (detected view) */}
-        {chartView === 'detected' && hoveredIdx !== null && (() => {
-          const bp = bPts[hoveredIdx], sp = sPts[hoveredIdx];
-          const midX = bp.x;
-          const tooltipX = midX + 8 + tooltipW > W ? midX - tooltipW - 8 : midX + 8;
-          const tooltipY = MT;
-          const dateLabel = labelFormat(new Date(history[hoveredIdx].startedAt));
-          const { blockers, suggestions } = syncData[hoveredIdx];
+        {/* Tooltip */}
+        {hoveredIdx !== null && (() => {
+          const d = syncData[hoveredIdx];
+          const px = pts[hoveredIdx].x;
+          const pad = 10, headerH = 22, rowH = 28;
+          const rows = [
+            { label: 'Blockers', count: d.blockerIssues.length, color: '#a80000' },
+            { label: 'Suggestions', count: d.suggestionIssues.length, color: '#c87e00' },
+          ];
+          const tH = headerH + rows.length * rowH + pad;
+          const tW = 140;
+          const tX = px + 12 + tW > W ? px - tW - 12 : px + 12;
+          const tY = Math.max(MT, pts[hoveredIdx].y - tH / 2);
           return (
-            <g>
-              <line x1={midX} y1={MT} x2={midX} y2={MT + cH} stroke="#323130" strokeWidth="1" strokeDasharray="4,2" />
-              <circle cx={bp.x} cy={bp.y} r="8" fill="white" stroke="#a80000" strokeWidth="2" />
-              <circle cx={sp.x} cy={sp.y} r="8" fill="white" stroke="#0078d4" strokeWidth="2" />
-              <rect x={tooltipX} y={tooltipY} width={tooltipW} height={tooltipH} rx="4" fill="white"
-                style={{ filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.18))' }} />
-              <line x1={tooltipX} y1={tooltipY} x2={tooltipX + tooltipW} y2={tooltipY} stroke="#e1e1e1" strokeWidth="1" />
-              <text x={tooltipX + 10} y={tooltipY + 14} fontSize="10" fill="#605e5c" fontFamily="'Segoe UI', sans-serif">{dateLabel}</text>
-              {/* Blockers row */}
-              <rect x={tooltipX + 10} y={tooltipY + 20} width="3" height="20" rx="1.5" fill="#a80000" />
-              <text x={tooltipX + 19} y={tooltipY + 29} fontSize="10" fill="#323130" fontFamily="'Segoe UI', sans-serif">Blockers</text>
-              <text x={tooltipX + 19} y={tooltipY + 41} fontSize="13" fontWeight="bold" fill="#323130" fontFamily="'Segoe UI', sans-serif">{blockers}</text>
-              {/* Suggestions row — stacked below */}
-              <rect x={tooltipX + 10} y={tooltipY + 52} width="3" height="20" rx="1.5" fill="#0078d4" />
-              <text x={tooltipX + 19} y={tooltipY + 61} fontSize="10" fill="#323130" fontFamily="'Segoe UI', sans-serif">Suggestions</text>
-              <text x={tooltipX + 19} y={tooltipY + 73} fontSize="13" fontWeight="bold" fill="#323130" fontFamily="'Segoe UI', sans-serif">{suggestions}</text>
-            </g>
-          );
-        })()}
-
-        {/* Resolved annotation hover tooltip */}
-        {chartView === 'resolved' && hoveredAnn !== null && (() => {
-          const ann = resolutionAnnotations[hoveredAnn];
-          const tooltipX = ann.x + 8 + tooltipW > W ? ann.x - tooltipW - 8 : ann.x + 8;
-          const tooltipY = MT;
-          return (
-            <g>
-              <rect x={tooltipX} y={tooltipY} width={tooltipW} height={tooltipH} rx="4" fill="white"
-                style={{ filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.18))' }} />
-              <line x1={tooltipX} y1={tooltipY} x2={tooltipX + tooltipW} y2={tooltipY} stroke="#e1e1e1" strokeWidth="1" />
-              <text x={tooltipX + 10} y={tooltipY + 14} fontSize="10" fill="#605e5c" fontFamily="'Segoe UI', sans-serif">{ann.date}</text>
-              <rect x={tooltipX + 10} y={tooltipY + 20} width="3" height="20" rx="1.5" fill={ann.color} />
-              <text x={tooltipX + 19} y={tooltipY + 29} fontSize="10" fill="#323130" fontFamily="'Segoe UI', sans-serif">Fixed</text>
-              <text x={tooltipX + 19} y={tooltipY + 41} fontSize="11" fontWeight="bold" fill="#323130" fontFamily="'Segoe UI', sans-serif">
-                {ann.fullTitle.length > 20 ? ann.fullTitle.slice(0, 19) + '…' : ann.fullTitle}
+            <g style={{ pointerEvents: 'none' }}>
+              <rect x={tX} y={tY} width={tW} height={tH} rx="4" fill="white"
+                stroke="#e1e1e1" strokeWidth="1"
+                style={{ filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.14))' }} />
+              <text x={tX + pad} y={tY + 15} fontSize="10" fill="#605e5c" fontFamily="'Segoe UI', sans-serif">
+                {labelFormat(new Date(d.date))}
               </text>
+              <line x1={tX} y1={tY + headerH} x2={tX + tW} y2={tY + headerH} stroke="#e1e1e1" strokeWidth="1" />
+              {rows.map((row, j) => (
+                <g key={j}>
+                  <rect x={tX + pad} y={tY + headerH + j * rowH + 6} width="3" height="16" rx="1.5" fill={row.color} />
+                  <text x={tX + pad + 9} y={tY + headerH + j * rowH + 15} fontSize="10" fill="#605e5c" fontFamily="'Segoe UI', sans-serif">{row.label}</text>
+                  <text x={tX + tW - pad} y={tY + headerH + j * rowH + 15} textAnchor="end" fontSize="13" fontWeight="bold" fill="#323130" fontFamily="'Segoe UI', sans-serif">{row.count}</text>
+                </g>
+              ))}
             </g>
           );
         })()}
 
-        {/* X-axis baseline */}
+        {/* X-axis baseline + labels */}
         <line x1={ML} y1={MT + cH} x2={ML + cW} y2={MT + cH} stroke="#e1e1e1" strokeWidth="1" />
         {[0, history.length - 1].map((i) => (
-          <text key={i} x={bPts[i].x} y={H} textAnchor={i === 0 ? 'start' : 'end'} fontSize="9" fill="#a19f9d" fontFamily="'Segoe UI', sans-serif">
+          <text key={i} x={pts[i].x} y={H} textAnchor={i === 0 ? 'start' : 'end'}
+            fontSize="9" fill="#a19f9d" fontFamily="'Segoe UI', sans-serif">
             {labelFormat(new Date(history[i].startedAt))}
           </text>
         ))}
       </svg>
 
-      {/* Legend — below chart, Fluent UI style */}
-      {chartView === 'detected' && (
-        <div className="flex items-center gap-4 pt-1">
-          {[{ color: '#a80000', label: 'Blockers' }, { color: '#0078d4', label: 'Suggestions' }].map((l) => (
-            <div key={l.label} className="flex items-center gap-1.5">
-              <svg width="12" height="12" viewBox="0 0 12 12">
-                <rect x="0" y="0" width="12" height="12" rx="2" fill={l.color} />
-              </svg>
-              <span className="text-[11px] text-[#323130]">{l.label}</span>
-            </div>
-          ))}
-        </div>
-      )}
+      {/* Legend */}
+      <div className="flex items-center gap-4 pt-2 flex-wrap">
+        {[
+          { color: '#a80000', label: 'Fix' },
+          { color: '#c87e00', label: 'Good' },
+          { color: '#107c10', label: 'Healthy' },
+        ].map((l) => (
+          <div key={l.label} className="flex items-center gap-2">
+            <svg width="12" height="12" viewBox="0 0 12 12">
+              <rect x="0" y="0" width="12" height="12" rx="2" fill={l.color} />
+            </svg>
+            <span className="text-[12px] text-[#323130]" style={{ fontFamily: "'Segoe UI', sans-serif" }}>{l.label}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
 
-function HealthRail({ connector }: { connector: Connector }) {
+function HealthRail({ connector, onNavigateToField }: { connector: Connector; onNavigateToField?: (tab: string, fieldId: string) => void }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [diagnosing, setDiagnosing] = useState<DiagnosticIssue | null>(null);
-  const [activeFilter, setActiveFilter] = useState<'all' | 'blocker' | 'suggestion'>('all');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'blocker' | 'suggestion' | 'resolved'>('all');
+  // Step-through state
+  const [fixModeActive, setFixModeActive] = useState(false);
+  const [fixStep, setFixStep] = useState(0);
+  // Checklist state
+  const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
+  // Dismissed suggestions
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+  // Focused issue view
+  const [focusedIssue, setFocusedIssue] = useState<DiagnosticIssue | null>(null);
 
   if (diagnosing) {
-    return <DiagnosticDrillDown issue={diagnosing} onBack={() => setDiagnosing(null)} detectedSyncLabel={getSyncCycleLabel(diagnosing.detectedAt, connector.syncHistory)} />;
+    return <DiagnosticDrillDown issue={diagnosing} onBack={() => setDiagnosing(null)} detectedSyncLabel={getSyncCycleLabel(diagnosing.detectedAt, connector.syncHistory)} onNavigateToField={onNavigateToField} />;
+  }
+
+  if (focusedIssue) {
+    const allIssues = connector.issues.filter((i) => !i.resolvedAt);
+    const focusedIdx = allIssues.findIndex((i) => i.id === focusedIssue.id);
+    const isBlocker = focusedIssue.severity === 'blocker' || focusedIssue.severity === 'warning';
+    const navigateTo = (issue: DiagnosticIssue) => {
+      setFocusedIssue(issue);
+      if (issue.connectorTab && issue.connectorFieldId && onNavigateToField) {
+        onNavigateToField(issue.connectorTab, issue.connectorFieldId);
+      }
+    };
+    return (
+      <IssueFocusView
+        issue={focusedIssue}
+        onBack={() => setFocusedIssue(null)}
+        detectedSyncLabel={getSyncCycleLabel(focusedIssue.detectedAt, connector.syncHistory)}
+        onNavigateToField={onNavigateToField}
+        isChecked={isBlocker ? checkedIds.has(focusedIssue.id) : dismissedIds.has(focusedIssue.id)}
+        onCheck={isBlocker ? () => setCheckedIds((p) => { const n = new Set(p); n.has(focusedIssue.id) ? n.delete(focusedIssue.id) : n.add(focusedIssue.id); return n; }) : undefined}
+        onDismiss={!isBlocker ? () => setDismissedIds((p) => { const n = new Set(p); n.add(focusedIssue.id); return n; }) : undefined}
+        currentIndex={focusedIdx}
+        total={allIssues.length}
+        onPrev={focusedIdx > 0 ? () => navigateTo(allIssues[focusedIdx - 1]) : undefined}
+        onNext={focusedIdx < allIssues.length - 1 ? () => navigateTo(allIssues[focusedIdx + 1]) : undefined}
+      />
+    );
   }
 
   const lastSync = connector.syncHistory[0];
   const blockerTotal = connector.blockerCount + connector.warningCount;
   const activeIssues = connector.issues.filter((i) => !i.resolvedAt);
-  const filteredIssues = activeFilter === 'all'
-    ? activeIssues
-    : activeFilter === 'blocker'
-      ? activeIssues.filter((i) => i.severity === 'blocker' || i.severity === 'warning')
-      : activeIssues.filter((i) => i.severity === 'suggestion');
+  const isResolved = (i: DiagnosticIssue) =>
+    (i.severity === 'blocker' || i.severity === 'warning') ? checkedIds.has(i.id) : dismissedIds.has(i.id);
+  const resolvedIssues = activeIssues.filter(isResolved);
+  const unresolvedIssues = activeIssues.filter((i) => !isResolved(i));
+  const filteredIssues = activeFilter === 'resolved'
+    ? resolvedIssues
+    : activeFilter === 'all'
+      ? unresolvedIssues
+      : activeFilter === 'blocker'
+        ? unresolvedIssues.filter((i) => i.severity === 'blocker' || i.severity === 'warning')
+        : unresolvedIssues.filter((i) => i.severity === 'suggestion');
+
+  const blockerIssues = activeIssues.filter((i) => i.severity === 'blocker' || i.severity === 'warning');
+  const uncheckedBlockers = blockerIssues.filter((i) => !checkedIds.has(i.id));
+  const checkedCount = checkedIds.size;
 
   const healthTier = blockerTotal > 0 ? 'Action required' : 'Healthy';
   const tierConfig = {
@@ -790,81 +915,216 @@ function HealthRail({ connector }: { connector: Connector }) {
     'Healthy': { color: '#107c10', bg: '#dff6dd', barFill: 2 },
   }[healthTier];
 
-  // Compute sync progress from last sync event
-  const totalItems = lastSync ? lastSync.itemsIndexed + lastSync.errorCount : 0;
-  const progressPct = totalItems > 0 ? Math.round((lastSync!.itemsIndexed / totalItems) * 100) : 0;
   const syncStatusLabel =
     lastSync?.status === 'success' ? 'Sync completed' :
-    lastSync?.status === 'partial' ? 'Sync stopped — errors detected' :
+    lastSync?.status === 'partial' ? `Sync stopped — fix ${blockerTotal} blocker${blockerTotal !== 1 ? 's' : ''} to continue syncing` :
     'Awaiting first sync';
+
+  // Navigate to a blocker issue
+  const navigateTo = (issue: DiagnosticIssue) => {
+    setOpenId(issue.id);
+    if (issue.connectorTab && issue.connectorFieldId && onNavigateToField) {
+      onNavigateToField(issue.connectorTab, issue.connectorFieldId);
+    }
+  };
+
+  // "Fix next" — jumps to the first unchecked blocker
+  const handleFixNext = () => {
+    const next = uncheckedBlockers[0];
+    if (!next) return;
+    const idx = blockerIssues.indexOf(next);
+    setFixModeActive(true);
+    setFixStep(idx);
+    navigateTo(next);
+  };
+
+  // Step forward to next unchecked blocker
+  const handleNextStep = () => {
+    const nextIdx = blockerIssues.findIndex((b, i) => i > fixStep && !checkedIds.has(b.id));
+    if (nextIdx === -1) {
+      setFixModeActive(false);
+      setOpenId(null);
+    } else {
+      setFixStep(nextIdx);
+      navigateTo(blockerIssues[nextIdx]);
+    }
+  };
+
+  const currentFixIssue = fixModeActive ? (blockerIssues[fixStep] ?? null) : null;
+
+  const toggleChecked = (id: string) => {
+    setCheckedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const allFixed = blockerIssues.length > 0 && checkedCount === blockerIssues.length;
 
   return (
     <div className="flex flex-col gap-5 w-full">
 
-      {/* Sync status card */}
-      <div
-        className="rounded-[8px] border border-[#e1e1e1] bg-[#faf9f8] px-4 pt-4 pb-3 flex flex-col gap-3"
-      >
-        {/* Top row: health tier badge */}
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full self-start" style={{ backgroundColor: tierConfig.bg }}>
-          <svg width="11" height="12" viewBox="0 0 11 12" fill="none">
-            <rect x="0" y="6" width="4" height="6" rx="0.5" fill={tierConfig.barFill >= 1 ? tierConfig.color : '#d0d0d0'} />
-            <rect x="7" y="0" width="4" height="12" rx="0.5" fill={tierConfig.barFill >= 2 ? tierConfig.color : '#d0d0d0'} />
-          </svg>
-          <span className="text-[13px] font-bold" style={{ color: tierConfig.color }}>{healthTier}</span>
-        </div>
-
-        {/* Sync status label */}
-        <span className="text-[13px] font-semibold text-[#242424]">{syncStatusLabel}</span>
-
-        {/* Sync health trend */}
-        <SyncHealthChart connector={connector} />
-
-        {/* Last sync timestamp */}
-        {lastSync && (
-          <p className="text-[11px] text-[#a19f9d]">
-            Previous sync delivered to users · current cycle started {formatSyncDate(lastSync.startedAt)}
-          </p>
+      {/* Combined status + progress card */}
+      <div className="rounded-[8px] border border-[#e1e1e1] bg-[#faf9f8] px-4 pt-4 pb-3 flex flex-col gap-3">
+        {/* Show badge + label at top only when healthy (no blockers) */}
+        {blockerIssues.length === 0 && (
+          <>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full self-start" style={{ backgroundColor: tierConfig.bg }}>
+              <svg width="11" height="12" viewBox="0 0 11 12" fill="none">
+                <rect x="0" y="6" width="4" height="6" rx="0.5" fill={tierConfig.barFill >= 1 ? tierConfig.color : '#d0d0d0'} />
+                <rect x="7" y="0" width="4" height="12" rx="0.5" fill={tierConfig.barFill >= 2 ? tierConfig.color : '#d0d0d0'} />
+              </svg>
+              <span className="text-[13px] font-bold" style={{ color: tierConfig.color }}>{healthTier}</span>
+            </div>
+            <span className="text-[13px] font-semibold text-[#242424]">{syncStatusLabel}</span>
+            <SyncHealthChart connector={connector} />
+            {lastSync && (
+              <p className="text-[11px] text-[#a19f9d]">Connection using previous sync data now.</p>
+            )}
+          </>
         )}
-
+        {/* Progress + Fix CTA — inlined into same card when there are blockers */}
+        {blockerIssues.length > 0 && (
+          <>
+            <div className="flex flex-col gap-2">
+              {/* Health badge + status label */}
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full" style={{ backgroundColor: tierConfig.bg }}>
+                  <svg width="11" height="12" viewBox="0 0 11 12" fill="none">
+                    <rect x="0" y="6" width="4" height="6" rx="0.5" fill={tierConfig.barFill >= 1 ? tierConfig.color : '#d0d0d0'} />
+                    <rect x="7" y="0" width="4" height="12" rx="0.5" fill={tierConfig.barFill >= 2 ? tierConfig.color : '#d0d0d0'} />
+                  </svg>
+                  <span className="text-[13px] font-bold" style={{ color: tierConfig.color }}>{healthTier}</span>
+                </div>
+              </div>
+              <span className="text-[13px] font-semibold text-[#242424]">{syncStatusLabel}</span>
+              {lastSync && (
+                <p className="text-[11px] text-[#a19f9d]">Connection using previous sync data now.</p>
+              )}
+              <SyncHealthChart connector={connector} />
+              <div className="border-t border-[#e1e1e1] -mx-4" />
+              {/* Progress */}
+              <div className="flex items-center justify-between">
+                <span className="text-[12px] font-semibold text-[#242424]">
+                  {allFixed ? 'All blockers addressed' : `${checkedCount} of ${blockerIssues.length} blockers fixed`}
+                </span>
+                {checkedCount > 0 && !allFixed && (
+                  <button onClick={() => { setCheckedIds(new Set()); setFixModeActive(false); }} className="text-[11px] text-[#605e5c] hover:text-[#242424] transition-colors">
+                    Reset
+                  </button>
+                )}
+              </div>
+              <div className="w-full h-1.5 bg-[#edebe9] rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{
+                    width: `${(checkedCount / blockerIssues.length) * 100}%`,
+                    backgroundColor: '#107c10',
+                  }}
+                />
+              </div>
+              {/* Fix next / step label */}
+              {!allFixed && (
+                <div className="flex items-center justify-between mt-0.5">
+                  {fixModeActive ? (
+                    <>
+                      <span className="text-[11px] text-[#605e5c]">
+                        Fixing blocker {blockerIssues.filter((_, i) => i <= fixStep).length} of {uncheckedBlockers.length} remaining
+                      </span>
+                      <button
+                        onClick={() => { setFixModeActive(false); setOpenId(null); }}
+                        className="text-[11px] text-[#605e5c] hover:text-[#242424] transition-colors"
+                      >
+                        Exit
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={handleFixNext}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] text-[12px] font-semibold bg-[#a80000] text-white hover:bg-[#8e0000] transition-colors"
+                    >
+                      <RepairIcon style={{ fontSize: 13 }} />
+                      {checkedCount > 0 ? 'Fix next blocker' : `Fix ${blockerIssues.length} blocker${blockerIssues.length !== 1 ? 's' : ''}`}
+                      {checkedCount > 0 && (
+                        <span className="ml-0.5 px-1.5 py-0.5 bg-white text-[#a80000] rounded-full text-[10px] font-bold">{uncheckedBlockers.length}</span>
+                      )}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
-      {/* Filter pills + flat issue list */}
+      {/* Issues section */}
       {activeIssues.length > 0 && (
         <div className="flex flex-col gap-3">
-          {/* Pills */}
+
+          {/* Filter pills */}
           <div className="flex items-center gap-2 flex-wrap">
             {([
-              { key: 'all', label: 'All', count: activeIssues.length },
-              { key: 'blocker', label: 'Blockers', count: blockerTotal },
-              { key: 'suggestion', label: 'Suggestions', count: connector.suggestionCount },
-            ] as const).filter((p) => p.key === 'all' || p.count > 0).map((pill) => (
+              { key: 'all', label: 'All', count: unresolvedIssues.length },
+              { key: 'blocker', label: 'Blockers', count: unresolvedIssues.filter((i) => i.severity === 'blocker' || i.severity === 'warning').length },
+              { key: 'suggestion', label: 'Suggestions', count: unresolvedIssues.filter((i) => i.severity === 'suggestion').length },
+              { key: 'resolved', label: 'Resolved', count: resolvedIssues.length },
+            ] as const).filter((p) => p.key === 'all' || p.key === 'resolved' || p.count > 0).map((pill) => (
               <button
                 key={pill.key}
                 onClick={() => setActiveFilter(pill.key)}
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-medium border transition-colors ${
                   activeFilter === pill.key
-                    ? 'bg-[#0078d4] border-[#0078d4] text-white'
+                    ? pill.key === 'resolved' ? 'bg-[#107c10] border-[#107c10] text-white' : 'bg-[#0078d4] border-[#0078d4] text-white'
                     : 'bg-white border-[#c8c6c4] text-[#323130] hover:bg-[#f5f5f5]'
                 }`}
               >
                 {pill.label}
+                {pill.key === 'resolved' && resolvedIssues.length > 0 && (
+                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${activeFilter === 'resolved' ? 'bg-white text-[#107c10]' : 'bg-[#dff6dd] text-[#107c10]'}`}>
+                    {resolvedIssues.length}
+                  </span>
+                )}
               </button>
             ))}
           </div>
 
-          {/* Flat list */}
+          {/* Issue list with checkboxes */}
           <div className="flex flex-col gap-2">
-            {filteredIssues.map((issue) => (
-              <IssueCard
-                key={issue.id}
-                issue={issue}
-                expanded={openId === issue.id}
-                onToggle={() => setOpenId((p) => (p === issue.id ? null : issue.id))}
-                onDiagnose={() => setDiagnosing(issue)}
-                detectedSyncLabel={getSyncCycleLabel(issue.detectedAt, connector.syncHistory)}
-              />
-            ))}
+            {filteredIssues.map((issue) => {
+              const isBlocker = issue.severity === 'blocker' || issue.severity === 'warning';
+              const isChecked = checkedIds.has(issue.id);
+              const isCurrentFix = currentFixIssue?.id === issue.id;
+              return (
+                <div key={issue.id} className={`transition-opacity ${isChecked ? 'opacity-40' : ''}`}>
+                  <div className={`flex flex-col gap-1.5 rounded-[8px] transition-all ${isCurrentFix ? 'ring-2 ring-[#a80000] ring-offset-1' : ''}`}>
+                    <IssueCard
+                      issue={issue}
+                      expanded={false}
+                      onToggle={() => { setFocusedIssue(issue); if (issue.connectorTab && issue.connectorFieldId && onNavigateToField) onNavigateToField(issue.connectorTab, issue.connectorFieldId); }}
+                      onDiagnose={() => setDiagnosing(issue)}
+                      detectedSyncLabel={getSyncCycleLabel(issue.detectedAt, connector.syncHistory)}
+                      onNavigateToField={onNavigateToField}
+                      isChecked={isBlocker ? isChecked : dismissedIds.has(issue.id)}
+                      onCheck={isBlocker ? () => toggleChecked(issue.id) : undefined}
+                      onDismiss={!isBlocker ? () => setDismissedIds((p) => { const n = new Set(p); n.add(issue.id); return n; }) : undefined}
+                    />
+                    {isCurrentFix && !isChecked && (
+                      <button
+                        onClick={handleNextStep}
+                        className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-[6px] text-[12px] font-semibold bg-[#fde7e9] text-[#a80000] hover:bg-[#fbd0d3] transition-colors border border-[#f3aeae]"
+                      >
+                        {uncheckedBlockers.filter((b) => blockerIssues.indexOf(b) > fixStep).length > 0 ? (
+                          <>Next blocker <ChevronRightIcon style={{ fontSize: 12 }} /></>
+                        ) : (
+                          <>All blockers reviewed — done</>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -899,12 +1159,12 @@ function CollapsibleSection({ title, children, defaultOpen = true }: { title: st
   );
 }
 
-function UsersTabContent() {
+function UsersTabContent({ fieldHighlight, fieldRefs }: { fieldHighlight?: string; fieldRefs?: React.MutableRefObject<Record<string, HTMLDivElement | null>> }) {
   const [accessType, setAccessType] = useState<'acl' | 'everyone'>('acl');
-
   return (
     <div className="max-w-[528px] flex flex-col">
       {/* Access Permissions */}
+      <div ref={(el) => { if (fieldRefs) fieldRefs.current['access-permissions'] = el; }} className={`transition-colors duration-500 rounded-[4px] ${fieldHighlight === 'access-permissions' ? 'bg-[#eff6ff] px-2' : ''}`}>
       <CollapsibleSection title="Access Permissions">
         <div className="flex flex-col gap-4">
           {/* Option 1 */}
@@ -939,6 +1199,7 @@ function UsersTabContent() {
           </label>
         </div>
       </CollapsibleSection>
+      </div>
 
       {/* Map Identities */}
       <CollapsibleSection title="Map Identities">
@@ -967,13 +1228,15 @@ const PROPERTIES = [
   { name: 'Order_description', semanticLabel: '-', description: '-' },
 ];
 
-function ContentTabContent() {
+function ContentTabContent({ fieldHighlight, fieldRefs }: { fieldHighlight?: string; fieldRefs?: React.MutableRefObject<Record<string, HTMLDivElement | null>> }) {
   return (
     <div className="max-w-[640px] flex flex-col">
       {/* Include data */}
+      <div ref={(el) => { if (fieldRefs) fieldRefs.current['include-data'] = el; }} className={`transition-colors duration-500 rounded-[4px] ${fieldHighlight === 'include-data' ? 'bg-[#eff6ff] px-2' : ''}`}>
       <CollapsibleSection title="Include data which you want to index" defaultOpen={false}>
         <p className="text-[13px] text-[#605e5c] leading-5">Configure which data from this source should be indexed by Microsoft Search and Copilot.</p>
       </CollapsibleSection>
+      </div>
 
       {/* Manage Properties */}
       <CollapsibleSection title="Manage Properties" defaultOpen={true}>
@@ -1049,7 +1312,7 @@ function SelectChevron() {
   return <ChevronDownIcon style={{ fontSize: 12 }} className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[#605e5c]" />;
 }
 
-function SyncTabContent() {
+function SyncTabContent({ fieldHighlight, fieldRefs }: { fieldHighlight?: string; fieldRefs?: React.MutableRefObject<Record<string, HTMLDivElement | null>> }) {
   const [timezone, setTimezone] = useState('(UTC-08:00) Pacific Time (US & Canada)');
   const [incrementalOn, setIncrementalOn] = useState(true);
   const [incRecurrence, setIncRecurrence] = useState('Day');
@@ -1075,6 +1338,7 @@ function SyncTabContent() {
       </div>
 
       {/* Incremental crawl */}
+      <div ref={(el) => { if (fieldRefs) fieldRefs.current["crawl-frequency"] = el; }} className={`transition-colors duration-500 rounded-[4px] ${fieldHighlight === 'crawl-frequency' ? 'bg-[#eff6ff] px-2' : ''}`}>
       <CollapsibleSection title="Incremental crawl" defaultOpen={true}>
         <div className="flex flex-col gap-4">
           {/* Toggle */}
@@ -1150,6 +1414,7 @@ function SyncTabContent() {
           )}
         </div>
       </CollapsibleSection>
+      </div>
 
       {/* Full crawl */}
       <CollapsibleSection title="Full crawl" defaultOpen={true}>
@@ -1218,10 +1483,29 @@ export default function SetupDrawer({ connectorType, existingConnector, onClose 
   const [editName, setEditName] = useState(existingConnector?.connectorType ?? '');
   const [editIconPreview, setEditIconPreview] = useState<string | null>(null);
   const [guidanceHighlight, setGuidanceHighlight] = useState<string | undefined>(undefined);
+  const [fieldHighlight, setFieldHighlight] = useState<string | undefined>(undefined);
+
+  const handleNavigateToField = React.useCallback((tab: string, fieldId: string) => {
+    setActiveTab(tab as SetupTab);
+    setFieldHighlight(fieldId);
+    setRightRailTab('health');
+    setTimeout(() => {
+      const el = fieldRefs.current[fieldId];
+      if (el && formScrollRef.current) {
+        const top = el.getBoundingClientRect().top - formScrollRef.current.getBoundingClientRect().top + formScrollRef.current.scrollTop - 24;
+        formScrollRef.current.scrollTo({ top, behavior: 'smooth' });
+      }
+        suppressGuidanceSwitch.current = true;
+      setTimeout(() => { suppressGuidanceSwitch.current = false; }, 100);
+      // Clear highlight after 2s
+      setTimeout(() => setFieldHighlight(undefined), 2000);
+    }, 80);
+  }, []);
   const fieldRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
   const formScrollRef = React.useRef<HTMLDivElement>(null);
   const railScrollRef = React.useRef<HTMLDivElement>(null);
   const accordionRefsCache = React.useRef<Record<string, HTMLDivElement | null>>({});
+  const suppressGuidanceSwitch = React.useRef(false);
 
   // Sync right rail scroll so open accordion aligns with the focused field
   React.useEffect(() => {
@@ -1382,7 +1666,7 @@ export default function SetupDrawer({ connectorType, existingConnector, onClose 
                         setEditName(existingConnector?.connectorType || typeName);
                         setEditIconPreview(null);
                         setEditingHeader(true);
-                        setRightRailTab('guide');
+                        if (!suppressGuidanceSwitch.current) setRightRailTab('guide');
                         setGuidanceHighlight('icon-name');
                       }}
                       className="flex items-center gap-1 text-[13px] mt-0.5 w-fit hover:opacity-80"
@@ -1399,7 +1683,7 @@ export default function SetupDrawer({ connectorType, existingConnector, onClose 
               <div className="flex">
                 {SETUP_TABS.map((tab) => (
                   <button key={tab}
-                    onClick={() => { setActiveTab(tab); setGuidanceHighlight(undefined); }}
+                    onClick={() => { setActiveTab(tab); setGuidanceHighlight(undefined); setFieldHighlight(undefined); }}
                     className={`pb-2 mr-6 text-[14px] border-b-2 -mb-px transition-colors ${
                       activeTab === tab
                         ? 'font-semibold text-[#0078d4] border-[#0078d4]'
@@ -1414,9 +1698,9 @@ export default function SetupDrawer({ connectorType, existingConnector, onClose 
 
           {/* Form body */}
           <div ref={formScrollRef} className="flex-1 overflow-y-auto px-8 pt-12 pb-6">
-            {activeTab === 'Users' && <UsersTabContent />}
-            {activeTab === 'Content' && <ContentTabContent />}
-            {activeTab === 'Sync' && <SyncTabContent />}
+            {activeTab === 'Users' && <UsersTabContent fieldHighlight={fieldHighlight} fieldRefs={fieldRefs} />}
+            {activeTab === 'Content' && <ContentTabContent fieldHighlight={fieldHighlight} fieldRefs={fieldRefs} />}
+            {activeTab === 'Sync' && <SyncTabContent fieldHighlight={fieldHighlight} fieldRefs={fieldRefs} />}
             {activeTab !== 'Users' && activeTab !== 'Content' && activeTab !== 'Sync' && <div className="max-w-[528px] flex flex-col gap-6">
 
               {/* Connection name */}
@@ -1428,7 +1712,7 @@ export default function SetupDrawer({ connectorType, existingConnector, onClose 
                 </label>
                 <div className="relative flex items-center border border-[#8a8886] rounded-[2px] bg-white focus-within:border-[#0078d4]">
                   <input type="text" value={displayName} onChange={(e) => { setDisplayName(e.target.value); setSourceName(e.target.value); markChanged(); }}
-                    onFocus={() => { setGuidanceHighlight('display-name'); setRightRailTab('guide'); }}
+                    onFocus={() => { setGuidanceHighlight('display-name'); if (!suppressGuidanceSwitch.current) setRightRailTab('guide'); }}
                     className="flex-1 px-2 py-[5px] text-[14px] text-[#323130] outline-none bg-transparent placeholder:text-[#9f9f9f]" />
                   {displayName && <span className="pr-2 text-[#107c10] text-[12px]">✓</span>}
                 </div>
@@ -1441,7 +1725,7 @@ export default function SetupDrawer({ connectorType, existingConnector, onClose 
                   {(['simple', 'advanced'] as UserCriteriaType[]).map((v) => (
                     <label key={v} className="flex items-center gap-2 cursor-pointer">
                       <div
-                        onClick={() => { setUserCriteria(v); markChanged(); setGuidanceHighlight('user-criteria'); setRightRailTab('guide'); }}
+                        onClick={() => { setUserCriteria(v); markChanged(); setGuidanceHighlight('user-criteria'); if (!suppressGuidanceSwitch.current) setRightRailTab('guide'); }}
                         className={`w-4 h-4 rounded-full border-2 flex items-center justify-center cursor-pointer ${userCriteria === v ? 'border-[#0078d4]' : 'border-[#8a8886]'}`}
                       >
                         {userCriteria === v && <div className="w-2 h-2 rounded-full bg-[#0078d4]" />}
@@ -1464,21 +1748,21 @@ export default function SetupDrawer({ connectorType, existingConnector, onClose 
                   </div>
                   <input type="text" value={instanceUrl.replace(/^https?:\/\//, '')}
                     onChange={(e) => { setInstanceUrl(e.target.value ? `https://${e.target.value}` : ''); markChanged(); }}
-                    onFocus={() => { setGuidanceHighlight('instance-url'); setRightRailTab('guide'); }}
+                    onFocus={() => { setGuidanceHighlight('instance-url'); if (!suppressGuidanceSwitch.current) setRightRailTab('guide'); }}
                     placeholder="example.servicenow.com"
                     className="flex-1 px-2 py-[5px] text-[14px] text-[#323130] outline-none placeholder:text-[#9f9f9f]" />
                 </div>
               </div>
 
               {/* Authentication */}
-              <div ref={(el) => { fieldRefs.current['auth-types'] = el; }}>
+              <div ref={(el) => { fieldRefs.current['auth-types'] = el; }} className={`transition-colors duration-500 rounded-[4px] ${fieldHighlight === 'auth-types' ? 'bg-[#eff6ff] px-2' : ''}`}>
                 <p className="text-[14px] font-semibold text-[#323130] mb-1">Authenticate your ServiceNow instance</p>
                 <label className="flex items-center gap-1 text-[12px] text-[#323130] py-[5px]">
                   Authentication type <span className="text-[#a80000]">*</span>
                 </label>
                 <div className="relative">
                   <select value={authMethod === 'none' ? '' : authMethod} onChange={(e) => { setAuthMethod((e.target.value || 'none') as AuthMethod); markChanged(); }}
-                    onFocus={() => { setGuidanceHighlight('auth-types'); setRightRailTab('guide'); }}
+                    onFocus={() => { setGuidanceHighlight('auth-types'); if (!suppressGuidanceSwitch.current) setRightRailTab('guide'); }}
                     className="w-full appearance-none border border-[#605e5c] rounded-[2px] bg-white px-2 py-[5px] text-[14px] text-[#605e5c] outline-none focus:border-[#0078d4] cursor-pointer">
                     <option value="">Select</option>
                     {AUTH_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -1496,7 +1780,7 @@ export default function SetupDrawer({ connectorType, existingConnector, onClose 
                 </label>
                 <div className="flex items-center border border-[#8a8886] rounded-[2px] bg-white focus-within:border-[#0078d4]">
                   <SearchIcon style={{ fontSize: 16 }} className="ml-2 text-[#0078d4]" />
-                  <input type="text" placeholder="Search" onFocus={() => { setGuidanceHighlight('staged-rollout'); setRightRailTab('guide'); }} className="flex-1 px-2 py-[5px] text-[14px] text-[#605e5c] outline-none placeholder:text-[#605e5c]" />
+                  <input type="text" placeholder="Search" onFocus={() => { setGuidanceHighlight('staged-rollout'); if (!suppressGuidanceSwitch.current) setRightRailTab('guide'); }} className="flex-1 px-2 py-[5px] text-[14px] text-[#605e5c] outline-none placeholder:text-[#605e5c]" />
                 </div>
               </div>
 
@@ -1557,7 +1841,7 @@ export default function SetupDrawer({ connectorType, existingConnector, onClose 
           )}
           <div ref={railScrollRef} className="flex-1 overflow-y-auto px-6 pt-6 pb-6">
             {isEdit && existingConnector && rightRailTab === 'health'
-              ? <HealthRail connector={existingConnector} />
+              ? <HealthRail connector={existingConnector} onNavigateToField={handleNavigateToField} />
               : <GuidanceRail
                   highlightSection={guidanceHighlight}
                   accordionRefsCallback={(refs) => { accordionRefsCache.current = refs; }}

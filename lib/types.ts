@@ -21,11 +21,14 @@ export interface DiagnosticIssue {
   // Auto-resolvable: show inline fix
   resolution?: string;
   resolutionAction?: 'fix-in-connector' | 'fix-in-servicenow' | 'workaround';
+  connectorTab?: string;
+  connectorFieldId?: string;
   // AI diagnostic: ask questions when Microsoft can't see the root cause
   requiresDiagnostic?: boolean;
   diagnosticQuestions?: DiagnosticQuestion[];
   resolvedAt?: string;
   copilotImpact?: string;
+  guideSteps?: { step: number; title: string; description: string }[];
 }
 
 export interface SyncEvent {

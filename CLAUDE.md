@@ -19,7 +19,8 @@ This project uses `@fluentui/react-icons-mdl2` (v1.4.5) as the **default icon li
 ## Data Visualisation
 For any charts or data visualisation, follow the **Fluent UI Charting** design language.
 
-- Reference: https://developer.microsoft.com/en-us/fluentui#/controls/web/linechart (and sibling chart pages)
+- Primary reference (Storybook): https://storybooks.fluentui.dev/react/?path=/docs/charts_charts-areachart--docs
+- Secondary reference: https://developer.microsoft.com/en-us/fluentui#/controls/web/linechart (and sibling chart pages)
 - Charts are built as custom SVG (no external charting library) — match the Fluent UI visual style:
   - Line: **4px stroke** (`DEFAULT_LINE_STROKE_SIZE = 4` per source), `#0078d4` (brand blue) primary colour
   - Data points: 5px radius circle, filled with series colour, `white` 1.5px stroke
@@ -27,3 +28,4 @@ For any charts or data visualisation, follow the **Fluent UI Charting** design l
   - Axes: no visible axis line, labels in `#605e5c` at 10–11px
   - No bar fills behind lines unless explicitly needed
   - Tooltips: white card, `#e1e1e1` border, 4px radius, `#323130` text
+  - Legend: small colored square (12×12px, 2px border-radius), 12px Segoe UI `#323130` text, 8px gap between square and label, 16px gap between items, horizontal layout below chart
