@@ -9,9 +9,9 @@ import {
   CheckMarkIcon,
   NavigateExternalInlineIcon,
   ChevronDownIcon,
-  DismissIcon,
-  ContactIcon,
-  TagIcon,
+  CancelIcon,
+  PeopleIcon,
+  BookmarksIcon,
 } from '@fluentui/react-icons-mdl2';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -238,7 +238,7 @@ function OverflowMenu({ onDismiss, onAssign, onMarkKnown }: {
         style={{ color: '#323130' }}
         onClick={onDismiss}
       >
-        <DismissIcon style={{ fontSize: 14, color: '#616161' }} />
+        <CancelIcon style={{ fontSize: 14, color: '#616161' }} />
         Dismiss
       </button>
       <button
@@ -246,7 +246,7 @@ function OverflowMenu({ onDismiss, onAssign, onMarkKnown }: {
         style={{ color: '#323130' }}
         onClick={onAssign}
       >
-        <ContactIcon style={{ fontSize: 14, color: '#616161' }} />
+        <PeopleIcon style={{ fontSize: 14, color: '#616161' }} />
         Assign to…
       </button>
       <button
@@ -254,7 +254,7 @@ function OverflowMenu({ onDismiss, onAssign, onMarkKnown }: {
         style={{ color: '#323130' }}
         onClick={onMarkKnown}
       >
-        <TagIcon style={{ fontSize: 14, color: '#616161' }} />
+        <BookmarksIcon style={{ fontSize: 14, color: '#616161' }} />
         Mark as known issue
       </button>
     </div>
