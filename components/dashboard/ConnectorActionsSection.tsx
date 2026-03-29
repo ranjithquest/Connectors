@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo, useRef } from 'react';
-import type { Connector, DiagnosticIssue } from '@/lib/types';
+import { useState, useMemo, useRef, useCallback } from 'react';
+import type { Connector, DiagnosticIssue, RecommendedAction } from '@/lib/types';
 import {
   WarningSolidIcon,
   ErrorBadgeIcon,
@@ -12,6 +12,8 @@ import {
   ChevronDownIcon,
   SettingsIcon,
   OpenInNewTabIcon,
+  PlayIcon,
+  SyncIcon,
 } from '@fluentui/react-icons-mdl2';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -257,12 +259,103 @@ const ERROR_LOGS: Record<string, string[]> = {
   ],
 };
 
+// ─── Single executable action row ────────────────────────────────────────────
+
+function ActionRow({ action, onNavigate }: { action: RecommendedAction; onNavigate: () => void }) {
+  const [status, setStatus] = useState<'idle' | 'running' | 'done'>('idle');
+
+  const handleExecute = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setStatus('running');
+    // Simulate async execution (e.g. API call)
+    setTimeout(() => setStatus('done'), 1800);
+  }, []);
+
+  const isExternal = action.where === 'external';
+  const isServiceNow = action.where === 'servicenow';
+
+  const iconBg = isServiceNow ? '#f0f4ff' : isExternal ? '#f5f5f5' : '#f0f6ff';
+  const iconColor = isServiceNow ? '#4760d5' : isExternal ? '#616161' : '#0078d4';
+
+  return (
+    <div
+      className="flex items-start gap-2 w-full px-2 py-1.5 rounded transition-colors"
+      style={{ background: status === 'done' ? '#f1faf1' : 'transparent' }}
+    >
+      {/* Icon */}
+      <span
+        className="flex-shrink-0 mt-0.5 w-5 h-5 flex items-center justify-center rounded"
+        style={{ background: iconBg, color: iconColor }}
+      >
+        {isExternal
+          ? <OpenInNewTabIcon style={{ fontSize: 11 }} />
+          : isServiceNow
+          ? <NavigateExternalInlineIcon style={{ fontSize: 11 }} />
+          : <SettingsIcon style={{ fontSize: 11 }} />}
+      </span>
+
+      {/* Label + hint */}
+      <div className="flex flex-col min-w-0 flex-1">
+        {status === 'done' ? (
+          <span className="text-[12px] leading-[16px]" style={{ color: '#107c10' }}>
+            {action.executeConfirmation ?? 'Done.'}
+          </span>
+        ) : (
+          <>
+            <button
+              className="text-[13px] font-semibold leading-[18px] text-left hover:underline"
+              style={{ color: '#242424' }}
+              onClick={onNavigate}
+            >
+              {action.label}
+            </button>
+            {action.hint && (
+              <span className="text-[11px] leading-[14px]" style={{ color: '#888' }}>
+                {action.hint}
+              </span>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Execute / status */}
+      {action.executable && status !== 'done' && (
+        <button
+          className="flex-shrink-0 flex items-center gap-1 px-2 py-0.5 rounded text-[12px] font-semibold transition-colors"
+          style={
+            status === 'running'
+              ? { background: '#f0f0f0', color: '#888', cursor: 'not-allowed' }
+              : { background: '#0078d4', color: '#fff' }
+          }
+          onClick={handleExecute}
+          disabled={status === 'running'}
+        >
+          {status === 'running' ? (
+            <>
+              <SyncIcon style={{ fontSize: 11, animation: 'spin 1s linear infinite' }} />
+              Running…
+            </>
+          ) : (
+            <>
+              <PlayIcon style={{ fontSize: 11 }} />
+              {action.executeLabel ?? 'Apply'}
+            </>
+          )}
+        </button>
+      )}
+
+      {status === 'done' && (
+        <CheckMarkIcon style={{ fontSize: 14, color: '#107c10', flexShrink: 0 }} />
+      )}
+    </div>
+  );
+}
+
 // ─── Recommended actions list ─────────────────────────────────────────────────
 
-function RecommendedActions({ issue, onAction }: { issue: DiagnosticIssue; onAction: () => void }) {
+function RecommendedActions({ issue, onNavigate }: { issue: DiagnosticIssue; onNavigate: () => void }) {
   const actions = issue.recommendedActions;
   if (!actions || actions.length === 0) {
-    // Fallback to single CTA
     const label =
       issue.resolutionAction === 'fix-in-servicenow' ? 'Fix in ServiceNow'
       : issue.resolutionAction === 'fix-in-connector' ? 'Fix in connector'
@@ -271,7 +364,7 @@ function RecommendedActions({ issue, onAction }: { issue: DiagnosticIssue; onAct
       <button
         className="flex items-center gap-1.5 px-3 py-[5px] rounded text-[14px] font-semibold hover:bg-[#f5f5f5] transition-colors"
         style={{ color: '#242424', border: '1px solid #d1d1d1', background: '#fff' }}
-        onClick={onAction}
+        onClick={onNavigate}
       >
         {label}
       </button>
@@ -279,42 +372,10 @@ function RecommendedActions({ issue, onAction }: { issue: DiagnosticIssue; onAct
   }
 
   return (
-    <div className="flex flex-col gap-1">
-      {actions.map((action) => {
-        const isExternal = action.where === 'external';
-        const isServiceNow = action.where === 'servicenow';
-        return (
-          <button
-            key={action.id}
-            className="flex items-start gap-2 w-full px-2 py-1.5 rounded text-left hover:bg-[#f5f5f5] transition-colors group"
-            onClick={onAction}
-          >
-            <span
-              className="flex-shrink-0 mt-0.5 w-5 h-5 flex items-center justify-center rounded"
-              style={{
-                background: isServiceNow ? '#f0f4ff' : isExternal ? '#f5f5f5' : '#f0f6ff',
-                color: isServiceNow ? '#4760d5' : isExternal ? '#616161' : '#0078d4',
-              }}
-            >
-              {isExternal
-                ? <OpenInNewTabIcon style={{ fontSize: 11 }} />
-                : isServiceNow
-                ? <NavigateExternalInlineIcon style={{ fontSize: 11 }} />
-                : <SettingsIcon style={{ fontSize: 11 }} />}
-            </span>
-            <div className="flex flex-col min-w-0">
-              <span className="text-[13px] font-semibold leading-[18px] group-hover:underline" style={{ color: '#242424' }}>
-                {action.label}
-              </span>
-              {action.hint && (
-                <span className="text-[11px] leading-[14px]" style={{ color: '#888' }}>
-                  {action.hint}
-                </span>
-              )}
-            </div>
-          </button>
-        );
-      })}
+    <div className="flex flex-col gap-0.5">
+      {actions.map((action) => (
+        <ActionRow key={action.id} action={action} onNavigate={onNavigate} />
+      ))}
     </div>
   );
 }
@@ -417,7 +478,7 @@ function ActionCard({
         <p className="text-[11px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: '#a19f9d' }}>
           Recommended actions
         </p>
-        <RecommendedActions issue={issue} onAction={() => onAction(card)} />
+        <RecommendedActions issue={issue} onNavigate={() => onAction(card)} />
       </div>
     </div>
   );

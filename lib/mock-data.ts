@@ -26,6 +26,7 @@ const snIssues: DiagnosticIssue[] = [
       { id: 'ra-1a', label: 'Update Basic Auth credentials', where: 'connector', hint: 'Connector → Setup → Authentication' },
       { id: 'ra-1b', label: 'Switch to OAuth 2.0', where: 'connector', hint: 'Avoids future password rotation failures' },
       { id: 'ra-1c', label: 'Disable MFA for service account', where: 'servicenow', hint: 'User Administration → Users → svc-copilot' },
+      { id: 'ra-1d', label: 'Retry sync with current credentials', where: 'connector', hint: 'Re-attempts the last failed sync immediately', executable: true, executeLabel: 'Retry sync', executeConfirmation: 'Sync retried — check sync history for the result.' },
     ],
     guideSteps: [
       { step: 1, title: 'Confirm the service account', description: 'In ServiceNow, go to User Administration → Users and search for svc-copilot@contoso.com. Verify the account exists and is active.' },
@@ -138,7 +139,7 @@ const snIssues: DiagnosticIssue[] = [
     copilotImpact: 'Fixes this → All users see search results with correct permissions.',
     recommendedActions: [
       { id: 'ra-acl-a', label: 'Assign acl_read and glide_read roles', where: 'servicenow', hint: 'User Administration → Users → Roles tab' },
-      { id: 'ra-acl-b', label: 'Trigger manual ACL sync', where: 'connector', hint: 'Connector → Users → Sync permissions now' },
+      { id: 'ra-acl-b', label: 'Trigger manual ACL sync', where: 'connector', hint: 'Pushes permissions to all 24,000 indexed items', executable: true, executeLabel: 'Run ACL sync', executeConfirmation: 'ACL sync started — permissions will propagate within a few minutes.' },
       { id: 'ra-acl-c', label: 'Validate results for a test user', where: 'external', hint: 'Ask a user to search in Copilot after sync' },
     ],
     guideSteps: [
@@ -164,6 +165,7 @@ const snIssues: DiagnosticIssue[] = [
     recommendedActions: [
       { id: 'ra-5a', label: 'Register OAuth app in ServiceNow', where: 'servicenow', hint: 'System OAuth → Application Registry' },
       { id: 'ra-5b', label: 'Update connector to use OAuth 2.0', where: 'connector', hint: 'Connector → Setup → Authentication type' },
+      { id: 'ra-5c', label: 'Switch authentication to OAuth 2.0', where: 'connector', hint: 'Applies setting change immediately — requires client ID & secret', executable: true, executeLabel: 'Switch to OAuth 2.0', executeConfirmation: 'Authentication type updated to OAuth 2.0. Enter your client credentials in Setup to complete.' },
     ],
     guideSteps: [
       { step: 1, title: 'Register an OAuth app in ServiceNow', description: "In ServiceNow, go to System OAuth → Application Registry. Click New → Create an OAuth API endpoint for external clients. Name it 'Microsoft Copilot Connector'." },
@@ -186,7 +188,7 @@ const snIssues: DiagnosticIssue[] = [
     connectorFieldId: 'crawl-frequency',
     copilotImpact: 'Fixes this → New articles appear in Copilot within hours, not days.',
     recommendedActions: [
-      { id: 'ra-6a', label: 'Change crawl schedule to daily', where: 'connector', hint: 'Connector → Sync → Crawl frequency' },
+      { id: 'ra-6a', label: 'Change crawl schedule to daily', where: 'connector', hint: 'Connector → Sync → Crawl frequency', executable: true, executeLabel: 'Set to daily', executeConfirmation: 'Crawl frequency updated to daily. Next sync will run within 24 hours.' },
       { id: 'ra-6b', label: 'Enable incremental updates in ServiceNow', where: 'servicenow', hint: 'Knowledge → Administration → Properties' },
     ],
     guideSteps: [

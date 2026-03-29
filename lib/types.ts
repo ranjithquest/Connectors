@@ -16,6 +16,15 @@ export interface RecommendedAction {
   where: 'connector' | 'servicenow' | 'external';
   /** Short hint shown below the label */
   hint?: string;
+  /**
+   * If true, this action can be executed in-place from the card.
+   * The UI will show an "Apply" button and simulate/confirm the change.
+   */
+  executable?: boolean;
+  /** Label shown on the apply button, e.g. "Apply", "Run now", "Switch" */
+  executeLabel?: string;
+  /** Confirmation message shown after execution */
+  executeConfirmation?: string;
 }
 
 export interface DiagnosticIssue {
