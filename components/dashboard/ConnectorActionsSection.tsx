@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import type { Connector, DiagnosticIssue } from '@/lib/types';
 import {
   WarningSolidIcon,
@@ -10,6 +10,8 @@ import {
   NavigateExternalInlineIcon,
   FilterIcon,
   ChevronDownIcon,
+  SettingsIcon,
+  OpenInNewTabIcon,
 } from '@fluentui/react-icons-mdl2';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -225,6 +227,98 @@ function IssueBody({ issue }: { issue: DiagnosticIssue }) {
   );
 }
 
+// ─── Error log samples (keyed by issue id) ───────────────────────────────────
+
+const ERROR_LOGS: Record<string, string[]> = {
+  'sn-1': [
+    '[2026-03-17 06:02:11] POST https://contoso.service-now.com/api/now/table/kb_knowledge → 403 Forbidden',
+    '[2026-03-17 06:02:11] Response: {"error":{"message":"User Not Authenticated","detail":"Required to provide Auth information"}}',
+    '[2026-03-17 06:02:11] Auth method: Basic — svc-copilot@contoso.com',
+    '[2026-03-17 06:02:11] Sync aborted after 0 items indexed',
+  ],
+  'sn-2': [
+    '[2026-03-17 06:02:14] GET https://contoso.service-now.com/api/now/table/kb_knowledge → 200 OK',
+    '[2026-03-17 06:02:14] Response: {"result":[]} — empty result set',
+    '[2026-03-17 06:02:14] ACL check: snc_read role missing for svc-copilot@contoso.com',
+    '[2026-03-17 06:02:14] 0 of 24,000 articles returned — permission denied at row level',
+  ],
+  'sn-acl': [
+    '[2026-03-16 09:15:03] ACL sync initiated for connector hr-policies',
+    '[2026-03-16 09:15:04] GET /api/now/table/sys_user_has_role → 200 OK (0 roles returned)',
+    '[2026-03-16 09:15:04] WARNING: acl_read role not found on svc-copilot@contoso.com',
+    '[2026-03-16 09:15:04] ACL propagation skipped — no permissions to push',
+    '[2026-03-16 09:15:04] All 24,000 items marked as inaccessible to all users',
+  ],
+  'sn-3': [
+    '[2026-03-15 08:15:22] Custom ACL script detected on kb_knowledge table',
+    '[2026-03-15 08:15:22] Script type: Row-level security (scripted ACL)',
+    '[2026-03-15 08:15:22] WARNING: Connector does not evaluate scripted ACLs — bypassing',
+    '[2026-03-15 08:15:22] 2,840 articles indexed without ACL validation',
+  ],
+};
+
+// ─── Recommended actions list ─────────────────────────────────────────────────
+
+function RecommendedActions({ issue, onAction }: { issue: DiagnosticIssue; onAction: () => void }) {
+  const actions = issue.recommendedActions;
+  if (!actions || actions.length === 0) {
+    // Fallback to single CTA
+    const label =
+      issue.resolutionAction === 'fix-in-servicenow' ? 'Fix in ServiceNow'
+      : issue.resolutionAction === 'fix-in-connector' ? 'Fix in connector'
+      : 'View details';
+    return (
+      <button
+        className="flex items-center gap-1.5 px-3 py-[5px] rounded text-[14px] font-semibold hover:bg-[#f5f5f5] transition-colors"
+        style={{ color: '#242424', border: '1px solid #d1d1d1', background: '#fff' }}
+        onClick={onAction}
+      >
+        {label}
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-1">
+      {actions.map((action) => {
+        const isExternal = action.where === 'external';
+        const isServiceNow = action.where === 'servicenow';
+        return (
+          <button
+            key={action.id}
+            className="flex items-start gap-2 w-full px-2 py-1.5 rounded text-left hover:bg-[#f5f5f5] transition-colors group"
+            onClick={onAction}
+          >
+            <span
+              className="flex-shrink-0 mt-0.5 w-5 h-5 flex items-center justify-center rounded"
+              style={{
+                background: isServiceNow ? '#f0f4ff' : isExternal ? '#f5f5f5' : '#f0f6ff',
+                color: isServiceNow ? '#4760d5' : isExternal ? '#616161' : '#0078d4',
+              }}
+            >
+              {isExternal
+                ? <OpenInNewTabIcon style={{ fontSize: 11 }} />
+                : isServiceNow
+                ? <NavigateExternalInlineIcon style={{ fontSize: 11 }} />
+                : <SettingsIcon style={{ fontSize: 11 }} />}
+            </span>
+            <div className="flex flex-col min-w-0">
+              <span className="text-[13px] font-semibold leading-[18px] group-hover:underline" style={{ color: '#242424' }}>
+                {action.label}
+              </span>
+              {action.hint && (
+                <span className="text-[11px] leading-[14px]" style={{ color: '#888' }}>
+                  {action.hint}
+                </span>
+              )}
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── Action Card ─────────────────────────────────────────────────────────────
 
 function ActionCard({
@@ -235,51 +329,27 @@ function ActionCard({
   onAction: (card: ActionCard) => void;
 }) {
   const { issue } = card;
-
-  const ctaLabel =
-    issue.resolutionAction === 'fix-in-servicenow'
-      ? 'Fix in ServiceNow'
-      : issue.resolutionAction === 'fix-in-connector'
-      ? 'Fix in connector'
-      : issue.resolutionAction === 'workaround'
-      ? 'View workaround'
-      : 'View details';
+  const [logOpen, setLogOpen] = useState(false);
+  const logs = ERROR_LOGS[issue.id];
 
   return (
     <div
       className="flex flex-col rounded-xl overflow-hidden flex-shrink-0"
-      style={{
-        background: '#ffffff',
-        border: '1px solid #d1d1d1',
-        width: '100%',
-        minHeight: 268,
-      }}
+      style={{ background: '#ffffff', border: '1px solid #d1d1d1', width: '100%', minHeight: 268 }}
     >
       {/* Header */}
       <div className="flex flex-col px-3 pt-3 pb-2">
         <div className="flex items-start gap-2">
-          {/* Title + connector name */}
           <div className="flex flex-col min-w-0 flex-1">
-            <div className="flex items-center gap-1 mb-0.5 min-w-0">
-              <span
-                className="text-[14px] font-semibold leading-[20px] truncate"
-                style={{ color: '#242424' }}
-              >
-                {issue.title}
-              </span>
-            </div>
-            <div className="flex items-center gap-1">
+            <span className="text-[14px] font-semibold leading-[20px] truncate" style={{ color: '#242424' }}>
+              {issue.title}
+            </span>
+            <div className="flex items-center gap-1 mt-0.5">
               <ConnectorLogo logoUrl={card.connectorLogo} name={card.connectorName} />
-              <span className="text-[12px]" style={{ color: '#616161' }}>
-                {card.connectorName}
-              </span>
+              <span className="text-[12px]" style={{ color: '#616161' }}>{card.connectorName}</span>
             </div>
           </div>
-
-          {/* Severity badge */}
           <SeverityBadge severity={issue.severity} />
-
-          {/* overflow ··· */}
           <button
             className="flex items-center justify-center rounded w-7 h-7 flex-shrink-0 hover:bg-[#f5f5f5]"
             style={{ color: '#616161' }}
@@ -293,7 +363,6 @@ function ActionCard({
       {/* Body */}
       <div className="flex-1 px-3 pb-2">
         <IssueBody issue={issue} />
-        {/* Source tag */}
         <div className="mt-2">
           <span
             className="inline-flex items-center text-[11px] px-1.5 py-0.5 rounded"
@@ -315,25 +384,40 @@ function ActionCard({
         </div>
       )}
 
-      {/* Footer CTA */}
-      <div
-        className="px-3 py-2.5"
-        style={{ borderTop: '1px solid #f0f0f0' }}
-      >
-        <button
-          className="flex items-center gap-1.5 px-3 py-[5px] rounded text-[14px] font-semibold hover:bg-[#f5f5f5] transition-colors"
-          style={{
-            color: '#242424',
-            border: '1px solid #d1d1d1',
-            background: '#ffffff',
-          }}
-          onClick={() => onAction(card)}
-        >
-          {ctaLabel}
-          {issue.resolutionAction === 'fix-in-servicenow' && (
-            <NavigateExternalInlineIcon style={{ fontSize: 12 }} />
+      {/* Error log — expert toggle */}
+      {logs && (
+        <div className="mx-3 mb-2">
+          <button
+            className="flex items-center gap-1 text-[12px] hover:underline"
+            style={{ color: '#616161' }}
+            onClick={() => setLogOpen((v) => !v)}
+          >
+            <ChevronDownIcon
+              style={{ fontSize: 10, transform: logOpen ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.15s' }}
+            />
+            {logOpen ? 'Hide' : 'View'} error log
+          </button>
+          {logOpen && (
+            <div
+              className="mt-1.5 rounded p-2 text-[11px] leading-[16px] font-mono overflow-x-auto"
+              style={{ background: '#1e1e1e', color: '#d4d4d4', maxHeight: 120, overflowY: 'auto' }}
+            >
+              {logs.map((line, i) => (
+                <div key={i} style={{ color: line.includes('WARNING') || line.includes('ERROR') ? '#f48771' : '#d4d4d4' }}>
+                  {line}
+                </div>
+              ))}
+            </div>
           )}
-        </button>
+        </div>
+      )}
+
+      {/* Recommended actions */}
+      <div className="px-3 py-2.5" style={{ borderTop: '1px solid #f0f0f0' }}>
+        <p className="text-[11px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: '#a19f9d' }}>
+          Recommended actions
+        </p>
+        <RecommendedActions issue={issue} onAction={() => onAction(card)} />
       </div>
     </div>
   );

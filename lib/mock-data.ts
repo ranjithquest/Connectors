@@ -22,6 +22,11 @@ const snIssues: DiagnosticIssue[] = [
     connectorTab: 'Setup',
     connectorFieldId: 'auth-types',
     copilotImpact: 'Fixes this → Copilot resumes indexing HR content for all users.',
+    recommendedActions: [
+      { id: 'ra-1a', label: 'Update Basic Auth credentials', where: 'connector', hint: 'Connector → Setup → Authentication' },
+      { id: 'ra-1b', label: 'Switch to OAuth 2.0', where: 'connector', hint: 'Avoids future password rotation failures' },
+      { id: 'ra-1c', label: 'Disable MFA for service account', where: 'servicenow', hint: 'User Administration → Users → svc-copilot' },
+    ],
     guideSteps: [
       { step: 1, title: 'Confirm the service account', description: 'In ServiceNow, go to User Administration → Users and search for svc-copilot@contoso.com. Verify the account exists and is active.' },
       { step: 2, title: 'Check MFA settings', description: 'Open the user profile. Under Security → Multi-factor Authentication, confirm MFA is disabled for this account. Service accounts must not require MFA.' },
@@ -43,6 +48,10 @@ const snIssues: DiagnosticIssue[] = [
     connectorTab: 'Setup',
     connectorFieldId: 'auth-types',
     copilotImpact: 'Fixes this → Copilot gains read access and begins indexing knowledge articles.',
+    recommendedActions: [
+      { id: 'ra-2a', label: 'Assign snc_read role to service account', where: 'servicenow', hint: 'User Administration → Users → Roles tab' },
+      { id: 'ra-2b', label: 'Verify account is active', where: 'servicenow', hint: 'Confirm svc-copilot@contoso.com is not locked' },
+    ],
     guideSteps: [
       { step: 1, title: 'Open ServiceNow User Administration', description: 'In ServiceNow, navigate to User Administration → Users from the left nav or app switcher.' },
       { step: 2, title: 'Find the service account', description: 'Search for svc-copilot@contoso.com. Open the user record.' },
@@ -62,6 +71,11 @@ const snIssues: DiagnosticIssue[] = [
     connectorFieldId: 'access-permissions',
     requiresDiagnostic: true,
     copilotImpact: 'Fixes this → Copilot stops exposing restricted articles to unauthorised users.',
+    recommendedActions: [
+      { id: 'ra-3a', label: 'Switch to Advanced user criteria', where: 'connector', hint: 'Connector → Users → User criteria type' },
+      { id: 'ra-3b', label: 'Exclude ACL-protected knowledge bases', where: 'connector', hint: 'Remove restricted bases from crawl scope' },
+      { id: 'ra-3c', label: 'Run diagnostic to assess exposure', where: 'connector', hint: 'Identify which articles are affected' },
+    ],
     diagnosticQuestions: [
       {
         id: 'q1',
@@ -97,6 +111,11 @@ const snIssues: DiagnosticIssue[] = [
     connectorTab: 'Sync',
     connectorFieldId: 'crawl-frequency',
     copilotImpact: 'Fixes this → Copilot results limited to approved content only.',
+    recommendedActions: [
+      { id: 'ra-4a', label: 'Restrict crawl to approved knowledge bases', where: 'connector', hint: 'Connector → Sync → Knowledge bases' },
+      { id: 'ra-4b', label: 'Review HR Confidential base with HR team', where: 'external', hint: 'Confirm if safe to include in Copilot' },
+      { id: 'ra-4c', label: 'Review Legal Review base with Legal team', where: 'external', hint: 'Confirm if safe to include in Copilot' },
+    ],
     guideSteps: [
       { step: 1, title: 'Open connector Sync settings', description: 'In the connector admin, go to the Sync tab. Locate the Knowledge bases section.' },
       { step: 2, title: 'Review the current crawl scope', description: 'Check which knowledge bases are currently selected. Identify any that contain confidential or restricted content (e.g. HR Confidential, Legal Review).' },
@@ -117,6 +136,11 @@ const snIssues: DiagnosticIssue[] = [
     connectorTab: 'Users',
     connectorFieldId: 'access-permissions',
     copilotImpact: 'Fixes this → All users see search results with correct permissions.',
+    recommendedActions: [
+      { id: 'ra-acl-a', label: 'Assign acl_read and glide_read roles', where: 'servicenow', hint: 'User Administration → Users → Roles tab' },
+      { id: 'ra-acl-b', label: 'Trigger manual ACL sync', where: 'connector', hint: 'Connector → Users → Sync permissions now' },
+      { id: 'ra-acl-c', label: 'Validate results for a test user', where: 'external', hint: 'Ask a user to search in Copilot after sync' },
+    ],
     guideSteps: [
       { step: 1, title: 'Verify service account roles in ServiceNow', description: 'Go to User Administration → Users → open svc-copilot@contoso.com. In the Roles tab, confirm both acl_read and glide_read are present.' },
       { step: 2, title: 'Add missing roles if needed', description: "Click Edit on the Roles tab. Add 'acl_read' and/or 'glide_read'. Save the record." },
@@ -137,6 +161,10 @@ const snIssues: DiagnosticIssue[] = [
     connectorTab: 'Setup',
     connectorFieldId: 'auth-types',
     copilotImpact: 'Fixes this → Syncs survive password rotations without admin intervention.',
+    recommendedActions: [
+      { id: 'ra-5a', label: 'Register OAuth app in ServiceNow', where: 'servicenow', hint: 'System OAuth → Application Registry' },
+      { id: 'ra-5b', label: 'Update connector to use OAuth 2.0', where: 'connector', hint: 'Connector → Setup → Authentication type' },
+    ],
     guideSteps: [
       { step: 1, title: 'Register an OAuth app in ServiceNow', description: "In ServiceNow, go to System OAuth → Application Registry. Click New → Create an OAuth API endpoint for external clients. Name it 'Microsoft Copilot Connector'." },
       { step: 2, title: 'Copy client ID and secret', description: 'After saving, open the record and copy the Client ID and Client Secret. Store them securely.' },
@@ -157,6 +185,10 @@ const snIssues: DiagnosticIssue[] = [
     connectorTab: 'Sync',
     connectorFieldId: 'crawl-frequency',
     copilotImpact: 'Fixes this → New articles appear in Copilot within hours, not days.',
+    recommendedActions: [
+      { id: 'ra-6a', label: 'Change crawl schedule to daily', where: 'connector', hint: 'Connector → Sync → Crawl frequency' },
+      { id: 'ra-6b', label: 'Enable incremental updates in ServiceNow', where: 'servicenow', hint: 'Knowledge → Administration → Properties' },
+    ],
     guideSteps: [
       { step: 1, title: 'Enable incremental updates in ServiceNow', description: 'In ServiceNow, go to Knowledge → Administration → Properties. Enable Push updates on article change if available in your version.' },
       { step: 2, title: 'Change crawl schedule in connector', description: 'In connector settings, go to the Sync tab → Crawl frequency. Change from Weekly to Daily.' },

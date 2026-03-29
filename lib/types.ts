@@ -10,6 +10,14 @@ export interface DiagnosticQuestion {
   options: { value: string; label: string }[];
 }
 
+export interface RecommendedAction {
+  id: string;
+  label: string;
+  where: 'connector' | 'servicenow' | 'external';
+  /** Short hint shown below the label */
+  hint?: string;
+}
+
 export interface DiagnosticIssue {
   id: string;
   rank: number;
@@ -29,6 +37,7 @@ export interface DiagnosticIssue {
   resolvedAt?: string;
   copilotImpact?: string;
   guideSteps?: { step: number; title: string; description: string }[];
+  recommendedActions?: RecommendedAction[];
 }
 
 export interface SyncEvent {
