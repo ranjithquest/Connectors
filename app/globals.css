@@ -55,3 +55,6 @@ body {
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 2px; }
+
+.nav-scroll::-webkit-scrollbar-thumb { background: transparent; }
+.nav-scroll:hover::-webkit-scrollbar-thumb { background: var(--border-mid); }

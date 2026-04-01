@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import TopNav from "@/components/layout/TopNav";
 import LeftNav from "@/components/layout/LeftNav";
+import FluentAppProvider from "@/components/FluentProvider";
 
 export const metadata: Metadata = {
   title: "Microsoft 365 admin center",
@@ -16,15 +17,17 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
-        <div className="flex flex-col h-screen overflow-hidden">
-          <TopNav />
-          <div className="flex flex-1 overflow-hidden">
-            <LeftNav />
-            <main className="flex-1 overflow-y-auto bg-white">
-              {children}
-            </main>
+        <FluentAppProvider>
+          <div className="flex flex-col h-screen overflow-hidden">
+            <TopNav />
+            <div className="flex flex-1 overflow-hidden bg-white">
+              <LeftNav />
+              <main className="flex-1 overflow-y-auto bg-white">
+                {children}
+              </main>
+            </div>
           </div>
-        </div>
+        </FluentAppProvider>
       </body>
     </html>
   );
