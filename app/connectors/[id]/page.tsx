@@ -224,7 +224,7 @@ export default function ConnectorHealthPage({ params }: Props) {
                 <div className={`w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center text-[11px] font-bold mt-0.5 ${
                   step.status === 'ok' ? 'bg-[#107c10] text-white' :
                   step.status === 'warn' ? 'bg-[#f0a30a] text-white' :
-                  'bg-[#e1e1e1] text-[#605e5c]'
+                  'text-[#605e5c]'
                 }`}>
                   {step.status === 'ok' ? '✓' : step.status === 'warn' ? '!' : step.step}
                 </div>

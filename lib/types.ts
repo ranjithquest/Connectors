@@ -10,12 +10,27 @@ export interface DiagnosticQuestion {
   options: { value: string; label: string }[];
 }
 
+export interface RecommendedActionStep {
+  label: string;
+  description?: string;
+  /** If set, clicking this step navigates to the given tab + field */
+  tab?: string;
+  fieldId?: string;
+  /** If true, this step is an executable action (rendered as a primary action) */
+  executable?: boolean;
+  confirmationMessage?: string;
+}
+
 export interface RecommendedAction {
   id: string;
   label: string;
   where: 'connector' | 'servicenow' | 'external';
   /** Short hint shown below the label */
   hint?: string;
+  /** Marks this as the recommended action */
+  recommended?: boolean;
+  /** Detailed resolution steps shown when the action is expanded */
+  steps?: RecommendedActionStep[];
   /**
    * If true, this action can be executed in-place from the card.
    * The UI will show an "Apply" button and simulate/confirm the change.
@@ -45,6 +60,7 @@ export interface DiagnosticIssue {
   diagnosticQuestions?: DiagnosticQuestion[];
   resolvedAt?: string;
   copilotImpact?: string;
+  docsUrl?: string;
   guideSteps?: { step: number; title: string; description: string }[];
   recommendedActions?: RecommendedAction[];
 }
@@ -73,6 +89,8 @@ export interface Connector {
   userCriteriaType: UserCriteriaType;
   instanceUrl: string;
   authMethod: AuthMethod;
+  basicUsername?: string;
+  basicPassword?: string;
   healthStatus: HealthStatus;
   blockerCount: number;
   warningCount: number;

@@ -2,8 +2,10 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
+import { SearchBox } from '@fluentui/react';
+import { CircleAdditionIcon, PageArrowRightIcon } from '@fluentui/react-icons-mdl2';
 import { CONNECTOR_CATALOG, CATEGORIES, type ConnectorCatalogItem } from '@/lib/gallery-data';
-import SetupDrawer from '@/components/connectors/SetupDrawer';
+import SimpleSetupDrawer from '@/components/connectors/SimpleSetupDrawer';
 
 function ConnectorLogo({ color, initials, logoUrl, logoBg }: { color: string; initials: string; logoUrl?: string; logoBg?: string }) {
   const [imgFailed, setImgFailed] = useState(false);
@@ -11,13 +13,13 @@ function ConnectorLogo({ color, initials, logoUrl, logoBg }: { color: string; in
   if (logoUrl && !imgFailed) {
     return (
       <div
-        className="shrink-0 w-12 h-12 rounded flex items-center justify-center overflow-hidden"
-        style={{ backgroundColor: logoBg ?? 'transparent' }}
+        className="shrink-0 w-12 h-12 rounded-[4px] overflow-hidden flex items-center justify-center"
+        style={{ backgroundColor: logoBg ?? '#ffffff' }}
       >
         <img
           src={logoUrl}
           alt={initials}
-          className="w-10 h-10 object-contain"
+          className="w-full h-full object-contain"
           onError={() => setImgFailed(true)}
         />
       </div>
@@ -25,7 +27,7 @@ function ConnectorLogo({ color, initials, logoUrl, logoBg }: { color: string; in
   }
   return (
     <div
-      className="shrink-0 w-12 h-12 rounded flex items-center justify-center text-white text-[13px] font-semibold"
+      className="shrink-0 w-12 h-12 rounded-[4px] flex items-center justify-center text-white text-[13px] font-semibold"
       style={{ backgroundColor: color }}
     >
       {initials}
@@ -35,16 +37,16 @@ function ConnectorLogo({ color, initials, logoUrl, logoBg }: { color: string; in
 
 function ConnectorTile({ connector, onAdd }: { connector: ConnectorCatalogItem; onAdd: (name: string) => void }) {
   return (
-    <div className="bg-white border border-transparent rounded flex items-center gap-3 p-4 shadow-[0px_2px_4px_0px_rgba(0,0,0,0.14),0px_0px_2px_0px_rgba(0,0,0,0.12)] hover:shadow-[0px_4px_8px_0px_rgba(0,0,0,0.16),0px_0px_2px_0px_rgba(0,0,0,0.12)] transition-shadow">
+    <div className="bg-white dark:bg-[#141414] border border-transparent dark:border-[#3d3d3d] rounded-[4px] flex items-center gap-3 p-4 [box-shadow:0px_2px_4px_0px_rgba(0,0,0,0.14),0px_0px_2px_0px_rgba(0,0,0,0.12)] dark:[box-shadow:none] hover:[box-shadow:0px_4px_8px_0px_rgba(0,0,0,0.14),0px_0px_2px_0px_rgba(0,0,0,0.12)] dark:hover:border-[#525252] dark:hover:bg-[#1f1f1f] transition-all">
       <ConnectorLogo color={connector.logoColor} initials={connector.logoInitials} logoUrl={connector.logoUrl} logoBg={connector.logoBg} />
-      <div className="flex-1 min-w-0">
-        <p className="text-[14px] font-semibold text-[#242424] truncate leading-5">{connector.name}</p>
-        <p className="text-[12px] text-[#616161] truncate leading-4 mt-0.5">{connector.publisher}</p>
-        <p className="text-[12px] text-[#616161] truncate leading-4">{connector.description}</p>
+      <div className="flex-1 min-w-0 flex flex-col gap-1">
+        <p className="text-[14px] font-semibold leading-5 text-[#242424] dark:text-[#d6d6d6] truncate">{connector.name}</p>
+        <p className="text-[12px] leading-4 text-[#616161] dark:text-[#adadad] truncate">{connector.publisher}</p>
+        <p className="text-[12px] leading-4 text-[#616161] dark:text-[#adadad] truncate">{connector.description}</p>
       </div>
       <button
         onClick={() => onAdd(connector.name)}
-        className="shrink-0 px-3 py-[5px] text-[14px] font-semibold text-[#242424] bg-white border border-[#d1d1d1] rounded hover:bg-[#f5f5f5] transition-colors whitespace-nowrap"
+        className="shrink-0 px-3 py-[5px] text-[14px] font-semibold text-[#242424] dark:text-[#d6d6d6] bg-white dark:bg-transparent border border-[#d1d1d1] dark:border-[#4d4d4d] rounded-[4px] hover:bg-[#f5f5f5] dark:hover:bg-[#ffffff1a] dark:hover:border-[#606060] transition-colors whitespace-nowrap"
       >
         Add
       </button>
@@ -87,54 +89,49 @@ export default function GalleryPage() {
     items: filtered.filter((c) => c.category === cat && !c.recommended),
   })).filter((g) => g.items.length > 0);
 
-  const showRecommended = filter !== 'recommended' && !activeCategory && recommended.length > 0;
+  const showRecommended = filter !== 'recommended' && !activeCategory && !search && recommended.length > 0;
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="h-screen flex flex-col overflow-hidden bg-white dark:bg-[#141414]">
 
       {/* Page header */}
-      <div className="pt-3 pb-0 bg-white px-4 sm:px-8 lg:px-12">
-        <nav className="flex items-center gap-1 text-[12px] text-[#616161] mb-4">
+      <div className="shrink-0 pt-3 pb-0 bg-white dark:bg-[#141414] px-4 sm:px-8 lg:px-12">
+        <nav className="flex items-center gap-1 text-[12px] text-[#616161] dark:text-[#9e9d99] mb-4">
           <Link href="/" className="hover:text-[#0078d4] hover:underline">Home</Link>
-          <span className="text-[#c8c6c4]">›</span>
+          <span className="text-[#c8c6c4] dark:text-[#525252]">›</span>
           <Link href="/connectors" className="hover:text-[#0078d4] hover:underline">Connectors</Link>
-          <span className="text-[#c8c6c4]">›</span>
-          <span className="text-[#242424]">Gallery</span>
+          <span className="text-[#c8c6c4] dark:text-[#525252]">›</span>
+          <span className="text-[#242424] dark:text-[#d6d6d6]">Gallery</span>
         </nav>
 
-        <h1 className="text-[24px] sm:text-[28px] font-bold text-[#323130] leading-[36px] mb-6">Connectors</h1>
+        <h1 className="text-[24px] sm:text-[28px] font-bold text-[#323130] dark:text-[#f0f0f0] leading-[36px] mb-6">Connectors</h1>
 
         <div className="flex">
           <Link href="/connectors/gallery" className="pb-2 mr-6 text-[14px] font-semibold text-[#0078d4] border-b-2 border-[#0078d4]">
             Gallery
           </Link>
-          <Link href="/connectors" className="pb-2 mr-6 text-[14px] text-[#424242] hover:text-[#0078d4] border-b-2 border-transparent transition-colors">
+          <Link href="/connectors" className="pb-2 mr-6 text-[14px] text-[#424242] dark:text-[#9e9d99] hover:text-[#0078d4] border-b-2 border-transparent transition-colors">
             Your connections
           </Link>
         </div>
       </div>
-      <div className="border-b border-[#e1e1e1] mx-4 sm:mx-8 lg:mx-12 mt-6" />
+      <div className="shrink-0 border-b border-[#e1e1e1] dark:border-[#3d3d3d] mx-4 sm:mx-8 lg:mx-12 mt-6" />
 
       {/* Main layout */}
-      <div className="flex flex-col lg:flex-row px-4 sm:px-8 lg:px-12">
+      <div className="flex-1 overflow-hidden flex flex-col lg:flex-row px-4 sm:px-8 lg:px-12">
 
-        {/* Sidebar */}
-        <aside className="lg:w-[260px] lg:shrink-0 lg:border-r border-[#e1e1e1] lg:pt-6 lg:pb-6 lg:flex lg:flex-col lg:gap-4">
+        {/* Sidebar — desktop only */}
+        <aside className="hidden lg:flex lg:w-[260px] lg:shrink-0 lg:border-r border-[#e1e1e1] dark:border-[#3d3d3d] lg:pt-6 lg:flex-col lg:gap-4 lg:overflow-y-auto">
 
           {/* Search */}
           <div className="pt-4 lg:pt-0 lg:pr-6">
-            <div className="flex items-center gap-2 border border-[#605e5c] rounded-[2px] px-2 py-[5px] bg-white">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0 text-[#0078d4]">
-                <path d="M10.5 10.5L14 14M6.5 12C3.46243 12 1 9.53757 1 6.5C1 3.46243 3.46243 1 6.5 1C9.53757 1 12 3.46243 12 6.5C12 9.53757 9.53757 12 6.5 12Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
-              <input
-                type="text"
-                placeholder="Search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="flex-1 text-[14px] text-[#605e5c] outline-none placeholder-[#605e5c] bg-transparent"
-              />
-            </div>
+            <SearchBox
+              placeholder="Search"
+              value={search}
+              onChange={(_, v) => setSearch(v ?? '')}
+              onClear={() => setSearch('')}
+              styles={{ root: { width: '100%' } }}
+            />
           </div>
 
           {/* Filter + category chips — horizontal scroll on mobile, vertical list on desktop */}
@@ -143,30 +140,30 @@ export default function GalleryPage() {
 
             <button
               onClick={() => { setFilter('all'); setActiveCategory(null); }}
-              className={`shrink-0 flex items-center h-8 px-3 lg:px-2 lg:w-full text-left text-[14px] rounded-full lg:rounded-none transition-colors whitespace-nowrap
-                ${filter === 'all' && !activeCategory ? 'bg-[#ededed] font-semibold text-[#323130]' : 'text-[#323130] hover:bg-[#f5f5f5]'}`}
+              className={`shrink-0 flex items-center h-8 px-3 lg:px-2 lg:w-full text-left text-[14px] rounded-full lg:rounded-none lg:border-l-[3px] transition-colors whitespace-nowrap
+                ${filter === 'all' && !activeCategory ? 'bg-[#ededed] dark:bg-[#3d3d3d] font-semibold text-[#323130] dark:text-[#f0f0f0] lg:border-l-[#0078d4]' : 'text-[#323130] dark:text-[#d6d6d6] hover:bg-[#f5f5f5] dark:hover:bg-[#2d2d2d] lg:border-l-transparent'}`}
             >
               All
             </button>
             <button
               onClick={() => { setFilter('recommended'); setActiveCategory(null); }}
-              className={`shrink-0 flex items-center h-8 px-3 lg:px-2 lg:w-full text-left text-[14px] rounded-full lg:rounded-none transition-colors whitespace-nowrap
-                ${filter === 'recommended' && !activeCategory ? 'bg-[#ededed] font-semibold text-[#323130]' : 'text-[#323130] hover:bg-[#f5f5f5]'}`}
+              className={`shrink-0 flex items-center h-8 px-3 lg:px-2 lg:w-full text-left text-[14px] rounded-full lg:rounded-none lg:border-l-[3px] transition-colors whitespace-nowrap
+                ${filter === 'recommended' && !activeCategory ? 'bg-[#ededed] dark:bg-[#3d3d3d] font-semibold text-[#323130] dark:text-[#f0f0f0] lg:border-l-[#0078d4]' : 'text-[#323130] dark:text-[#d6d6d6] hover:bg-[#f5f5f5] dark:hover:bg-[#2d2d2d] lg:border-l-transparent'}`}
             >
               Recommended
             </button>
 
             {/* Categories label — desktop only */}
-            <div className="hidden lg:flex items-center h-[40px] pl-2 border-t border-[#e1e1e1] mt-1">
-              <span className="text-[14px] font-semibold text-[#323130]">Categories</span>
+            <div className="hidden lg:flex items-center h-[40px] pl-2 border-t border-[#e1e1e1] dark:border-[#3d3d3d] mt-1">
+              <span className="text-[14px] font-semibold text-[#323130] dark:text-[#f0f0f0]">Categories</span>
             </div>
 
             {CATEGORIES.map((cat) => (
               <button
                 key={cat}
                 onClick={() => { setActiveCategory(cat === activeCategory ? null : cat); setFilter('all'); }}
-                className={`shrink-0 flex items-center h-8 px-3 lg:px-2 lg:w-full text-left text-[14px] rounded-full lg:rounded-none transition-colors whitespace-nowrap
-                  ${activeCategory === cat ? 'bg-[#ededed] font-semibold text-[#323130]' : 'text-[#323130] hover:bg-[#f5f5f5]'}`}
+                className={`shrink-0 flex items-center h-8 px-3 lg:px-2 lg:w-full text-left text-[14px] rounded-full lg:rounded-none lg:border-l-[3px] transition-colors whitespace-nowrap
+                  ${activeCategory === cat ? 'bg-[#ededed] dark:bg-[#3d3d3d] font-semibold text-[#323130] dark:text-[#f0f0f0] lg:border-l-[#0078d4]' : 'text-[#323130] dark:text-[#d6d6d6] hover:bg-[#f5f5f5] dark:hover:bg-[#2d2d2d] lg:border-l-transparent'}`}
               >
                 {cat}
               </button>
@@ -175,81 +172,144 @@ export default function GalleryPage() {
         </aside>
 
         {/* Content */}
-        <main className="flex-1 min-w-0">
+        <main className="flex-1 min-w-0 overflow-y-auto">
 
           {/* Hero banner */}
           {!search && !activeCategory && filter === 'all' && (
-            <div className="mt-4 lg:mt-6 lg:mx-6 rounded-[4px] relative overflow-hidden h-[160px] sm:h-[210px] lg:h-[256px]"
+            <div className="mt-4 lg:mt-6 lg:mx-6 rounded-[4px] overflow-hidden flex flex-row h-[160px] sm:h-[210px] lg:h-[256px]"
               style={{ background: 'linear-gradient(162.2deg, rgb(221,218,240) 0%, rgb(232,226,238) 50%, rgb(242,232,228) 100%)' }}>
-              <div className="absolute right-0 top-0 h-full w-[65%] overflow-hidden">
-                <img src="/banner-copilot.png" alt="" className="absolute h-[180%] w-auto object-contain"
-                  style={{ top: '-40%', right: '-5%', transform: 'scaleX(-1)' }} />
-              </div>
-              <div className="relative z-10 flex h-full flex-col justify-center px-6 sm:px-10 max-w-[460px]">
-                <h2 className="text-[15px] sm:text-[19px] lg:text-[22px] font-bold text-[#1a1a2e] leading-[1.25] mb-2">
+              {/* Text */}
+              <div className="flex flex-col justify-center px-6 sm:px-10 flex-1 min-w-0">
+                <h2 className="text-[15px] sm:text-[19px] lg:text-[22px] font-bold leading-[1.25] mb-2" style={{ color: '#1a1a2e' }}>
                   Power decision-making with your organization&apos;s data
                 </h2>
-                <p className="hidden sm:block text-[13px] text-[#323130] leading-[20px]">
+                <p className="hidden sm:block text-[13px] leading-[20px]" style={{ color: '#323130' }}>
                   Connect your organization&apos;s data to Copilot to give users tailored, relevant, and meaningful insights across their Microsoft apps.
                 </p>
               </div>
-              <div className="absolute z-10" style={{ left: '42%', top: '50%', transform: 'translate(-50%, -50%)' }}>
-                <img src="/copilot-icon-48.png" alt="Copilot"
-                  className="w-[40px] h-[40px] sm:w-[52px] sm:h-[52px] lg:w-[64px] lg:h-[64px]"
-                  style={{ objectFit: 'contain', mixBlendMode: 'multiply' }} />
+              {/* Image — oversized and cropped to fill, matching original scale */}
+              <div className="relative w-[55%] h-full overflow-hidden flex-shrink-0">
+                <img
+                  src="https://res.cdn.office.net/admincenter/admin-content/admin/images/udt/catalogbanner-2x.png"
+                  alt=""
+                  className="absolute w-auto object-contain"
+                  style={{ height: '160%', top: '-30%', right: '-2%' }}
+                />
               </div>
             </div>
           )}
+
+          {/* Mobile search + categories — shown below banner on < lg */}
+          <div className="lg:hidden mt-4 flex flex-col gap-2">
+            {/* Search */}
+            <SearchBox
+              placeholder="Search"
+              value={search}
+              onChange={(_, v) => setSearch(v ?? '')}
+              onClear={() => setSearch('')}
+              styles={{ root: { width: '100%' } }}
+            />
+            {/* Filter + category chips */}
+            <div className="flex gap-1 overflow-x-auto py-2" style={{ scrollbarWidth: 'none' }}>
+              <button
+                onClick={() => { setFilter('all'); setActiveCategory(null); }}
+                className={`shrink-0 flex items-center h-8 px-3 text-[14px] rounded-full transition-colors whitespace-nowrap
+                  ${filter === 'all' && !activeCategory ? 'bg-[#ededed] dark:bg-[#3d3d3d] font-semibold text-[#323130] dark:text-[#f0f0f0]' : 'text-[#323130] dark:text-[#d6d6d6] hover:bg-[#f5f5f5] dark:hover:bg-[#2d2d2d]'}`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => { setFilter('recommended'); setActiveCategory(null); }}
+                className={`shrink-0 flex items-center h-8 px-3 text-[14px] rounded-full transition-colors whitespace-nowrap
+                  ${filter === 'recommended' && !activeCategory ? 'bg-[#ededed] dark:bg-[#3d3d3d] font-semibold text-[#323130] dark:text-[#f0f0f0]' : 'text-[#323130] dark:text-[#d6d6d6] hover:bg-[#f5f5f5] dark:hover:bg-[#2d2d2d]'}`}
+              >
+                Recommended
+              </button>
+              {CATEGORIES.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => { setActiveCategory(cat === activeCategory ? null : cat); setFilter('all'); }}
+                  className={`shrink-0 flex items-center h-8 px-3 text-[14px] rounded-full transition-colors whitespace-nowrap
+                    ${activeCategory === cat ? 'bg-[#ededed] dark:bg-[#3d3d3d] font-semibold text-[#323130] dark:text-[#f0f0f0]' : 'text-[#323130] dark:text-[#d6d6d6] hover:bg-[#f5f5f5] dark:hover:bg-[#2d2d2d]'}`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* Connector sections */}
           <div className="py-6 lg:px-8 lg:py-8 flex flex-col gap-10 lg:gap-12">
 
             {showRecommended && (
               <section>
-                <h2 className="text-[18px] sm:text-[20px] font-semibold text-[#323130] mb-4">Recommended</h2>
+                <h2 className="text-[18px] sm:text-[20px] font-semibold text-[#323130] dark:text-[#f0f0f0] mb-4">Recommended</h2>
                 <SectionGrid connectors={recommended} onAdd={setSetupType} />
               </section>
             )}
 
-            {filter === 'recommended' && (
+            {filter === 'recommended' && !search && (
               <section>
-                <h2 className="text-[18px] sm:text-[20px] font-semibold text-[#323130] mb-4">Recommended</h2>
+                <h2 className="text-[18px] sm:text-[20px] font-semibold text-[#323130] dark:text-[#f0f0f0] mb-4">Recommended</h2>
                 <SectionGrid connectors={recommended} onAdd={setSetupType} />
               </section>
             )}
 
             {activeCategory && (
               <section>
-                <h2 className="text-[18px] sm:text-[20px] font-semibold text-[#323130] mb-4">{activeCategory}</h2>
+                <h2 className="text-[18px] sm:text-[20px] font-semibold text-[#323130] dark:text-[#f0f0f0] mb-4">{activeCategory}</h2>
                 {filtered.length > 0
                   ? <SectionGrid connectors={filtered} onAdd={setSetupType} />
-                  : <p className="text-[14px] text-[#605e5c]">No connectors found.</p>}
+                  : <p className="text-[14px] text-[#605e5c] dark:text-[#9e9d99]">No connectors found.</p>}
               </section>
             )}
 
             {search && (
               <section>
-                <h2 className="text-[18px] sm:text-[20px] font-semibold text-[#323130] mb-4">
+                <h2 className="text-[18px] sm:text-[20px] font-semibold text-[#323130] dark:text-[#f0f0f0] mb-4">
                   {filtered.length} result{filtered.length !== 1 ? 's' : ''} for &ldquo;{search}&rdquo;
                 </h2>
                 {filtered.length > 0
                   ? <SectionGrid connectors={filtered} onAdd={setSetupType} />
-                  : <p className="text-[14px] text-[#605e5c]">No connectors match your search.</p>}
+                  : <p className="text-[14px] text-[#605e5c] dark:text-[#9e9d99]">No connectors match your search.</p>}
               </section>
             )}
 
             {!search && !activeCategory && filter === 'all' && byCategory.map(({ label, items }) => (
               <section key={label}>
-                <h2 className="text-[18px] sm:text-[20px] font-semibold text-[#323130] mb-4">{label}</h2>
+                <h2 className="text-[18px] sm:text-[20px] font-semibold text-[#323130] dark:text-[#f0f0f0] mb-4">{label}</h2>
                 <SectionGrid connectors={items} onAdd={setSetupType} />
               </section>
             ))}
+          </div>
+
+          {/* Footer */}
+          <div className="lg:px-8 pb-8 mt-12 flex items-center gap-1 flex-wrap">
+            <span className="text-[14px] text-[#323130] dark:text-[#d6d6d6] mr-1">Didn&apos;t find your connector?</span>
+            <a
+              href="https://learn.microsoft.com/en-US/graph/connecting-external-content-build-quickstart"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 h-8 px-1 text-[14px] text-[#323130] dark:text-[#d6d6d6] hover:text-[#106ebe] dark:hover:text-[#479ef5] transition-colors"
+            >
+              <CircleAdditionIcon style={{ fontSize: 14 }} />
+              Learn to create your connector
+            </a>
+            <a
+              href="https://aka.ms/GraphConnectorsFeedback"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 h-8 px-1 text-[14px] text-[#323130] dark:text-[#d6d6d6] hover:text-[#106ebe] dark:hover:text-[#479ef5] transition-colors"
+            >
+              <PageArrowRightIcon style={{ fontSize: 14 }} />
+              Request for a connector
+            </a>
           </div>
         </main>
       </div>
 
       {setupType && (
-        <SetupDrawer connectorType={setupType} onClose={() => setSetupType(null)} />
+        <SimpleSetupDrawer connectorType={setupType} onClose={() => setSetupType(null)} />
       )}
     </div>
   );

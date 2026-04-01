@@ -48,7 +48,7 @@ const GUIDANCE_SECTIONS = [
   {
     id: 'troubleshooting',
     title: 'Troubleshooting',
-    content: "If the connection fails to crawl, verify that the service account has the required ServiceNow roles (kb_reader, snc_internal) and that the instance URL is reachable from Microsoft's network.",
+    content: "If the connection fails to sync, verify that the service account has the required ServiceNow roles (kb_reader, snc_internal) and that the instance URL is reachable from Microsoft's network.",
   },
 ];
 

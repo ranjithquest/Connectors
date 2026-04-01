@@ -176,7 +176,7 @@ function IssueBody({ issue }: { issue: DiagnosticIssue }) {
       <div className="flex flex-col gap-2">
         <div>
           <span className="text-[28px] font-bold leading-[36px]" style={{ color: '#242424' }}>2</span>
-          <p className="text-[12px] mt-0.5" style={{ color: '#616161' }}>restricted knowledge bases in crawl scope</p>
+          <p className="text-[12px] mt-0.5" style={{ color: '#616161' }}>restricted knowledge bases in sync scope</p>
         </div>
         <MiniBar label="HR Confidential" value={1200} max={24000} color="linear-gradient(180deg,#674c8c,#4c3867)" />
         <MiniBar label="Legal Review" value={430} max={24000} color="linear-gradient(180deg,#637cef,#4760d5)" />
@@ -217,7 +217,7 @@ function IssueBody({ issue }: { issue: DiagnosticIssue }) {
           </span>
         </div>
         <p className="text-[12px]" style={{ color: '#616161' }}>new articles not yet visible in Copilot</p>
-        <MiniBar label="Current crawl lag" value={7} max={7} color="linear-gradient(180deg,#fcce2e,#e8a600)" />
+        <MiniBar label="Current sync lag" value={7} max={7} color="linear-gradient(180deg,#fcce2e,#e8a600)" />
         <MiniBar label="Target lag (days)" value={1} max={7} color="linear-gradient(180deg,#00a5af,#008b94)" />
       </div>
     );

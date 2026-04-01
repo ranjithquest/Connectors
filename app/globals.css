@@ -54,7 +54,208 @@ body {
 
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 2px; }
+::-webkit-scrollbar-thumb { background: transparent; border-radius: 2px; transition: background 0.3s; }
 
-.nav-scroll::-webkit-scrollbar-thumb { background: transparent; }
-.nav-scroll:hover::-webkit-scrollbar-thumb { background: var(--border-mid); }
+.scrolling::-webkit-scrollbar-thumb { background: var(--border-mid); }
+
+.nav-scroll { scrollbar-width: none; }
+.nav-scroll::-webkit-scrollbar { width: 0; height: 0; }
+
+/* Dark mode — all CSS variable overrides */
+.dark {
+  --bg: #141414;             /* page background — colorNeutralBackground3, matches M365 dark */
+  --surface: #292929;        /* card/surface background — colorNeutralBackground1 */
+  --border: #3d3d3d;         /* colorNeutralStroke3 */
+  --border-mid: #525252;     /* colorNeutralStroke2 */
+  --text-primary: #ffffff;   /* colorNeutralForeground1 */
+  --text-secondary: #d6d6d6; /* colorNeutralForeground2 */
+  --text-tertiary: #adadad;  /* colorNeutralForeground3 */
+
+  --red-bg: #2d1515;
+  --red-border: #5a2020;
+  --red-text: #ff9999;
+  --red-mid: #ff6b6b;
+  --red-action-bg: #2d1515;
+
+  --amber-bg: #2d2010;
+  --amber-border: #5a3a10;
+  --amber-text: #ffcc80;
+  --amber-mid: #ffaa44;
+  --amber-action-bg: #2d2010;
+
+  --green-bg: #102010;
+  --green-border: #1a4020;
+  --green-text: #80cc80;
+  --green-mid: #4caf50;
+  --green-action-bg: #102010;
+}
+
+/* Dark mode — remap our tokens to live Fluent CSS vars (injected by webDarkTheme on .fui-FluentProvider) */
+.dark .fui-FluentProvider {
+  --bg: var(--colorNeutralBackground2);
+  --surface: var(--colorNeutralBackground1);
+  --border: var(--colorNeutralStroke3);
+  --border-mid: var(--colorNeutralStroke2);
+  --text-primary: var(--colorNeutralForeground1);
+  --text-secondary: var(--colorNeutralForeground2);
+  --text-tertiary: var(--colorNeutralForeground3);
+  --accent: var(--colorBrandForeground1);
+}
+
+.dark body {
+  background: #141414;
+  color: #ffffff;
+}
+
+.dark main {
+  background: #141414 !important;
+}
+
+/* ── Nav ── */
+.dark .left-nav {
+  background-color: #212121 !important;  /* matches M365 admin center nav — rgb(33,33,33) */
+  border-color: #333333 !important;
+}
+
+.dark .left-nav .bg-\[\#c8c8c8\] {
+  background-color: #333333 !important;
+}
+
+.dark .left-nav .border-\[\#e1e1e1\] {
+  border-color: #333333 !important;
+}
+
+/* ── Backgrounds ── */
+/* Page-level wrappers stay at page bg */
+.dark .min-h-screen,
+.dark .min-h-full {
+  background-color: #141414 !important;
+}
+
+/* bg-white = page background in dark mode */
+.dark .bg-white {
+  background-color: #141414 !important;
+}
+
+/* Surfaces / cards — explicit dark:bg-* handles card backgrounds now */
+
+/* Hover / active states */
+.dark .bg-\[\#f5f5f5\], .dark .hover\:bg-\[\#f5f5f5\]:hover,
+.dark .bg-\[\#f3f2f1\], .dark .hover\:bg-\[\#f3f2f1\]:hover,
+.dark .bg-\[\#ededed\], .dark .hover\:bg-\[\#ededed\]:hover,
+.dark .bg-\[\#faf9f8\], .dark .bg-\[\#f8f8f8\] {
+  background-color: #3d3d3d !important;
+}
+
+/* ── Text ── */
+.dark .text-\[\#323130\],
+.dark .text-\[\#242424\],
+.dark .text-\[\#1a1a2e\],
+.dark .text-\[\#1f1f1f\],
+.dark .text-\[\#424242\] {
+  color: #ffffff !important;
+}
+
+.dark .text-\[\#616161\],
+.dark .text-\[\#605e5c\],
+.dark .text-\[\#6b6a66\] {
+  color: #adadad !important;
+}
+
+.dark .text-\[\#a19f9d\],
+.dark .text-\[\#c8c6c4\],
+.dark .text-\[\#d2d0ce\] {
+  color: #666666 !important;
+}
+
+/* ── Borders ── */
+.dark .border-\[\#e1e1e1\],
+.dark .border-\[\#edebe9\],
+.dark .border-\[\#d1d1d1\],
+.dark .border-\[\#c8c6c4\],
+.dark .border-\[\#e0e0e0\],
+.dark .border-b.border-\[\#edebe9\] {
+  border-color: #333333 !important;
+}
+
+.dark .border-\[\#8a8886\] {
+  border-color: #444444 !important;
+}
+
+/* ── Inputs ── */
+.dark input:not(.dark\:bg-transparent),
+.dark textarea,
+.dark select {
+  background-color: #292929 !important;
+  color: #ffffff !important;
+  border-color: #444444 !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #666666 !important;
+}
+
+/* ── Shadows / cards ── */
+.dark .shadow-\[0px_2px_4px_0px_rgba\(0\,0\,0\,0\.14\)\,0px_0px_2px_0px_rgba\(0\,0\,0\,0\.12\)\] {
+  box-shadow: 0px 2px 4px 0px rgba(0,0,0,0.6), 0px 0px 2px 0px rgba(0,0,0,0.4) !important;
+}
+
+/* ── Table ── */
+.dark table, .dark th, .dark td {
+  border-color: #333333 !important;
+  background-color: transparent;
+}
+
+.dark tr:hover td {
+  background-color: #2e2e2e !important;
+}
+
+/* ── Buttons ── */
+.dark button.border.border-\[\#d1d1d1\] {
+  background-color: transparent !important;
+  border-color: #4d4d4d !important;
+  color: #ffffff !important;
+}
+
+/* ── Breadcrumb separator ── */
+.dark .text-\[\#c8c6c4\] {
+  color: #525252 !important;
+}
+
+/* ── Status / health pill backgrounds (hardcoded in components) ── */
+.dark .bg-\[\#fdf1f1\] { background-color: #2d1515 !important; }
+.dark .bg-\[\#fdf5e8\] { background-color: #2d2010 !important; }
+.dark .bg-\[\#f0f7ec\] { background-color: #102010 !important; }
+.dark .bg-\[\#f0f6ff\] { background-color: #10203d !important; }
+.dark .bg-\[\#fff8f8\] { background-color: #2d1515 !important; }
+.dark .bg-\[\#fffbf0\] { background-color: #2d2010 !important; }
+.dark .bg-\[\#f8fff4\] { background-color: #102010 !important; }
+.dark .border-\[\#f0c8c8\] { border-color: #5a2020 !important; }
+.dark .border-\[\#f0d898\] { border-color: #5a3a10 !important; }
+.dark .border-\[\#c8e0b8\] { border-color: #1a4020 !important; }
+.dark .border-\[\#b3d4f5\] { border-color: #1a3a5a !important; }
+.dark .text-\[\#a80000\] { color: #ff9999 !important; }
+.dark .text-\[\#6b4010\] { color: #ffcc80 !important; }
+.dark .text-\[\#2a5a18\] { color: #80cc80 !important; }
+.dark .text-\[\#107c10\] { color: #66bb66 !important; }
+
+/* ── Fluent v8 SearchBox ── */
+.dark .ms-SearchBox {
+  background-color: #292929 !important;
+  border-color: #444444 !important;
+}
+.dark .ms-SearchBox-field {
+  background-color: #292929 !important;
+  color: #ffffff !important;
+}
+.dark .ms-SearchBox-iconButton {
+  color: #adadad !important;
+}
+
+/* ── Category nav pills / sidebar active state ── */
+.dark .bg-\[\#ededed\] {
+  background-color: #3d3d3d !important;
+}
+
+/* Gallery connector cards use explicit dark:bg-* Tailwind classes */

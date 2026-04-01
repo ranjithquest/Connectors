@@ -2,11 +2,14 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
+import { SearchBox } from '@fluentui/react';
+import { Badge, Tooltip } from '@fluentui/react-components';
+import { WarningFilled } from '@fluentui/react-icons';
 import { CONNECTORS } from '@/lib/mock-data';
 import type { Connector } from '@/lib/types';
 import SetupDrawer from '@/components/connectors/SetupDrawer';
 import {
-  SearchIcon, RefreshIcon, AddIcon, FilterIcon,
+  RefreshIcon, AddIcon, FilterIcon,
   SortUpIcon, SortDownIcon, SortIcon,
   MoreVerticalIcon, InfoIcon,
   ErrorBadgeIcon, WarningSolidIcon,
@@ -16,14 +19,7 @@ import {
 function StatusBadge({ status, blockerCount }: { status: string; blockerCount: number }) {
   if (blockerCount > 0) {
     return (
-      <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[12px] font-semibold" style={{ backgroundColor: '#fde7e9', color: '#a80000' }}>
-        <svg width="12" height="10" viewBox="0 0 14 12" fill="none">
-          <rect x="0" y="8" width="3" height="4" rx="0.5" fill="#a80000" />
-          <rect x="5" y="4" width="3" height="8" rx="0.5" fill="#d0d0d0" />
-          <rect x="10" y="0" width="3" height="12" rx="0.5" fill="#d0d0d0" />
-        </svg>
-        Action required
-      </span>
+      <Tooltip content="Action required" relationship="label"><Badge appearance="ghost" color="danger" size="large" shape="circular" icon={<WarningFilled fontSize={16} />} /></Tooltip>
     );
   }
   if (status === 'error') return (
@@ -186,17 +182,14 @@ export default function ConnectorsPage() {
             <FilterIcon style={{ fontSize: 14 }} />
             Filter
           </button>
-          {/* Search box — Figma: SearchBox, dark L02 style */}
-          <div className="flex items-center border border-[#8a8886] rounded-[2px] bg-white h-[26px] w-[182px] focus-within:border-[#0078d4]">
-            <SearchIcon style={{ fontSize: 14 }} className="ml-2 flex-shrink-0 text-[#0078d4]" />
-            <input
-              type="text"
-              placeholder="Search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="flex-1 px-2 text-[13px] text-[#323130] outline-none placeholder:text-[#a19f9d] bg-transparent"
-            />
-          </div>
+          {/* Search box — Fluent v8 */}
+          <SearchBox
+            placeholder="Search"
+            value={search}
+            onChange={(_, v) => setSearch(v ?? '')}
+            onClear={() => setSearch('')}
+            styles={{ root: { width: 182, height: 26 } }}
+          />
         </div>
       </div>
 
@@ -204,8 +197,7 @@ export default function ConnectorsPage() {
       <div className="px-4 sm:px-8 lg:px-12 overflow-x-auto">
         <table className="w-full border-collapse min-w-[480px]">
           <thead>
-            <tr className="border-b border-[#edebe9]">
-              {/* Source name — sortable */}
+            <tr className="border-b border-[#edebe9] dark:border-[#333333]">
               <th className="py-0 pr-4 text-left w-1/4">
                 <button
                   className="flex items-center gap-1 h-[36px] text-[12px] font-semibold text-[#323130] hover:text-[#0078d4] transition-colors"
@@ -215,14 +207,12 @@ export default function ConnectorsPage() {
                   <SortIndicator col="connectorType" />
                 </button>
               </th>
-              {/* Connection name */}
               <th className="py-0 pr-4 text-left w-1/4">
                 <div className="flex items-center gap-1 h-[36px]">
                   <span className="text-[12px] font-semibold text-[#323130]">Connection name</span>
                   <InfoIcon style={{ fontSize: 12 }} className="text-[#605e5c]" />
                 </div>
               </th>
-              {/* Connection State */}
               <th className="py-0 pr-4 text-left w-1/4 hidden sm:table-cell">
                 <button
                   className="flex items-center gap-1 h-[36px] text-[12px] font-semibold text-[#323130] hover:text-[#0078d4] transition-colors"
@@ -232,7 +222,6 @@ export default function ConnectorsPage() {
                   <SortIndicator col="healthStatus" />
                 </button>
               </th>
-              {/* Last sync */}
               <th className="py-0 text-left w-1/4 hidden md:table-cell">
                 <button
                   className="flex items-center gap-1 h-[36px] text-[12px] font-semibold text-[#323130] hover:text-[#0078d4] transition-colors"
@@ -242,7 +231,6 @@ export default function ConnectorsPage() {
                   <SortIndicator col="lastSyncAt" />
                 </button>
               </th>
-              {/* Actions placeholder */}
               <th className="w-8" />
             </tr>
           </thead>
@@ -251,27 +239,24 @@ export default function ConnectorsPage() {
             {sorted.map((connector) => (
               <tr
                 key={connector.id}
-                className="border-b border-[#f3f2f1] hover:bg-[#faf9f8] transition-colors group cursor-pointer relative"
+                className="border-b border-[#f3f2f1] dark:border-[#2e2e2e] hover:bg-[#faf9f8] dark:hover:bg-[#1f1f1f] transition-colors group cursor-pointer relative"
                 onClick={() => setSelectedConnector(connector)}
               >
-                {/* Display name */}
-                <td className="py-0 pr-4">
-                  <div className="h-12 flex items-center gap-2.5">
+                {/* Source name */}
+                <td className="py-0 pr-4 w-1/4">
+                  <div className="h-12 flex items-center gap-2 min-w-0">
                     <ConnectorLogo type={connector.connectorType} logoUrl={connector.logoUrl} />
                     <span className="text-[14px] text-[#323130] truncate">{connector.connectorType}</span>
+                    {(connector.blockerCount + connector.warningCount) > 0 && (
+                      <Tooltip content="Action required" relationship="label"><Badge appearance="ghost" color="danger" size="large" shape="circular" icon={<WarningFilled fontSize={16} />} style={{ flexShrink: 0 }} /></Tooltip>
+                    )}
                   </div>
                 </td>
 
                 {/* Connection name */}
-                <td className="py-0 pr-4 w-1/4">
+                <td className="py-0 pr-4">
                   <div className="h-12 flex items-center gap-2 min-w-0">
                     <span className="text-[14px] text-[#323130] truncate">{connector.displayName}</span>
-                    {(connector.blockerCount + connector.warningCount) > 0 && (
-                      <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold text-[#a80000] bg-[#fde7e9] flex-shrink-0">
-                        <WarningSolidIcon style={{ fontSize: 10 }} />
-                        Action required
-                      </span>
-                    )}
                   </div>
                 </td>
 
@@ -289,7 +274,7 @@ export default function ConnectorsPage() {
                   </div>
                 </td>
 
-                {/* Row overflow — "⋮" always in column, visible on hover */}
+                {/* Row overflow */}
                 <td className="py-0 w-8" onClick={(e) => e.stopPropagation()}>
                   <div className="h-12 flex items-center justify-center">
                     <button
