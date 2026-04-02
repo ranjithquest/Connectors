@@ -240,6 +240,128 @@ body {
 .dark .text-\[\#2a5a18\] { color: #80cc80 !important; }
 .dark .text-\[\#107c10\] { color: #66bb66 !important; }
 
+/* ── Fluent v8 Dropdown ── */
+.dark .ms-Dropdown .ms-Dropdown-title {
+  background-color: #292929 !important;
+  color: #f5f5f5 !important;
+  border-color: #616161 !important;
+}
+.dark .ms-Dropdown:hover .ms-Dropdown-title,
+.dark .ms-Dropdown.is-open .ms-Dropdown-title {
+  border-color: #adadad !important;
+}
+.dark .ms-Dropdown .ms-Dropdown-caretDown {
+  color: #f5f5f5 !important;
+}
+.dark .ms-Dropdown-label,
+.dark .ms-Label {
+  color: #f5f5f5 !important;
+}
+/* Callout renders in a portal but still under .dark on <html> */
+.dark .ms-Dropdown-callout .ms-Callout-main {
+  background-color: #292929 !important;
+  border-color: #616161 !important;
+}
+.dark .ms-Dropdown-callout .ms-Dropdown-item {
+  background-color: #292929 !important;
+  color: #f5f5f5 !important;
+}
+.dark .ms-Dropdown-callout .ms-Dropdown-item:hover {
+  background-color: #383838 !important;
+  color: #f5f5f5 !important;
+}
+.dark .ms-Dropdown-callout .ms-Dropdown-item.is-selected {
+  background-color: #1a2a3a !important;
+  color: #479ef5 !important;
+}
+
+/* ── Fluent v8 TextField ── */
+.dark .ms-TextField .ms-TextField-fieldGroup {
+  background-color: #292929 !important;
+  border-color: #616161 !important;
+}
+.dark .ms-TextField .ms-TextField-fieldGroup:hover {
+  border-color: #adadad !important;
+}
+.dark .ms-TextField .ms-TextField-field {
+  background-color: #292929 !important;
+  color: #f5f5f5 !important;
+}
+.dark .ms-TextField .ms-TextField-field::placeholder {
+  color: #707070 !important;
+}
+.dark .ms-TextField .ms-Label {
+  color: #f5f5f5 !important;
+}
+
+/* ── Fluent v8 CommandBarButton ── */
+.dark .ms-CommandBarItem .ms-Button,
+.dark .ms-Button--command {
+  background-color: transparent !important;
+  border-color: #666666 !important;
+}
+.dark .ms-Button--command .ms-Button-label,
+.dark .ms-Button--command .ms-Button-icon,
+.dark .ms-CommandBarItem .ms-Button .ms-Button-label,
+.dark .ms-CommandBarItem .ms-Button .ms-Button-icon {
+  color: #ffffff !important;
+}
+.dark .ms-Button--command:hover,
+.dark .ms-CommandBarItem .ms-Button:hover {
+  background-color: #3d3d3d !important;
+}
+
+/* ── Fluent v8 Buttons (colors matched to v9 webDarkTheme tokens) ── */
+.dark .ms-Button--primary {
+  background-color: #115ea3 !important;
+  border-color: #115ea3 !important;
+}
+.dark .ms-Button--primary .ms-Button-label,
+.dark .ms-Button--primary .ms-Button-icon {
+  color: #ffffff !important;
+}
+.dark .ms-Button--primary:hover {
+  background-color: #0f6cbd !important;
+  border-color: #0f6cbd !important;
+}
+.dark .ms-Button--primary:active {
+  background-color: #0c3b5e !important;
+  border-color: #0c3b5e !important;
+}
+.dark .ms-Button--primary:disabled .ms-Button-label,
+.dark .ms-Button--primary.is-disabled .ms-Button-label {
+  color: #5c5c5c !important;
+}
+.dark .ms-Button--primary:disabled,
+.dark .ms-Button--primary.is-disabled {
+  background-color: #141414 !important;
+  border-color: #424242 !important;
+}
+.dark .ms-Button--default {
+  background-color: #292929 !important;
+  border-color: #666666 !important;
+}
+.dark .ms-Button--default .ms-Button-label,
+.dark .ms-Button--default .ms-Button-icon {
+  color: #ffffff !important;
+}
+.dark .ms-Button--default:hover {
+  background-color: #3d3d3d !important;
+  border-color: #666666 !important;
+}
+.dark .ms-Button--default:active {
+  background-color: #1f1f1f !important;
+}
+.dark .ms-Button--default:disabled .ms-Button-label,
+.dark .ms-Button--default.is-disabled .ms-Button-label {
+  color: #5c5c5c !important;
+}
+.dark .ms-Button--default:disabled,
+.dark .ms-Button--default.is-disabled {
+  background-color: #141414 !important;
+  border-color: #424242 !important;
+}
+
 /* ── Fluent v8 SearchBox ── */
 .dark .ms-SearchBox {
   background-color: #292929 !important;

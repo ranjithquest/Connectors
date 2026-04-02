@@ -5,6 +5,7 @@ import { PrimaryButton, ActionButton, DefaultButton, Dialog, DialogType, DialogF
 import type { IDropdownOption, IChoiceGroupOption, IPersonaProps } from '@fluentui/react';
 import type { Connector, AuthMethod, UserCriteriaType, DiagnosticIssue, IssueSource, SyncEvent, RecommendedAction } from '@/lib/types';
 import { CONNECTOR_CATALOG } from '@/lib/gallery-data';
+import SetupGuideRail, { type GuideSection } from './SetupGuideRail';
 import {
   ChromeCloseIcon, EditIcon,
   ChevronDownIcon, ChevronUpIcon, ChevronLeftIcon, ChevronRightIcon, CheckMarkIcon, InfoIcon, BackIcon,
@@ -39,15 +40,13 @@ import {
 
 // ─── Guidance panel ───────────────────────────────────────────────────────────
 
-type GuidanceSection = { id: string; title: string; defaultOpen: boolean; content: React.ReactNode };
-
-const GUIDANCE_SECTIONS: GuidanceSection[] = [
+const GUIDANCE_SECTIONS: GuideSection[] = [
   {
     id: 'icon-name',
     title: 'Source icon and name',
     defaultOpen: false,
     content: (
-      <div className="text-[12px] text-[#323130] leading-[16px]">
+      <div className="text-[12px] text-[#323130] dark:text-[#f5f5f5] leading-[16px]">
         Source Icon &amp; name are displayed to the end users on Copilot search
       </div>
     ),
@@ -55,7 +54,7 @@ const GUIDANCE_SECTIONS: GuidanceSection[] = [
   {
     id: 'display-name', title: 'Connector name', defaultOpen: false,
     content: (
-      <div className="text-[12px] text-[#323130] leading-[18px] flex flex-col gap-2">
+      <div className="text-[12px] text-[#323130] dark:text-[#f5f5f5] leading-[18px] flex flex-col gap-2">
         <p>The connector name is a unique label used to manage and identify this connection in the admin portal. It is not shown to end users.</p>
         <p>Use a descriptive name that reflects the data source, e.g. <span className="font-semibold">HR Policies – ServiceNow</span>.</p>
       </div>
@@ -64,7 +63,7 @@ const GUIDANCE_SECTIONS: GuidanceSection[] = [
   {
     id: 'user-criteria', title: 'User criteria setup in ServiceNow', defaultOpen: false,
     content: (
-      <div className="text-[12px] text-[#323130] leading-[18px] flex flex-col gap-2">
+      <div className="text-[12px] text-[#323130] dark:text-[#f5f5f5] leading-[18px] flex flex-col gap-2">
         <p><span className="font-semibold">Simple</span> — Restrict access using a single user-criteria rule defined in ServiceNow. Best for most deployments.</p>
         <p><span className="font-semibold">Advanced</span> — Combine multiple user-criteria rules with AND / OR logic for fine-grained access control.</p>
         <p>Ensure matching user criteria exist in your ServiceNow instance before saving.</p>
@@ -74,7 +73,7 @@ const GUIDANCE_SECTIONS: GuidanceSection[] = [
   {
     id: 'instance-url', title: 'ServiceNow Instance URL', defaultOpen: false,
     content: (
-      <div className="text-[12px] text-[#323130] leading-[18px] flex flex-col gap-2">
+      <div className="text-[12px] text-[#323130] dark:text-[#f5f5f5] leading-[18px] flex flex-col gap-2">
         <p>Enter the base URL of your ServiceNow instance, e.g. <span className="font-semibold">example.service-now.com</span>.</p>
         <p>Do not include a path or trailing slash. The connector will append the required API endpoints automatically.</p>
         <p>Make sure your instance is reachable from Microsoft's indexing service and that the API user has the necessary roles.</p>
@@ -84,7 +83,7 @@ const GUIDANCE_SECTIONS: GuidanceSection[] = [
   {
     id: 'auth-types', title: 'Authentication types', defaultOpen: false,
     content: (
-      <div className="text-[12px] text-[#323130] leading-[18px] flex flex-col gap-2">
+      <div className="text-[12px] text-[#323130] dark:text-[#f5f5f5] leading-[18px] flex flex-col gap-2">
         <p><span className="font-semibold">Basic auth</span> — Authenticate with a ServiceNow username and password. Simple to set up but less secure; rotate credentials regularly.</p>
         <p><span className="font-semibold">OAuth 2.0</span> — Recommended. Uses a client ID and secret to obtain short-lived tokens. Requires an OAuth application record in ServiceNow.</p>
         <p>Credentials are stored encrypted in Microsoft's secure vault and are never exposed in logs.</p>
@@ -94,7 +93,7 @@ const GUIDANCE_SECTIONS: GuidanceSection[] = [
   {
     id: 'staged-rollout', title: 'Staged rollout', defaultOpen: false,
     content: (
-      <div className="text-[12px] text-[#323130] leading-[18px] flex flex-col gap-2">
+      <div className="text-[12px] text-[#323130] dark:text-[#f5f5f5] leading-[18px] flex flex-col gap-2">
         <p>Limit who can search indexed content by selecting specific users or groups. Useful for piloting the connector before a broad release.</p>
         <p>Leave this field empty to make content available to all users in your organisation.</p>
         <p>Changes to the rollout list take effect on the next sync cycle.</p>
@@ -104,7 +103,7 @@ const GUIDANCE_SECTIONS: GuidanceSection[] = [
   {
     id: 'troubleshooting', title: 'Troubleshooting', defaultOpen: false,
     content: (
-      <div className="text-[12px] text-[#323130] leading-[18px] flex flex-col gap-2">
+      <div className="text-[12px] text-[#323130] dark:text-[#f5f5f5] leading-[18px] flex flex-col gap-2">
         <p>If the connector shows an error, check:</p>
         <ul className="list-disc list-inside flex flex-col gap-1 pl-1">
           <li>The ServiceNow instance URL is correct and reachable.</li>
@@ -118,11 +117,11 @@ const GUIDANCE_SECTIONS: GuidanceSection[] = [
   },
 ];
 
-const USERS_GUIDANCE_SECTIONS: GuidanceSection[] = [
+const USERS_GUIDANCE_SECTIONS: GuideSection[] = [
   {
     id: 'access-permissions', title: 'Access permissions', defaultOpen: false,
     content: (
-      <div className="text-[12px] text-[#323130] leading-[18px] flex flex-col gap-2">
+      <div className="text-[12px] text-[#323130] dark:text-[#f5f5f5] leading-[18px] flex flex-col gap-2">
         <p><span className="font-semibold">Only people with access to this data source</span> — Respects the access controls already set in ServiceNow. Only users who can see an item in ServiceNow will be able to find it in search results.</p>
         <p><span className="font-semibold">Everyone</span> — All users in your organisation can discover indexed content, regardless of their permissions in ServiceNow. Use this only for publicly available knowledge bases.</p>
       </div>
@@ -131,7 +130,7 @@ const USERS_GUIDANCE_SECTIONS: GuidanceSection[] = [
   {
     id: 'user-mapping', title: 'User identity mapping', defaultOpen: false,
     content: (
-      <div className="text-[12px] text-[#323130] leading-[18px] flex flex-col gap-2">
+      <div className="text-[12px] text-[#323130] dark:text-[#f5f5f5] leading-[18px] flex flex-col gap-2">
         <p>The connector maps ServiceNow user identities to Azure AD accounts using the <span className="font-semibold">email address</span> field by default.</p>
         <p>If your ServiceNow users have a different primary identifier, update the mapping field to match — for example, <span className="font-semibold">user_name</span> or a custom attribute.</p>
         <p>Unmapped users will not receive personalised results even if ACL-based access is enabled.</p>
@@ -141,7 +140,7 @@ const USERS_GUIDANCE_SECTIONS: GuidanceSection[] = [
   {
     id: 'external-groups', title: 'External groups', defaultOpen: false,
     content: (
-      <div className="text-[12px] text-[#323130] leading-[18px] flex flex-col gap-2">
+      <div className="text-[12px] text-[#323130] dark:text-[#f5f5f5] leading-[18px] flex flex-col gap-2">
         <p>External groups allow you to replicate ServiceNow group memberships in Microsoft Search without syncing the full directory.</p>
         <p>Enable this option if your ServiceNow ACLs use groups. The connector will index group membership alongside content and apply it during search-time access checks.</p>
       </div>
@@ -149,11 +148,11 @@ const USERS_GUIDANCE_SECTIONS: GuidanceSection[] = [
   },
 ];
 
-const CONTENT_GUIDANCE_SECTIONS: GuidanceSection[] = [
+const CONTENT_GUIDANCE_SECTIONS: GuideSection[] = [
   {
     id: 'include-data', title: 'Include data to index', defaultOpen: false,
     content: (
-      <div className="text-[12px] text-[#323130] leading-[18px] flex flex-col gap-2">
+      <div className="text-[12px] text-[#323130] dark:text-[#f5f5f5] leading-[18px] flex flex-col gap-2">
         <p>Use query filters to restrict which records are indexed. For example, index only active knowledge articles in the <span className="font-semibold">HR</span> category.</p>
         <p>Filters follow ServiceNow encoded query syntax. Leave empty to index all accessible records.</p>
         <p>Tip: Start with a narrow filter, validate results, then broaden scope incrementally.</p>
@@ -163,7 +162,7 @@ const CONTENT_GUIDANCE_SECTIONS: GuidanceSection[] = [
   {
     id: 'manage-properties', title: 'Manage properties', defaultOpen: false,
     content: (
-      <div className="text-[12px] text-[#323130] leading-[18px] flex flex-col gap-2">
+      <div className="text-[12px] text-[#323130] dark:text-[#f5f5f5] leading-[18px] flex flex-col gap-2">
         <p>Properties control which fields from ServiceNow are indexed and surfaced in search results.</p>
         <p>Assign semantic labels — <span className="font-semibold">Title</span>, <span className="font-semibold">URL</span>, <span className="font-semibold">Author</span> — to help Microsoft Search understand the meaning of each field.</p>
         <p>Only properties marked as <span className="font-semibold">Searchable</span> are included in the full-text index. Mark fields as <span className="font-semibold">Retrievable</span> to show them in result cards.</p>
@@ -173,7 +172,7 @@ const CONTENT_GUIDANCE_SECTIONS: GuidanceSection[] = [
   {
     id: 'result-layout', title: 'Search result layout', defaultOpen: false,
     content: (
-      <div className="text-[12px] text-[#323130] leading-[18px] flex flex-col gap-2">
+      <div className="text-[12px] text-[#323130] dark:text-[#f5f5f5] leading-[18px] flex flex-col gap-2">
         <p>The result layout determines how indexed items appear in Microsoft Search and Copilot responses.</p>
         <p>Choose an adaptive card template or create a custom layout using the <span className="font-semibold">Result Type Designer</span> in the Microsoft 365 admin centre.</p>
       </div>
@@ -181,11 +180,11 @@ const CONTENT_GUIDANCE_SECTIONS: GuidanceSection[] = [
   },
 ];
 
-const SYNC_GUIDANCE_SECTIONS: GuidanceSection[] = [
+const SYNC_GUIDANCE_SECTIONS: GuideSection[] = [
   {
     id: 'full-sync', title: 'Full sync', defaultOpen: false,
     content: (
-      <div className="text-[12px] text-[#323130] leading-[18px] flex flex-col gap-2">
+      <div className="text-[12px] text-[#323130] dark:text-[#f5f5f5] leading-[18px] flex flex-col gap-2">
         <p>A full sync re-indexes every item in the data source from scratch. It ensures the index is fully consistent but uses more resources.</p>
         <p>Schedule full syncs weekly or monthly depending on how frequently your data changes. The first sync is always a full sync.</p>
       </div>
@@ -194,7 +193,7 @@ const SYNC_GUIDANCE_SECTIONS: GuidanceSection[] = [
   {
     id: 'incremental-sync', title: 'Incremental sync', defaultOpen: false,
     content: (
-      <div className="text-[12px] text-[#323130] leading-[18px] flex flex-col gap-2">
+      <div className="text-[12px] text-[#323130] dark:text-[#f5f5f5] leading-[18px] flex flex-col gap-2">
         <p>Incremental syncs only index items that have been created, modified, or deleted since the last sync. They are faster and lighter on both your ServiceNow instance and Microsoft's indexing service.</p>
         <p>Set the frequency based on how time-sensitive your data is — every 15 minutes for high-velocity data, daily for more static content.</p>
       </div>
@@ -203,7 +202,7 @@ const SYNC_GUIDANCE_SECTIONS: GuidanceSection[] = [
   {
     id: 'timezone', title: 'Timezone', defaultOpen: false,
     content: (
-      <div className="text-[12px] text-[#323130] leading-[18px] flex flex-col gap-2">
+      <div className="text-[12px] text-[#323130] dark:text-[#f5f5f5] leading-[18px] flex flex-col gap-2">
         <p>Set the timezone to match your ServiceNow instance to ensure accurate change-detection timestamps during incremental syncs.</p>
         <p>A mismatch can cause records to be skipped or re-indexed unnecessarily.</p>
       </div>
@@ -211,7 +210,7 @@ const SYNC_GUIDANCE_SECTIONS: GuidanceSection[] = [
   },
 ];
 
-const TAB_GUIDANCE: Record<string, GuidanceSection[]> = {
+const TAB_GUIDANCE: Record<string, GuideSection[]> = {
   Setup: GUIDANCE_SECTIONS,
   Users: USERS_GUIDANCE_SECTIONS,
   Content: CONTENT_GUIDANCE_SECTIONS,
@@ -222,8 +221,8 @@ function InlineGuidance({ sectionId, active }: { sectionId: string; active?: str
   const section = GUIDANCE_SECTIONS.find((s) => s.id === sectionId);
   if (!section?.content || active !== sectionId) return <div />;
   return (
-    <div className="bg-[#f0f6ff] border border-[#c7e0f4] rounded-[4px] px-3 py-3">
-      <p className="text-[11px] font-semibold text-[#0078d4] mb-1.5 uppercase tracking-wide">{section.title}</p>
+    <div className="bg-[#f0f6ff] dark:bg-[#1a2a3a] border border-[#c7e0f4] dark:border-[#2a4a6a] rounded-[4px] px-3 py-3">
+      <p className="text-[11px] font-semibold text-[#0078d4] dark:text-[#479ef5] mb-1.5 uppercase tracking-wide">{section.title}</p>
       {section.content}
     </div>
   );
@@ -252,58 +251,14 @@ function ConnectorIcon({ src, name, size, rounded = '8px' }: { src?: string | nu
 function GuidanceRail({ highlightSection, accordionRefsCallback, sections = GUIDANCE_SECTIONS }: {
   highlightSection?: string;
   accordionRefsCallback?: (refs: Record<string, HTMLDivElement | null>) => void;
-  sections?: GuidanceSection[];
+  sections?: GuideSection[];
 }) {
-  const [openSection, setOpenSection] = useState<string | null>(
-    sections.find((s) => s.defaultOpen)?.id ?? null
-  );
-  const accordionRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
-
-  // When a section is highlighted from outside, open it exclusively
-  React.useEffect(() => {
-    if (highlightSection) setOpenSection(highlightSection);
-  }, [highlightSection]);
-
-  // Expose refs to parent after each render
-  React.useEffect(() => {
-    accordionRefsCallback?.(accordionRefs.current);
-  });
-
-  function toggle(id: string) {
-    setOpenSection((prev) => (prev === id ? null : id));
-  }
   return (
-    <div className="flex flex-col gap-4 w-full">
-      <div className="flex items-center justify-between">
-        <span />
-        <a href="https://learn.microsoft.com/en-us/microsoft-365/copilot/connectors/servicenow-knowledge-deployment" target="_blank" rel="noreferrer"
-          className="text-[13px] text-[#0078d4] whitespace-nowrap hover:underline">
-          Read docs
-        </a>
-      </div>
-      <div className="flex flex-col">
-        {sections.map((section) => {
-          const isOpen = openSection === section.id;
-          const isHighlighted = highlightSection === section.id;
-          return (
-            <div key={section.id} ref={(el) => { accordionRefs.current[section.id] = el; }}
-              className={`flex flex-col border-t ${isHighlighted ? 'border-[#0078d4]' : 'border-[#e1e1e1]'}`}>
-              <button
-                className="flex items-center justify-between h-10 w-full text-left"
-                onClick={() => toggle(section.id)}
-              >
-                <span className={`text-[13px] font-semibold ${isHighlighted ? 'text-[#0078d4]' : 'text-[#323130]'}`}>{section.title}</span>
-                <ChevronDownIcon style={{ fontSize: 14 }}
-                  className={`text-[#605e5c] flex-shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-              </button>
-              {isOpen && section.content && (
-                <div className="pb-3">{section.content}</div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
+    <SetupGuideRail
+      sections={sections}
+      activeSection={highlightSection}
+      accordionRefsCallback={accordionRefsCallback}
+    />
   );
 }
 
@@ -424,10 +379,10 @@ function DiagnosticFlow({ issue }: { issue: DiagnosticIssue }) {
   if (escalated) {
     return (
       <div className="mt-3 flex flex-col gap-2">
-        <div className="bg-[#faf9f8] border border-[#d1d1d1] rounded-[8px] p-3 shadow-[0px_2px_4px_rgba(0,0,0,0.14),0px_0px_2px_rgba(0,0,0,0.12)]">
-          <p className="text-[12px] font-semibold text-[#242424] mb-1">Escalate to ServiceNow Support</p>
-          <p className="text-[12px] text-[#616161] leading-5 mb-2">Share this diagnostic context with their support team:</p>
-          <div className="bg-white border border-[#e1e1e1] rounded-[4px] p-2 text-[11px] text-[#323130] font-mono leading-4">
+        <div className="bg-[#faf9f8] dark:bg-[#1f1f1f] border border-[#d1d1d1] dark:border-[#3d3d3d] rounded-[8px] p-3 shadow-[0px_2px_4px_rgba(0,0,0,0.14),0px_0px_2px_rgba(0,0,0,0.12)]">
+          <p className="text-[12px] font-semibold text-[#242424] dark:text-[#f5f5f5] mb-1">Escalate to ServiceNow Support</p>
+          <p className="text-[12px] text-[#616161] dark:text-[#adadad] leading-5 mb-2">Share this diagnostic context with their support team:</p>
+          <div className="bg-white dark:bg-[#1f1f1f] border border-[#e1e1e1] dark:border-[#3d3d3d] rounded-[4px] p-2 text-[11px] text-[#323130] dark:text-[#f5f5f5] font-mono leading-4">
             <p>Issue: {issue.title}</p>
             {Object.entries(answers).map(([qId, ans]) => {
               const q = questions.find(q => q.id === qId);
@@ -435,7 +390,7 @@ function DiagnosticFlow({ issue }: { issue: DiagnosticIssue }) {
             })}
           </div>
           <a href="https://support.servicenow.com" target="_blank" rel="noreferrer"
-            className="mt-2 flex items-center gap-1 text-[12px] text-[#0078d4] hover:underline">
+            className="mt-2 flex items-center gap-1 text-[12px] text-[#0078d4] dark:text-[#479ef5] hover:underline">
             Open ServiceNow Support
             <OpenInNewWindowIcon style={{ fontSize: 10 }} />
           </a>
@@ -447,16 +402,16 @@ function DiagnosticFlow({ issue }: { issue: DiagnosticIssue }) {
   if (allAnswered) {
     return (
       <div className="mt-3 flex flex-col gap-2">
-        <p className="text-[12px] text-[#242424] leading-5">
+        <p className="text-[12px] text-[#242424] dark:text-[#f5f5f5] leading-5">
           Based on your answers, this is a custom ACL configuration that Microsoft cannot fully replicate.
           The safest workaround is to restrict the connector scope to knowledge bases that use role-based access only.
         </p>
         <div className="flex items-center gap-2 flex-wrap">
-          <button className="px-3 py-1.5 text-[12px] font-semibold bg-[#0078d4] text-white rounded-[4px] hover:bg-[#106ebe] shadow-[0px_1px_2px_rgba(0,0,0,0.14)]">
+          <button className="px-3 py-1.5 text-[12px] font-semibold bg-[#0078d4] dark:bg-[#479ef5] text-white rounded-[4px] hover:bg-[#106ebe] dark:hover:bg-[#62abf5] shadow-[0px_1px_2px_rgba(0,0,0,0.14)]">
             Restrict connector scope
           </button>
           <button onClick={() => setEscalated(true)}
-            className="px-3 py-1.5 text-[12px] font-semibold text-[#242424] bg-white border border-[#d1d1d1] rounded-[4px] hover:bg-[#f5f5f5] transition-colors shadow-[0px_1px_2px_rgba(0,0,0,0.14)]">
+            className="px-3 py-1.5 text-[12px] font-semibold text-[#242424] dark:text-[#f5f5f5] bg-white dark:bg-[#292929] border border-[#d1d1d1] dark:border-[#616161] rounded-[4px] hover:bg-[#f5f5f5] dark:hover:bg-[#3d3d3d] transition-colors shadow-[0px_1px_2px_rgba(0,0,0,0.14)]">
             Escalate to ServiceNow
           </button>
         </div>
@@ -467,8 +422,8 @@ function DiagnosticFlow({ issue }: { issue: DiagnosticIssue }) {
   return (
     <div className="mt-3 flex flex-col gap-2">
       <div className="flex items-center gap-1.5 mb-1">
-        <DiagnosticIcon style={{ fontSize: 12 }} className="text-[#0078d4]" />
-        <span className="text-[12px] font-semibold text-[#0078d4]">Let&apos;s diagnose this together</span>
+        <DiagnosticIcon style={{ fontSize: 12 }} className="text-[#0078d4] dark:text-[#479ef5]" />
+        <span className="text-[12px] font-semibold text-[#0078d4] dark:text-[#479ef5]">Let&apos;s diagnose this together</span>
       </div>
       <p className="text-[12px] text-[#242424] leading-5">{currentQ.question}</p>
       <div className="flex flex-col gap-1.5">
@@ -479,14 +434,14 @@ function DiagnosticFlow({ issue }: { issue: DiagnosticIssue }) {
               setAnswers((prev) => ({ ...prev, [currentQ.id]: opt.label }));
               setStep((s) => s + 1);
             }}
-            className="flex items-center gap-2.5 text-left px-3 py-2 text-[12px] text-[#242424] bg-white border border-[#d1d1d1] rounded-[4px] hover:border-[#0078d4] hover:bg-[#f0f6ff] transition-colors shadow-[0px_1px_2px_rgba(0,0,0,0.10)]"
+            className="flex items-center gap-2.5 text-left px-3 py-2 text-[12px] text-[#242424] dark:text-[#f5f5f5] bg-white dark:bg-[#292929] border border-[#d1d1d1] dark:border-[#616161] rounded-[4px] hover:border-[#0078d4] dark:hover:border-[#479ef5] hover:bg-[#f0f6ff] dark:hover:bg-[#1a2a3a] transition-colors shadow-[0px_1px_2px_rgba(0,0,0,0.10)]"
           >
             <span className="w-3.5 h-3.5 rounded-full border-2 border-[#8a8886] flex-shrink-0" />
             {opt.label}
           </button>
         ))}
       </div>
-      <p className="text-[10px] text-[#605e5c]">Question {step + 1} of {questions.length}</p>
+      <p className="text-[10px] text-[#605e5c] dark:text-[#adadad]">Question {step + 1} of {questions.length}</p>
     </div>
   );
 }
@@ -973,23 +928,23 @@ function DiagnosticDrillDown({ issue, onBack, detectedSyncLabel, onNavigateToFie
       {/* Back nav */}
       <button
         onClick={onBack}
-        className="flex items-center gap-1.5 text-[13px] text-[#0078d4] hover:underline mb-5 w-fit"
+        className="flex items-center gap-1.5 text-[13px] text-[#0078d4] dark:text-[#479ef5] hover:underline mb-5 w-fit"
       >
         <NavigateBackIcon style={{ fontSize: 14 }} />
         Connector health
       </button>
 
       {/* Issue identity */}
-      <div className="flex flex-col gap-2 mb-5 pb-5 border-b border-[#e1e1e1]">
+      <div className="flex flex-col gap-2 mb-5 pb-5 border-b border-[#e1e1e1] dark:border-[#3d3d3d]">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 flex-wrap">
             <span className={`text-[10px] font-bold uppercase tracking-wide flex-shrink-0 ${cfg.text}`}>{cfg.label}</span>
             <SourceTag source={issue.source} connectorTab={issue.connectorTab} onNavigate={handleNavigate} />
           </div>
-          <span className="text-[10px] text-[#a19f9d] flex-shrink-0 whitespace-nowrap">Detected on {detectedSyncLabel ?? '—'}</span>
+          <span className="text-[10px] text-[#a19f9d] dark:text-[#707070] flex-shrink-0 whitespace-nowrap">Detected on {detectedSyncLabel ?? '—'}</span>
         </div>
-        <h2 className="text-[15px] font-semibold text-[#242424] leading-5">{issue.title}</h2>
-        <p className="text-[12px] text-[#616161] leading-5">{issue.description}</p>
+        <h2 className="text-[15px] font-semibold text-[#242424] dark:text-[#f5f5f5] leading-5">{issue.title}</h2>
+        <p className="text-[12px] text-[#616161] dark:text-[#adadad] leading-5">{issue.description}</p>
       </div>
 
       {/* Diagnostic flow */}
@@ -1044,7 +999,7 @@ function SyncHealthChart({ connector }: { connector: Connector }) {
   }));
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-[11px] font-semibold text-[#323130]">Health trend</span>
+      <span className="text-[11px] font-semibold text-[#323130] dark:text-[#f5f5f5]">Health trend</span>
 
       <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet"
         style={{ overflow: 'visible', cursor: 'default' }}
@@ -1132,7 +1087,7 @@ function SyncHealthChart({ connector }: { connector: Connector }) {
             <svg width="12" height="12" viewBox="0 0 12 12">
               <rect x="0" y="0" width="12" height="12" rx="2" fill={l.color} />
             </svg>
-            <span className="text-[12px] text-[#323130]" style={{ fontFamily: "'Segoe UI', sans-serif" }}>{l.label}</span>
+            <span className="text-[12px] text-[#323130] dark:text-[#f5f5f5]" style={{ fontFamily: "'Segoe UI', sans-serif" }}>{l.label}</span>
           </div>
         ))}
       </div>
@@ -1435,14 +1390,14 @@ function HealthRail({ connector, onNavigateToField, onFocusedChange, backTrigger
 function CollapsibleSection({ title, children, defaultOpen = true }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="border-b border-[#e1e1e1]">
+    <div className="border-b border-[#e1e1e1] dark:border-[#3d3d3d]">
       <button
         onClick={() => setOpen((v) => !v)}
         className="w-full flex items-center justify-between py-4 text-left"
       >
-        <span className="text-[14px] font-semibold text-[#323130]">{title}</span>
+        <span className="text-[14px] font-semibold text-[#323130] dark:text-[#f5f5f5]">{title}</span>
         <ChevronDownIcon style={{ fontSize: 16 }}
-          className={`text-[#605e5c] transition-transform flex-shrink-0 ${open ? 'rotate-180' : ''}`} />
+          className={`text-[#605e5c] dark:text-[#adadad] transition-transform flex-shrink-0 ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && <div className="pb-6">{children}</div>}
     </div>
@@ -1502,10 +1457,10 @@ function UsersTabContent({ fieldHighlight, fieldRefs }: { fieldHighlight?: strin
       {/* Map Identities */}
       <CollapsibleSection title="Map Identities">
         <div className="flex flex-col gap-3">
-          <p className="text-[13px] text-[#323130] leading-5">
+          <p className="text-[13px] text-[#323130] dark:text-[#f5f5f5] leading-5">
             We have mapped your data source identities using Microsoft Entra IDs. We use both UPN and Mail in Microsoft Entra ID to map to your user&apos;s email in the data source. If you have a different mapping formula, use the custom mapping option below.
           </p>
-          <button className="self-start text-[13px] text-[#0078d4] hover:underline">
+          <button className="self-start text-[13px] text-[#0078d4] dark:text-[#479ef5] hover:underline">
             Add custom mapping
           </button>
         </div>
@@ -1532,7 +1487,7 @@ function ContentTabContent({ fieldHighlight, fieldRefs }: { fieldHighlight?: str
       {/* Include data */}
       <div ref={(el) => { if (fieldRefs) fieldRefs.current['include-data'] = el; }} className={`transition-colors duration-500 rounded-[4px] -mx-2 px-2 ${fieldHighlight === 'include-data' ? 'bg-[#eff6ff]' : ''}`}>
       <CollapsibleSection title="Include data which you want to index" defaultOpen={false}>
-        <p className="text-[13px] text-[#605e5c] leading-5">Configure which data from this source should be indexed by Microsoft Search and Copilot.</p>
+        <p className="text-[13px] text-[#605e5c] dark:text-[#adadad] leading-5">Configure which data from this source should be indexed by Microsoft Search and Copilot.</p>
       </CollapsibleSection>
       </div>
 
@@ -1540,32 +1495,32 @@ function ContentTabContent({ fieldHighlight, fieldRefs }: { fieldHighlight?: str
       <CollapsibleSection title="Manage Properties" defaultOpen={true}>
         {/* Toolbar */}
         <div className="flex items-center justify-between mb-3">
-          <button className="flex items-center gap-1 text-[13px] text-[#0078d4] hover:underline font-semibold">
+          <button className="flex items-center gap-1 text-[13px] text-[#0078d4] dark:text-[#479ef5] hover:underline font-semibold">
             <span className="text-[16px] leading-none font-light">+</span>
             Add property
           </button>
-          <span className="text-[13px] text-[#605e5c]">{PROPERTIES.length} items</span>
+          <span className="text-[13px] text-[#605e5c] dark:text-[#adadad]">{PROPERTIES.length} items</span>
         </div>
 
         {/* Table */}
         <table className="w-full border-collapse">
           <thead>
-            <tr className="border-b border-[#e1e1e1]">
-              <th className="text-left py-2 pr-4 text-[12px] font-semibold text-[#323130] w-[200px]">Properties</th>
-              <th className="text-left py-2 pr-4 text-[12px] font-semibold text-[#323130] w-[140px]">
+            <tr className="border-b border-[#e1e1e1] dark:border-[#3d3d3d]">
+              <th className="text-left py-2 pr-4 text-[12px] font-semibold text-[#323130] dark:text-[#f5f5f5] w-[200px]">Properties</th>
+              <th className="text-left py-2 pr-4 text-[12px] font-semibold text-[#323130] dark:text-[#f5f5f5] w-[140px]">
                 <span className="flex items-center gap-1">
                   Semantic Label
-                  <InfoIcon style={{ fontSize: 12 }} className="text-[#605e5c]" />
+                  <InfoIcon style={{ fontSize: 12 }} className="text-[#605e5c] dark:text-[#adadad]" />
                 </span>
               </th>
-              <th className="text-left py-2 pr-4 text-[12px] font-semibold text-[#323130]">
+              <th className="text-left py-2 pr-4 text-[12px] font-semibold text-[#323130] dark:text-[#f5f5f5]">
                 <span className="flex items-center gap-1">
                   Description
-                  <InfoIcon style={{ fontSize: 12 }} className="text-[#605e5c]" />
+                  <InfoIcon style={{ fontSize: 12 }} className="text-[#605e5c] dark:text-[#adadad]" />
                 </span>
               </th>
               <th className="text-right py-2 text-[12px]">
-                <button className="flex items-center gap-1 text-[12px] text-[#0078d4] hover:underline ml-auto">
+                <button className="flex items-center gap-1 text-[12px] text-[#0078d4] dark:text-[#479ef5] hover:underline ml-auto">
                   <AddIcon style={{ fontSize: 12 }} />
                   Show all columns
                 </button>
@@ -1574,10 +1529,10 @@ function ContentTabContent({ fieldHighlight, fieldRefs }: { fieldHighlight?: str
           </thead>
           <tbody>
             {PROPERTIES.map((prop) => (
-              <tr key={prop.name} className="border-b border-[#f3f2f1] hover:bg-[#faf9f8] transition-colors">
-                <td className="py-2.5 pr-4 text-[13px] text-[#323130]">{prop.name}</td>
-                <td className="py-2.5 pr-4 text-[13px] text-[#323130]">{prop.semanticLabel}</td>
-                <td className="py-2.5 pr-4 text-[13px] text-[#605e5c] truncate max-w-[200px]">{prop.description}</td>
+              <tr key={prop.name} className="border-b border-[#f3f2f1] dark:border-[#2d2d2d] hover:bg-[#faf9f8] dark:hover:bg-[#292929] transition-colors">
+                <td className="py-2.5 pr-4 text-[13px] text-[#323130] dark:text-[#f5f5f5]">{prop.name}</td>
+                <td className="py-2.5 pr-4 text-[13px] text-[#323130] dark:text-[#f5f5f5]">{prop.semanticLabel}</td>
+                <td className="py-2.5 pr-4 text-[13px] text-[#605e5c] dark:text-[#adadad] truncate max-w-[200px]">{prop.description}</td>
                 <td className="py-2.5 text-right"></td>
               </tr>
             ))}
@@ -1659,7 +1614,7 @@ function SyncTabContent({ fieldHighlight, fieldRefs }: { fieldHighlight?: string
                 onChange={(_, opt) => { if (opt) setIncFreq(opt.key as string); }}
                 styles={{ root: { width: '100%' } }}
               />
-              <button className="text-[14px] text-[#0078d4] hover:underline text-left w-fit">
+              <button className="text-[14px] text-[#0078d4] dark:text-[#479ef5] hover:underline text-left w-fit">
                 Add starting time
               </button>
             </>
@@ -1693,7 +1648,7 @@ function SyncTabContent({ fieldHighlight, fieldRefs }: { fieldHighlight?: string
 
 // ─── Main drawer ──────────────────────────────────────────────────────────────
 
-interface SetupDrawerProps {
+interface AdvancedSetupPanelProps {
   connectorType?: string;
   existingConnector?: Connector;
   onClose: () => void;
@@ -1707,7 +1662,7 @@ const AUTH_OPTIONS = [
 const SETUP_TABS = ['Setup', 'Users', 'Content', 'Sync'] as const;
 type SetupTab = typeof SETUP_TABS[number];
 
-export default function SetupDrawer({ connectorType, existingConnector, onClose }: SetupDrawerProps) {
+export default function AdvancedSetupPanel({ connectorType, existingConnector, onClose }: AdvancedSetupPanelProps) {
   const isEdit = !!existingConnector;
   const [typeName, setTypeName] = useState(existingConnector?.connectorType ?? connectorType ?? 'ServiceNow Knowledge');
 
@@ -1847,24 +1802,24 @@ export default function SetupDrawer({ connectorType, existingConnector, onClose 
         {/* Content row: form + right rail */}
         <div className="flex flex-1 overflow-hidden">
         {/* Form side */}
-        <div className="flex-1 bg-white flex flex-col min-w-0 shadow-2xl">
+        <div className="flex-1 bg-white dark:bg-[#212121] flex flex-col min-w-0 shadow-2xl">
 
           {/* Header */}
           <div className="px-8 pt-12">
             {editingHeader ? (
               /* ── Edit mode ── */
-              <div className="flex items-start gap-16 pb-6 border-b border-[#e1e1e1] mb-6">
+              <div className="flex items-start gap-16 pb-6 mb-6">
 
                 {/* Left: form */}
                 <div className="flex flex-col gap-3 flex-shrink-0 w-[380px]">
                   {/* Icon + hint + buttons */}
-                  <label className="block text-[12px] font-semibold text-[#323130] mb-1">Source icon</label>
+                  <label className="block text-[12px] font-semibold text-[#323130] dark:text-[#f5f5f5] mb-1">Source icon</label>
                   <div className="flex items-center gap-4">
                     <ConnectorIcon src={editIconPreview ?? resolvedLogoUrl} name={editName || typeName} size={64} />
                     <div className="flex flex-col gap-2">
-                      <p className="text-[12px] text-[#605e5c]">Min 256×256 px • SVG format preferred</p>
+                      <p className="text-[12px] text-[#605e5c] dark:text-[#adadad]">Min 256×256 px • SVG format preferred</p>
                       <div className="flex items-center gap-2">
-                        <label className="flex items-center gap-1.5 h-[32px] px-2 text-[14px] text-[#323130] rounded-[2px] hover:bg-[#f3f2f1] cursor-pointer transition-colors">
+                        <label className="flex items-center gap-1.5 h-[32px] px-2 text-[14px] text-[#323130] dark:text-[#f5f5f5] rounded-[2px] hover:bg-[#f3f2f1] dark:hover:bg-[#292929] cursor-pointer transition-colors">
                           <UploadIcon style={{ fontSize: 14 }} />
                           Upload
                           <input type="file" accept="image/png,image/svg+xml,image/jpeg" className="hidden"
@@ -1874,7 +1829,7 @@ export default function SetupDrawer({ connectorType, existingConnector, onClose 
                             }} />
                         </label>
                         <button onClick={() => setEditIconPreview(null)}
-                          className="flex items-center gap-1.5 h-[32px] px-2 text-[14px] text-[#323130] rounded-[2px] hover:bg-[#f3f2f1] transition-colors">
+                          className="flex items-center gap-1.5 h-[32px] px-2 text-[14px] text-[#323130] dark:text-[#f5f5f5] rounded-[2px] hover:bg-[#f3f2f1] dark:hover:bg-[#292929] transition-colors">
                           <RefreshIcon style={{ fontSize: 14 }} />
                           Reset
                         </button>
@@ -1910,15 +1865,15 @@ export default function SetupDrawer({ connectorType, existingConnector, onClose 
 
                 {/* Live preview */}
                 <div className="flex-shrink-0 w-[220px]">
-                  <p className="text-[13px] font-semibold text-[#323130] mb-3">Live preview</p>
-                  <div className="border border-[#e1e1e1] rounded-[4px] bg-[#faf9f8] p-4 flex flex-col gap-3">
-                    <div className="self-start flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#c8c6c4] rounded-full shadow-[0px_1px_2px_rgba(0,0,0,0.1)]">
-                      <span className="text-[13px] text-[#323130]">All Sources</span>
-                      <ChevronDownIcon style={{ fontSize: 10 }} className="text-[#605e5c]" />
+                  <p className="text-[13px] font-semibold text-[#323130] dark:text-[#f5f5f5] mb-3">Live preview</p>
+                  <div className="border border-[#e1e1e1] dark:border-[#3d3d3d] rounded-[4px] bg-[#faf9f8] dark:bg-[#1f1f1f] p-4 flex flex-col gap-3">
+                    <div className="self-start flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-[#292929] border border-[#c8c6c4] dark:border-[#616161] rounded-full shadow-[0px_1px_2px_rgba(0,0,0,0.1)]">
+                      <span className="text-[13px] text-[#323130] dark:text-[#f5f5f5]">All Sources</span>
+                      <ChevronDownIcon style={{ fontSize: 10 }} className="text-[#605e5c] dark:text-[#adadad]" />
                     </div>
                     <div className="flex items-center gap-2.5 px-1">
                       <ConnectorIcon src={editIconPreview ?? resolvedLogoUrl} name={editName || typeName} size={28} rounded="4px" />
-                      <span className="text-[14px] text-[#323130] truncate">{editName || typeName}</span>
+                      <span className="text-[14px] text-[#323130] dark:text-[#f5f5f5] truncate">{editName || typeName}</span>
                     </div>
                   </div>
                 </div>
@@ -1926,7 +1881,7 @@ export default function SetupDrawer({ connectorType, existingConnector, onClose 
               </div>
             ) : (
               /* ── View mode: normal header ── */
-              <div className="flex items-center gap-5 pb-6 border-b border-[#e1e1e1]">
+              <div className="flex items-center gap-5 pb-6">
                 <ConnectorIcon src={editIconPreview ?? resolvedLogoUrl} name={typeName} size={72} />
                 <div className="flex flex-col gap-1">
                   <h1 className="text-[22px] font-bold text-[#323130] leading-7">{typeName}</h1>
@@ -1951,7 +1906,7 @@ export default function SetupDrawer({ connectorType, existingConnector, onClose 
             )}
 
             {/* Tabs */}
-            <div className="flex items-center justify-between mt-6">
+            <div className="flex items-center justify-between mt-2">
               <div className="flex">
                 {SETUP_TABS.map((tab) => (
                   <button key={tab}
@@ -2115,7 +2070,7 @@ export default function SetupDrawer({ connectorType, existingConnector, onClose 
         </div>
 
         {/* Right rail */}
-        <div className="w-[360px] flex-shrink-0 bg-[#faf9f8] border-l border-[#e1e1e1] flex flex-col overflow-hidden">
+        <div className="w-[360px] flex-shrink-0 bg-[#faf9f8] dark:bg-[#1f1f1f] border-l border-[#e1e1e1] dark:border-[#3d3d3d] flex flex-col overflow-hidden">
           {/* Tabs — only show Connector health tab in edit mode, hide when focused */}
           {isEdit && existingConnector && !healthFocused ? (
             <div className="flex px-6 flex-shrink-0 pt-12">
@@ -2156,7 +2111,7 @@ export default function SetupDrawer({ connectorType, existingConnector, onClose 
         </div>{/* end content row */}
 
         {/* Footer — full width, above right rail */}
-        <div className="border-t border-[#e1e1e1] px-8 py-4 flex items-center justify-between flex-shrink-0 bg-white z-10">
+        <div className="border-t border-[#e1e1e1] dark:border-[#3d3d3d] px-8 py-4 flex items-center justify-between flex-shrink-0 bg-white dark:bg-[#212121] z-10">
           <div className="flex items-center gap-3">
             <PrimaryButton
               disabled={isEdit ? !hasChanges : !canCreate}
@@ -2166,12 +2121,7 @@ export default function SetupDrawer({ connectorType, existingConnector, onClose 
             </PrimaryButton>
           </div>
           <div className="flex items-center gap-4">
-            <PrimaryButton disabled styles={{ root: { background: '#ededed', color: '#a1a1a1', border: 'none' } }}>
-              Save and close
-            </PrimaryButton>
-            <PrimaryButton onClick={onClose} styles={{ root: { background: '#e8e8e8', color: '#323130', border: 'none', selectors: { ':hover': { background: '#d2d0ce' } } } }}>
-              Cancel
-            </PrimaryButton>
+            <DefaultButton onClick={onClose}>Cancel</DefaultButton>
           </div>
         </div>
       </div>

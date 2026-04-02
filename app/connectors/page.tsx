@@ -7,7 +7,8 @@ import { Badge, Tooltip } from '@fluentui/react-components';
 import { WarningFilled } from '@fluentui/react-icons';
 import { CONNECTORS } from '@/lib/mock-data';
 import type { Connector } from '@/lib/types';
-import SetupDrawer from '@/components/connectors/SetupDrawer';
+import ConnectorDetailPanel from '@/components/connectors/ConnectorDetailPanel';
+import EditPanel from '@/components/connectors/EditPanel';
 import {
   RefreshIcon, AddIcon, FilterIcon,
   SortUpIcon, SortDownIcon, SortIcon,
@@ -87,10 +88,11 @@ type SortKey = 'displayName' | 'connectorType' | 'healthStatus' | 'lastSyncAt';
 
 export default function ConnectorsPage() {
   const [search, setSearch] = useState('');
-  const [sortKey, setSortKey] = useState<SortKey>('lastSyncAt');
-  const [sortAsc, setSortAsc] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>('connectorType');
+  const [sortAsc, setSortAsc] = useState(true);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [selectedConnector, setSelectedConnector] = useState<Connector | null>(null);
+  const [editConnector, setEditConnector] = useState<Connector | null>(null);
 
   function handleSort(key: SortKey) {
     if (sortKey === key) setSortAsc((v) => !v);
@@ -121,55 +123,55 @@ export default function ConnectorsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white" onClick={() => setOpenMenu(null)}>
+    <div className="min-h-screen bg-white dark:bg-[#141414]" onClick={() => setOpenMenu(null)}>
 
       {/* ── Page header ───────────────────────────────────────────── */}
       <div className="pt-3 pb-0 px-4 sm:px-8 lg:px-12">
 
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-1 text-[12px] text-[#616161] mb-4">
-          <Link href="/" className="hover:text-[#0078d4] hover:underline">Home</Link>
-          <span className="text-[#c8c6c4]">›</span>
-          <span className="text-[#242424]">Connectors</span>
+        <nav className="flex items-center gap-1 text-[12px] text-[#616161] dark:text-[#adadad] mb-4">
+          <Link href="/" className="hover:text-[#0078d4] dark:hover:text-[#479ef5] hover:underline">Home</Link>
+          <span className="text-[#c8c6c4] dark:text-[#555555]">›</span>
+          <span className="text-[#242424] dark:text-[#f5f5f5]">Connectors</span>
         </nav>
 
         {/* Title */}
-        <h1 className="text-[28px] font-bold text-[#323130] leading-[36px] mb-6">Connectors</h1>
+        <h1 className="text-[28px] font-bold text-[#323130] dark:text-[#f5f5f5] leading-[36px] mb-6">Connectors</h1>
 
         {/* Tabs — directly below title */}
         <div className="flex">
           <Link
             href="/connectors/gallery"
-            className="pb-2 mr-6 text-[14px] text-[#424242] border-b-2 border-transparent -mb-px hover:text-[#0078d4] transition-colors"
+            className="pb-2 mr-6 text-[14px] text-[#424242] dark:text-[#adadad] border-b-2 border-transparent -mb-px hover:text-[#0078d4] dark:hover:text-[#479ef5] transition-colors"
           >
             Gallery
           </Link>
-          <button className="pb-2 mr-6 text-[14px] font-semibold text-[#0078d4] border-b-2 border-[#0078d4] -mb-px">
+          <button className="pb-2 mr-6 text-[14px] font-semibold text-[#0078d4] dark:text-[#479ef5] border-b-2 border-[#0078d4] dark:border-[#479ef5] -mb-px">
             Your connections
           </button>
         </div>
       </div>
 
       {/* Description — below tabs, above command bar */}
-      <p className="text-[14px] text-[#605e5c] pt-8 pb-8 px-4 sm:px-8 lg:px-12">
+      <p className="text-[14px] text-[#605e5c] dark:text-[#adadad] pt-8 pb-8 px-4 sm:px-8 lg:px-12">
         Connect your organization&apos;s data to improve insights and information provided by Copilot, agents, and Microsoft Search.
       </p>
 
       {/* ── Command bar ───────────────────────────────────────────── */}
       <div className="px-4 sm:px-8 lg:px-12">
-        <div className="border-t border-[#edebe9]" />
+        <div className="border-t border-[#edebe9] dark:border-[#333333]" />
       </div>
       <div className="flex items-center justify-between h-[44px] px-4 sm:px-8 lg:px-12">
         {/* Left actions */}
         <div className="flex items-center h-full">
           <Link
             href="/connectors/gallery"
-            className="flex items-center gap-1.5 h-full px-3 text-[14px] text-[#0078d4] font-semibold hover:bg-[#f3f2f1] transition-colors"
+            className="flex items-center gap-1.5 h-full px-3 text-[14px] text-[#0078d4] dark:text-[#479ef5] font-semibold hover:bg-[#f3f2f1] dark:hover:bg-[#292929] transition-colors"
           >
             <AddIcon style={{ fontSize: 14 }} />
             Add connection
           </Link>
-          <button className="flex items-center gap-1.5 h-full px-3 text-[14px] text-[#323130] hover:bg-[#f3f2f1] transition-colors">
+          <button className="flex items-center gap-1.5 h-full px-3 text-[14px] text-[#323130] dark:text-[#f5f5f5] hover:bg-[#f3f2f1] dark:hover:bg-[#292929] transition-colors">
             <RefreshIcon style={{ fontSize: 14 }} />
             Refresh
           </button>
@@ -177,8 +179,8 @@ export default function ConnectorsPage() {
 
         {/* Right actions */}
         <div className="flex items-center gap-2 h-full">
-          <span className="text-[13px] text-[#323130]">{sorted.length} items</span>
-          <button className="flex items-center gap-1 text-[14px] text-[#323130] hover:bg-[#f3f2f1] px-2 h-full transition-colors">
+          <span className="text-[13px] text-[#323130] dark:text-[#f5f5f5]">{sorted.length} items</span>
+          <button className="flex items-center gap-1 text-[14px] text-[#323130] dark:text-[#f5f5f5] hover:bg-[#f3f2f1] dark:hover:bg-[#292929] px-2 h-full transition-colors">
             <FilterIcon style={{ fontSize: 14 }} />
             Filter
           </button>
@@ -200,7 +202,7 @@ export default function ConnectorsPage() {
             <tr className="border-b border-[#edebe9] dark:border-[#333333]">
               <th className="py-0 pr-4 text-left w-1/4">
                 <button
-                  className="flex items-center gap-1 h-[36px] text-[12px] font-semibold text-[#323130] hover:text-[#0078d4] transition-colors"
+                  className="flex items-center gap-1 h-[36px] text-[12px] font-semibold text-[#323130] dark:text-[#f5f5f5] hover:text-[#0078d4] dark:hover:text-[#479ef5] transition-colors"
                   onClick={() => handleSort('connectorType')}
                 >
                   Source name
@@ -209,13 +211,13 @@ export default function ConnectorsPage() {
               </th>
               <th className="py-0 pr-4 text-left w-1/4">
                 <div className="flex items-center gap-1 h-[36px]">
-                  <span className="text-[12px] font-semibold text-[#323130]">Connection name</span>
-                  <InfoIcon style={{ fontSize: 12 }} className="text-[#605e5c]" />
+                  <span className="text-[12px] font-semibold text-[#323130] dark:text-[#f5f5f5]">Connection name</span>
+                  <InfoIcon style={{ fontSize: 12 }} className="text-[#605e5c] dark:text-[#adadad]" />
                 </div>
               </th>
               <th className="py-0 pr-4 text-left w-1/4 hidden sm:table-cell">
                 <button
-                  className="flex items-center gap-1 h-[36px] text-[12px] font-semibold text-[#323130] hover:text-[#0078d4] transition-colors"
+                  className="flex items-center gap-1 h-[36px] text-[12px] font-semibold text-[#323130] dark:text-[#f5f5f5] hover:text-[#0078d4] dark:hover:text-[#479ef5] transition-colors"
                   onClick={() => handleSort('healthStatus')}
                 >
                   Connection State
@@ -224,7 +226,7 @@ export default function ConnectorsPage() {
               </th>
               <th className="py-0 text-left w-1/4 hidden md:table-cell">
                 <button
-                  className="flex items-center gap-1 h-[36px] text-[12px] font-semibold text-[#323130] hover:text-[#0078d4] transition-colors"
+                  className="flex items-center gap-1 h-[36px] text-[12px] font-semibold text-[#323130] dark:text-[#f5f5f5] hover:text-[#0078d4] dark:hover:text-[#479ef5] transition-colors"
                   onClick={() => handleSort('lastSyncAt')}
                 >
                   Last sync
@@ -246,7 +248,7 @@ export default function ConnectorsPage() {
                 <td className="py-0 pr-4 w-1/4">
                   <div className="h-12 flex items-center gap-2 min-w-0">
                     <ConnectorLogo type={connector.connectorType} logoUrl={connector.logoUrl} />
-                    <span className="text-[14px] text-[#323130] truncate">{connector.connectorType}</span>
+                    <span className="text-[14px] text-[#323130] dark:text-[#f5f5f5] truncate">{connector.connectorType}</span>
                     {(connector.blockerCount + connector.warningCount) > 0 && (
                       <Tooltip content="Action required" relationship="label"><Badge appearance="ghost" color="danger" size="large" shape="circular" icon={<WarningFilled fontSize={16} />} style={{ flexShrink: 0 }} /></Tooltip>
                     )}
@@ -256,7 +258,7 @@ export default function ConnectorsPage() {
                 {/* Connection name */}
                 <td className="py-0 pr-4">
                   <div className="h-12 flex items-center gap-2 min-w-0">
-                    <span className="text-[14px] text-[#323130] truncate">{connector.displayName}</span>
+                    <span className="text-[14px] text-[#323130] dark:text-[#f5f5f5] truncate">{connector.displayName}</span>
                   </div>
                 </td>
 
@@ -269,7 +271,7 @@ export default function ConnectorsPage() {
 
                 {/* Last sync */}
                 <td className="py-0 w-1/4 hidden md:table-cell">
-                  <div className="h-12 flex items-center text-[13px] text-[#605e5c]">
+                  <div className="h-12 flex items-center text-[13px] text-[#605e5c] dark:text-[#adadad]">
                     {formatLastSync(connector.lastSyncAt)}
                   </div>
                 </td>
@@ -278,7 +280,7 @@ export default function ConnectorsPage() {
                 <td className="py-0 w-8" onClick={(e) => e.stopPropagation()}>
                   <div className="h-12 flex items-center justify-center">
                     <button
-                      className="opacity-0 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded hover:bg-[#edebe9] text-[#605e5c] transition-all"
+                      className="opacity-0 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded hover:bg-[#edebe9] dark:hover:bg-[#333333] text-[#605e5c] dark:text-[#adadad] transition-all"
                       onClick={(e) => {
                         e.stopPropagation();
                         setOpenMenu(openMenu === connector.id ? null : connector.id);
@@ -288,16 +290,16 @@ export default function ConnectorsPage() {
                     </button>
                     {openMenu === connector.id && (
                       <div
-                        className="absolute right-[48px] bg-white border border-[#e1e1e1] rounded-[4px] shadow-[0px_4px_8px_rgba(0,0,0,0.14)] z-20 w-44 top-1/2"
+                        className="absolute right-[48px] bg-white dark:bg-[#292929] border border-[#e1e1e1] dark:border-[#444444] rounded-[4px] shadow-[0px_4px_8px_rgba(0,0,0,0.14)] z-20 w-44 top-1/2"
                         onClick={(e) => { e.stopPropagation(); setOpenMenu(null); }}
                       >
                         <button
                           onClick={() => setSelectedConnector(connector)}
-                          className="block w-full text-left px-4 py-2 text-[14px] text-[#323130] hover:bg-[#f5f5f5]"
+                          className="block w-full text-left px-4 py-2 text-[14px] text-[#323130] dark:text-[#f5f5f5] hover:bg-[#f5f5f5] dark:hover:bg-[#383838]"
                         >
                           View details
                         </button>
-                        <button className="flex items-center gap-2 w-full text-left px-4 py-2 text-[14px] text-[#a80000] hover:bg-[#f5f5f5]">
+                        <button className="flex items-center gap-2 w-full text-left px-4 py-2 text-[14px] text-[#a80000] dark:text-[#f87171] hover:bg-[#f5f5f5] dark:hover:bg-[#383838]">
                           <DeleteIcon style={{ fontSize: 14 }} />
                           Delete
                         </button>
@@ -310,7 +312,7 @@ export default function ConnectorsPage() {
 
             {sorted.length === 0 && (
               <tr>
-                <td colSpan={5} className="py-12 text-center text-[14px] text-[#605e5c]">
+                <td colSpan={5} className="py-12 text-center text-[14px] text-[#605e5c] dark:text-[#adadad]">
                   No connections found.
                 </td>
               </tr>
@@ -320,9 +322,16 @@ export default function ConnectorsPage() {
       </div>
 
       {selectedConnector && (
-        <SetupDrawer
-          existingConnector={selectedConnector}
+        <ConnectorDetailPanel
+          connector={selectedConnector}
           onClose={() => setSelectedConnector(null)}
+          onEdit={() => { setEditConnector(selectedConnector); setSelectedConnector(null); }}
+        />
+      )}
+      {editConnector && (
+        <EditPanel
+          connector={editConnector}
+          onClose={() => setEditConnector(null)}
         />
       )}
     </div>

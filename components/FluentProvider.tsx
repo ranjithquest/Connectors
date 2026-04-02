@@ -1,15 +1,23 @@
 'use client';
 
+import React from 'react';
 import { FluentProvider, webLightTheme, webDarkTheme } from '@fluentui/react-components';
 import { initializeIcons } from '@fluentui/react';
-import { ThemeProvider, useTheme } from 'next-themes';
+import { ThemeProvider } from 'next-themes';
 
 initializeIcons();
 
 function FluentThemeWrapper({ children }: { children: React.ReactNode }) {
-  const { resolvedTheme } = useTheme();
+  const [isDark, setIsDark] = React.useState(false);
+  React.useEffect(() => {
+    const update = () => setIsDark(document.documentElement.classList.contains('dark'));
+    update();
+    const observer = new MutationObserver(update);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
   return (
-    <FluentProvider theme={resolvedTheme === 'dark' ? webDarkTheme : webLightTheme}>
+    <FluentProvider theme={isDark ? webDarkTheme : webLightTheme}>
       {children}
     </FluentProvider>
   );

@@ -3,9 +3,10 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { SearchBox } from '@fluentui/react';
-import { CircleAdditionIcon, PageArrowRightIcon } from '@fluentui/react-icons-mdl2';
+import { CircleAdditionIcon, PageArrowRightIcon, BackIcon } from '@fluentui/react-icons-mdl2';
 import { CONNECTOR_CATALOG, CATEGORIES, type ConnectorCatalogItem } from '@/lib/gallery-data';
-import SimpleSetupDrawer from '@/components/connectors/SimpleSetupDrawer';
+import SetupPanel from '@/components/connectors/SetupPanel';
+import ISVPanel, { CONNECTOR_DETAILS } from '@/components/connectors/ISVPanel';
 
 function ConnectorLogo({ color, initials, logoUrl, logoBg }: { color: string; initials: string; logoUrl?: string; logoBg?: string }) {
   const [imgFailed, setImgFailed] = useState(false);
@@ -35,9 +36,16 @@ function ConnectorLogo({ color, initials, logoUrl, logoBg }: { color: string; in
   );
 }
 
-function ConnectorTile({ connector, onAdd }: { connector: ConnectorCatalogItem; onAdd: (name: string) => void }) {
+function ConnectorTile({ connector, onAdd, onSelect, selected }: {
+  connector: ConnectorCatalogItem;
+  onAdd: (name: string) => void;
+  onSelect: (c: ConnectorCatalogItem) => void;
+  selected: boolean;
+}) {
   return (
-    <div className="bg-white dark:bg-[#141414] border border-transparent dark:border-[#3d3d3d] rounded-[4px] flex items-center gap-3 p-4 [box-shadow:0px_2px_4px_0px_rgba(0,0,0,0.14),0px_0px_2px_0px_rgba(0,0,0,0.12)] dark:[box-shadow:none] hover:[box-shadow:0px_4px_8px_0px_rgba(0,0,0,0.14),0px_0px_2px_0px_rgba(0,0,0,0.12)] dark:hover:border-[#525252] dark:hover:bg-[#1f1f1f] transition-all">
+    <div
+      className="bg-white dark:bg-[#141414] border rounded-[4px] flex items-center gap-3 p-4 transition-all border-transparent dark:border-[#3d3d3d] [box-shadow:0px_2px_4px_0px_rgba(0,0,0,0.14),0px_0px_2px_0px_rgba(0,0,0,0.12)] hover:[box-shadow:0px_4px_8px_0px_rgba(0,0,0,0.14),0px_0px_2px_0px_rgba(0,0,0,0.12)] dark:hover:border-[#525252] dark:hover:bg-[#1f1f1f]"
+    >
       <ConnectorLogo color={connector.logoColor} initials={connector.logoInitials} logoUrl={connector.logoUrl} logoBg={connector.logoBg} />
       <div className="flex-1 min-w-0 flex flex-col gap-1">
         <p className="text-[14px] font-semibold leading-5 text-[#242424] dark:text-[#d6d6d6] truncate">{connector.name}</p>
@@ -45,7 +53,7 @@ function ConnectorTile({ connector, onAdd }: { connector: ConnectorCatalogItem; 
         <p className="text-[12px] leading-4 text-[#616161] dark:text-[#adadad] truncate">{connector.description}</p>
       </div>
       <button
-        onClick={() => onAdd(connector.name)}
+        onClick={() => CONNECTOR_DETAILS[connector.id] ? onSelect(connector) : onAdd(connector.name)}
         className="shrink-0 px-3 py-[5px] text-[14px] font-semibold text-[#242424] dark:text-[#d6d6d6] bg-white dark:bg-transparent border border-[#d1d1d1] dark:border-[#4d4d4d] rounded-[4px] hover:bg-[#f5f5f5] dark:hover:bg-[#ffffff1a] dark:hover:border-[#606060] transition-colors whitespace-nowrap"
       >
         Add
@@ -54,11 +62,16 @@ function ConnectorTile({ connector, onAdd }: { connector: ConnectorCatalogItem; 
   );
 }
 
-function SectionGrid({ connectors, onAdd }: { connectors: ConnectorCatalogItem[]; onAdd: (name: string) => void }) {
+function SectionGrid({ connectors, onAdd, onSelect, selectedId }: {
+  connectors: ConnectorCatalogItem[];
+  onAdd: (name: string) => void;
+  onSelect: (c: ConnectorCatalogItem) => void;
+  selectedId: string | null;
+}) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
       {connectors.map((c) => (
-        <ConnectorTile key={c.id} connector={c} onAdd={onAdd} />
+        <ConnectorTile key={c.id} connector={c} onAdd={onAdd} onSelect={onSelect} selected={selectedId === c.id} />
       ))}
     </div>
   );
@@ -69,7 +82,7 @@ export default function GalleryPage() {
   const [filter, setFilter] = useState<'all' | 'recommended'>('all');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [setupType, setSetupType] = useState<string | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [selectedConnector, setSelectedConnector] = useState<ConnectorCatalogItem | null>(null);
 
   const filtered = useMemo(() => {
     return CONNECTOR_CATALOG.filter((c) => {
@@ -92,10 +105,10 @@ export default function GalleryPage() {
   const showRecommended = filter !== 'recommended' && !activeCategory && !search && recommended.length > 0;
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-white dark:bg-[#141414]">
+    <div className="flex flex-col h-screen overflow-hidden bg-white dark:bg-[#141414]">
 
       {/* Page header */}
-      <div className="shrink-0 pt-3 pb-0 bg-white dark:bg-[#141414] px-4 sm:px-8 lg:px-12">
+      <div className="shrink-0 z-10 bg-white dark:bg-[#141414] pt-3 pb-0 px-4 sm:px-8 lg:px-12">
         <nav className="flex items-center gap-1 text-[12px] text-[#616161] dark:text-[#9e9d99] mb-4">
           <Link href="/" className="hover:text-[#0078d4] hover:underline">Home</Link>
           <span className="text-[#c8c6c4] dark:text-[#525252]">›</span>
@@ -114,14 +127,14 @@ export default function GalleryPage() {
             Your connections
           </Link>
         </div>
+        <div className="border-b border-[#e1e1e1] dark:border-[#3d3d3d] mt-6" />
       </div>
-      <div className="shrink-0 border-b border-[#e1e1e1] dark:border-[#3d3d3d] mx-4 sm:mx-8 lg:mx-12 mt-6" />
 
       {/* Main layout */}
-      <div className="flex-1 overflow-hidden flex flex-col lg:flex-row px-4 sm:px-8 lg:px-12">
+      <div className="flex flex-1 overflow-hidden flex-col lg:flex-row px-4 sm:px-8 lg:px-12">
 
         {/* Sidebar — desktop only */}
-        <aside className="hidden lg:flex lg:w-[260px] lg:shrink-0 lg:border-r border-[#e1e1e1] dark:border-[#3d3d3d] lg:pt-6 lg:flex-col lg:gap-4 lg:overflow-y-auto">
+        <aside className="hidden lg:flex lg:w-[260px] lg:shrink-0 lg:border-r border-[#e1e1e1] dark:border-[#3d3d3d] lg:pt-6 lg:flex-col lg:gap-4 overflow-y-auto overscroll-contain [&::-webkit-scrollbar]:hidden [scrollbar-width:none]" style={{ scrollbarWidth: 'none' }}>
 
           {/* Search */}
           <div className="pt-4 lg:pt-0 lg:pr-6">
@@ -171,8 +184,7 @@ export default function GalleryPage() {
           </div>
         </aside>
 
-        {/* Content */}
-        <main className="flex-1 min-w-0 overflow-y-auto">
+        <main className="flex-1 min-w-0 overflow-y-auto overscroll-contain [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
 
           {/* Hero banner */}
           {!search && !activeCategory && filter === 'all' && (
@@ -239,19 +251,19 @@ export default function GalleryPage() {
           </div>
 
           {/* Connector sections */}
-          <div className="py-6 lg:px-8 lg:py-8 flex flex-col gap-10 lg:gap-12">
+          <div className="py-6 lg:px-8 lg:py-8 flex flex-col gap-10 lg:gap-12 mb-[120px]">
 
             {showRecommended && (
               <section>
                 <h2 className="text-[18px] sm:text-[20px] font-semibold text-[#323130] dark:text-[#f0f0f0] mb-4">Recommended</h2>
-                <SectionGrid connectors={recommended} onAdd={setSetupType} />
+                <SectionGrid connectors={recommended} onAdd={setSetupType} onSelect={setSelectedConnector} selectedId={selectedConnector?.id ?? null} />
               </section>
             )}
 
             {filter === 'recommended' && !search && (
               <section>
                 <h2 className="text-[18px] sm:text-[20px] font-semibold text-[#323130] dark:text-[#f0f0f0] mb-4">Recommended</h2>
-                <SectionGrid connectors={recommended} onAdd={setSetupType} />
+                <SectionGrid connectors={recommended} onAdd={setSetupType} onSelect={setSelectedConnector} selectedId={selectedConnector?.id ?? null} />
               </section>
             )}
 
@@ -259,7 +271,7 @@ export default function GalleryPage() {
               <section>
                 <h2 className="text-[18px] sm:text-[20px] font-semibold text-[#323130] dark:text-[#f0f0f0] mb-4">{activeCategory}</h2>
                 {filtered.length > 0
-                  ? <SectionGrid connectors={filtered} onAdd={setSetupType} />
+                  ? <SectionGrid connectors={filtered} onAdd={setSetupType} onSelect={setSelectedConnector} selectedId={selectedConnector?.id ?? null} />
                   : <p className="text-[14px] text-[#605e5c] dark:text-[#9e9d99]">No connectors found.</p>}
               </section>
             )}
@@ -270,7 +282,7 @@ export default function GalleryPage() {
                   {filtered.length} result{filtered.length !== 1 ? 's' : ''} for &ldquo;{search}&rdquo;
                 </h2>
                 {filtered.length > 0
-                  ? <SectionGrid connectors={filtered} onAdd={setSetupType} />
+                  ? <SectionGrid connectors={filtered} onAdd={setSetupType} onSelect={setSelectedConnector} selectedId={selectedConnector?.id ?? null} />
                   : <p className="text-[14px] text-[#605e5c] dark:text-[#9e9d99]">No connectors match your search.</p>}
               </section>
             )}
@@ -278,38 +290,46 @@ export default function GalleryPage() {
             {!search && !activeCategory && filter === 'all' && byCategory.map(({ label, items }) => (
               <section key={label}>
                 <h2 className="text-[18px] sm:text-[20px] font-semibold text-[#323130] dark:text-[#f0f0f0] mb-4">{label}</h2>
-                <SectionGrid connectors={items} onAdd={setSetupType} />
+                <SectionGrid connectors={items} onAdd={setSetupType} onSelect={setSelectedConnector} selectedId={selectedConnector?.id ?? null} />
               </section>
             ))}
-          </div>
 
-          {/* Footer */}
-          <div className="lg:px-8 pb-8 mt-12 flex items-center gap-1 flex-wrap">
-            <span className="text-[14px] text-[#323130] dark:text-[#d6d6d6] mr-1">Didn&apos;t find your connector?</span>
-            <a
-              href="https://learn.microsoft.com/en-US/graph/connecting-external-content-build-quickstart"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 h-8 px-1 text-[14px] text-[#323130] dark:text-[#d6d6d6] hover:text-[#106ebe] dark:hover:text-[#479ef5] transition-colors"
-            >
-              <CircleAdditionIcon style={{ fontSize: 14 }} />
-              Learn to create your connector
-            </a>
-            <a
-              href="https://aka.ms/GraphConnectorsFeedback"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 h-8 px-1 text-[14px] text-[#323130] dark:text-[#d6d6d6] hover:text-[#106ebe] dark:hover:text-[#479ef5] transition-colors"
-            >
-              <PageArrowRightIcon style={{ fontSize: 14 }} />
-              Request for a connector
-            </a>
+            <section className="flex items-center gap-4 flex-wrap">
+              <span className="text-[14px] text-[#323130] dark:text-[#d6d6d6] mr-1">Didn&apos;t find your connector?</span>
+              <a
+                href="https://learn.microsoft.com/en-US/graph/connecting-external-content-build-quickstart"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 h-8 px-1 text-[14px] text-[#323130] dark:text-[#d6d6d6] hover:text-[#106ebe] dark:hover:text-[#6cb8f6] transition-colors"
+              >
+                <CircleAdditionIcon style={{ fontSize: 14, color: '#0078d4' }} />
+                Learn to create your connector
+              </a>
+              <a
+                href="https://aka.ms/GraphConnectorsFeedback"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 h-8 px-1 text-[14px] text-[#323130] dark:text-[#d6d6d6] hover:text-[#106ebe] dark:hover:text-[#6cb8f6] transition-colors"
+              >
+                <PageArrowRightIcon style={{ fontSize: 14, color: '#0078d4' }} />
+                Request for a connector
+              </a>
+            </section>
           </div>
         </main>
+
       </div>
 
+      {selectedConnector && (
+        <ISVPanel
+          connector={selectedConnector}
+          onAdd={setSetupType}
+          onClose={() => setSelectedConnector(null)}
+        />
+      )}
+
       {setupType && (
-        <SimpleSetupDrawer connectorType={setupType} onClose={() => setSetupType(null)} />
+        <SetupPanel connectorType={setupType} onClose={() => setSetupType(null)} />
       )}
     </div>
   );

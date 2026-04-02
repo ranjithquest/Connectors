@@ -412,7 +412,7 @@ export const CONNECTORS: Connector[] = [
     id: 'azure-devops',
     displayName: 'Org Foundary',
     connectorType: 'ADO',
-    logoUrl: 'https://az-icons.com/export/icons/d4346f5a054abfb8cb3256599aebf469.svg',
+    logoUrl: '/logos/azure-devops.svg',
     userCriteriaType: 'simple',
     instanceUrl: 'https://dev.azure.com/contoso',
     authMethod: 'basic',

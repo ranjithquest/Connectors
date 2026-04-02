@@ -107,7 +107,7 @@ export const CONNECTOR_CATALOG: ConnectorCatalogItem[] = [
 
   // Files and documents (Recommended)
   { id: 'file-share', name: 'FileShare', publisher: 'Microsoft', description: 'Traditional network file shares for accessing on-premises documents.', category: 'Files and documents', recommended: true, logoColor: '#FFB900', logoInitials: 'FS', logoUrl: '/logos/fileshare.png', logoBg: '#ffffff' },
-  { id: 'google-drive', name: 'Google Drive', publisher: 'Microsoft', description: 'File storage and synchronization.', category: 'Files and documents', recommended: true, logoColor: '#4285F4', logoInitials: 'GD', logoUrl: '/logos/google-drive.svg', logoBg: '#ffffff' },
+  { id: 'google-drive', name: 'Google Drive', publisher: 'Microsoft', description: 'File storage and synchronization.', category: 'Files and documents', recommended: true, logoColor: '#4285F4', logoInitials: 'GD', logoUrl: '/logos/google-drive-new.svg', logoBg: '#ffffff' },
 
   // Files and documents
   { id: 'azure-data-lake', name: 'ADLS Gen2', publisher: 'Microsoft', description: 'Enterprise-grade hierarchical file system over cloud storage.', category: 'Files and documents', logoColor: '#0078D4', logoInitials: 'DL', logoUrl: `${CDN}/adls_catalogue2.png`, logoBg: '#ffffff' },
@@ -118,7 +118,7 @@ export const CONNECTOR_CATALOG: ConnectorCatalogItem[] = [
   // Human resources & recruiting
   { id: '15five-high-fives', name: '15Five High Fives', publisher: 'Microsoft', description: 'Recognize team achievements.', category: 'Human resources & recruiting', logoColor: '#4CAF50', logoInitials: 'HF', logoUrl: `${CDN}/fifteenfive_catalogue2.png`, logoBg: '#ffffff' },
   { id: '15five-priorities', name: '15Five Priorities', publisher: 'Microsoft', description: 'Track and align team objectives.', category: 'Human resources & recruiting', logoColor: '#4CAF50', logoInitials: 'HP', logoUrl: `${CDN}/fifteenfive_catalogue2.png`, logoBg: '#ffffff' },
-  { id: 'bamboohr-profiles', name: 'BambooHR Profiles', publisher: 'Microsoft', description: 'Sync BambooHR profiles.', category: 'Human resources & recruiting', logoColor: '#73AC39', logoInitials: 'BH', logoBg: '#ffffff' },
+  { id: 'bamboohr-profiles', name: 'BambooHR Profiles', publisher: 'Microsoft', description: 'Sync BambooHR profiles.', category: 'Human resources & recruiting', logoColor: '#73AC39', logoInitials: 'BH', logoUrl: '/logos/bamboohr.png', logoBg: '#ffffff' },
   { id: 'sap-successfactors', name: 'SAP SuccessFactors', publisher: 'Microsoft', description: 'Connect to SAP SuccessFactors.', category: 'Human resources & recruiting', logoColor: '#0FAAFF', logoInitials: 'SA', logoUrl: `${CDN}/sap_catalogue2.png`, logoBg: '#ffffff' },
   { id: 'workday', name: 'Workday', publisher: 'Microsoft', description: 'Securely sync organizational data.', category: 'Human resources & recruiting', logoColor: '#F5821F', logoInitials: 'WD', logoUrl: `${CDN}/workday_catalogue_new.svg`, logoBg: '#ffffff' },
 
