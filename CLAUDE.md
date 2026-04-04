@@ -18,10 +18,12 @@ When building any UI concept or feature in this project, **always use Fluent UI 
 ## Icon Library
 This project uses `@fluentui/react-icons-mdl2` (v1.4.5) as the **default icon library**.
 
-- Always import icons from `@fluentui/react-icons-mdl2` unless a specific icon is unavailable there.
+- **Always use MDL2 first.** Import icons from `@fluentui/react-icons-mdl2` for any new concept or feature.
 - Browse available icons at: https://iconcloud.design/browse/Full%20MDL2%20Assets
+- If an icon is **not available in MDL2**, fall back to `@fluentui/react-icons` (Fluent UI react icons).
+- **Never use any other icon library** unless the user explicitly asks for it. This applies even when implementing designs from Figma — always map Figma icons to MDL2 equivalents, do not import new icon libraries based on what Figma suggests.
 - Icon usage pattern: `<IconName style={{ fontSize: N }} className="..." />`
-- Do NOT use inline SVGs or external image URLs for icons that exist in this library.
+- Do NOT use inline SVGs or external image URLs for icons that exist in either library.
 - A small number of custom icons (Copilot logo, ServiceNow logo, connector logos) are PNG/SVG files in `/public/` — these are intentional exceptions.
 
 ## Data Visualisation
