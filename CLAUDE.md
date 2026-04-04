@@ -26,6 +26,33 @@ This project uses `@fluentui/react-icons-mdl2` (v1.4.5) as the **default icon li
 - Do NOT use inline SVGs or external image URLs for icons that exist in either library.
 - A small number of custom icons (Copilot logo, ServiceNow logo, connector logos) are PNG/SVG files in `/public/` — these are intentional exceptions.
 
+## Concept Branch Workflow
+When a user provides a product spec or asks to generate a concept, follow this workflow:
+
+1. **Always create a `concept/` branch** — never work on `main` directly:
+   ```bash
+   git checkout -b concept/feature-name
+   ```
+
+2. **Build the concept** on that branch only.
+
+3. **Push the branch** — GitHub Actions will automatically deploy it to a unique preview URL:
+   - `Boilerplate` branch → main site URL
+   - `concept/feature-name` branch → `<site-url>/concept-feature-name/`
+
+4. **Share the preview URL** with stakeholders for review.
+
+5. **Selective merge** — once approved, only cherry-pick the specific files/components the user wants into `main`:
+   ```bash
+   git checkout main
+   git checkout concept/feature-name -- components/SomeComponent.tsx
+   ```
+   Never merge the entire concept branch into `main` without explicit user approval of each file.
+
+6. **Clean up** — delete the concept branch after merging approved parts.
+
+> Never push spec-generated or experimental code directly to `main` or `Boilerplate`.
+
 ## Figma Plugins
 Before working on any design implementation from Figma, check that the user has the following MCP plugins installed in Claude Code:
 
