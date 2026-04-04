@@ -166,9 +166,14 @@ export default function ConnectorsPage() {
       </div>
 
       {/* Description — below tabs, above command bar */}
-      <p className="text-[14px] text-[#605e5c] dark:text-[#adadad] pt-8 pb-8 px-4 sm:px-8 lg:px-12">
-        Connect your organization&apos;s data to improve insights and information provided by Copilot, agents, and Microsoft Search.
-      </p>
+      <div className="pt-8 pb-8 px-4 sm:px-8 lg:px-12 flex items-center justify-between">
+        <p className="text-[14px] text-[#605e5c] dark:text-[#adadad]">
+          Connect your organization&apos;s data to improve insights and information provided by Copilot, agents, and Microsoft Search.
+        </p>
+        <Link href="/onboarding" className="text-[13px] text-[#0078d4] dark:text-[#479ef5] hover:underline whitespace-nowrap ml-8 flex-shrink-0">
+          New here? Get started →
+        </Link>
+      </div>
 
 
 {/* ── Command bar ───────────────────────────────────────────── */}

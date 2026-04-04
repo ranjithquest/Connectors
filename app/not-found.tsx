@@ -12,6 +12,9 @@ export default function NotFound() {
           This template was created just for you to quickly prototype. Please connect with the{' '}
           <strong>Connectors Design team</strong> to add any pages on this.
         </p>
+        <a href="/onboarding" className="inline-flex items-center gap-1.5 mb-5 text-[14px] text-[#0078d4] hover:underline font-medium">
+          New here? View the onboarding guide →
+        </a>
         <div className="mb-6 flex items-center gap-4">
           <span className="text-[13px] text-[#605e5c]">Contact:</span>
           <Persona
