@@ -26,6 +26,18 @@ This project uses `@fluentui/react-icons-mdl2` (v1.4.5) as the **default icon li
 - Do NOT use inline SVGs or external image URLs for icons that exist in either library.
 - A small number of custom icons (Copilot logo, ServiceNow logo, connector logos) are PNG/SVG files in `/public/` — these are intentional exceptions.
 
+## Figma Plugins
+Before working on any design implementation from Figma, check that the user has the following MCP plugins installed in Claude Code:
+
+- **Figma** — for reading Figma designs, extracting layout, components, and tokens
+- **Playwright** — for browser automation and visual testing
+
+If either plugin is not installed, ask the user to install them before proceeding:
+- Figma plugin: available via the Claude Code MCP marketplace or settings
+- Playwright plugin: available via the Claude Code MCP marketplace or settings
+
+Do not attempt to implement a Figma design without the Figma plugin active — guessing at design details leads to inaccurate implementations.
+
 ## Data Visualisation
 For any charts or data visualisation, follow the **Fluent UI Charting** design language.
 
