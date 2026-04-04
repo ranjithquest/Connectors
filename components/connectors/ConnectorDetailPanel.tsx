@@ -7,7 +7,7 @@ import {
   Stack, Text, Link, Separator, IconButton,
 } from '@fluentui/react';
 import type { IPanelStyles } from '@fluentui/react';
-import { InfoIcon, ChevronDownIcon, StatusCircleCheckmarkIcon, StatusCircleInnerIcon } from '@fluentui/react-icons-mdl2';
+import { InfoIcon, SyncIcon, ChevronDownIcon, StatusCircleCheckmarkIcon, StatusCircleInnerIcon } from '@fluentui/react-icons-mdl2';
 import { DismissRegular } from '@fluentui/react-icons';
 import {
   FluentProvider, webLightTheme, webDarkTheme,

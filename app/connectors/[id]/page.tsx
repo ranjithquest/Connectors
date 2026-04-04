@@ -2,6 +2,10 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { CONNECTORS } from '@/lib/mock-data';
 
+export function generateStaticParams() {
+  return CONNECTORS.map((c) => ({ id: c.id }));
+}
+
 interface Props {
   params: { id: string };
 }

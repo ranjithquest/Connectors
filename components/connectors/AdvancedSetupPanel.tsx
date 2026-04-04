@@ -1653,7 +1653,7 @@ function SyncTabContent({ fieldHighlight, fieldRefs }: { fieldHighlight?: string
           selectedKey={timezone}
           options={TIMEZONES.map(tz => ({ key: tz, text: tz }))}
           onChange={(_, opt) => { if (opt) setTimezone(opt.key as string); }}
-          styles={{ root: { width: '100%' }, label: { fontWeight: 400, selectors: { '&': { fontWeight: 400 } } } }}
+          styles={{ root: { width: '100%' } }}
         />
       </div>
 
@@ -1674,7 +1674,7 @@ function SyncTabContent({ fieldHighlight, fieldRefs }: { fieldHighlight?: string
                 selectedKey={incRecurrence}
                 options={['Hour', 'Day', 'Week', 'Month'].map(v => ({ key: v, text: `Every ${v}` }))}
                 onChange={(_, opt) => { if (opt) setIncRecurrence(opt.key as string); }}
-                styles={{ root: { width: '100%' }, label: { fontWeight: 400, selectors: { '&': { fontWeight: 400 } } } }}
+                styles={{ root: { width: '100%' } }}
               />
               <FluentV8Checkbox
                 label="Run once in a day"
@@ -1686,7 +1686,7 @@ function SyncTabContent({ fieldHighlight, fieldRefs }: { fieldHighlight?: string
                 selectedKey={incFreq}
                 options={['5 minutes', '15 minutes', '30 minutes', '1 hour', '2 hours'].map(v => ({ key: v, text: `Every ${v}` }))}
                 onChange={(_, opt) => { if (opt) setIncFreq(opt.key as string); }}
-                styles={{ root: { width: '100%' }, label: { fontWeight: 400, selectors: { '&': { fontWeight: 400 } } } }}
+                styles={{ root: { width: '100%' } }}
               />
               <button className="text-[14px] text-[#0078d4] dark:text-[#479ef5] hover:underline text-left w-fit">
                 Add starting time
@@ -1705,7 +1705,7 @@ function SyncTabContent({ fieldHighlight, fieldRefs }: { fieldHighlight?: string
             selectedKey={fullRecurrence}
             options={['Day', 'Week', 'Month'].map(v => ({ key: v, text: `Every ${v}` }))}
             onChange={(_, opt) => { if (opt) setFullRecurrence(opt.key as string); }}
-            styles={{ root: { width: '100%' }, label: { fontWeight: 400, selectors: { '&': { fontWeight: 400 } } } }}
+            styles={{ root: { width: '100%' } }}
           />
 
           <button className="text-[14px] text-[#0078d4] hover:underline text-left w-fit">
@@ -1927,7 +1927,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                     autoFocus
                     value={editName}
                     onChange={(_, v) => setEditName(v ?? '')}
-                    styles={{ root: { width: '100%' }, label: { fontWeight: 400, selectors: { '&': { fontWeight: 400 } } } }}
+                    styles={{ root: { width: '100%' } }}
                   />
 
                   {/* Save / Cancel */}
@@ -2022,7 +2022,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                   value={displayName}
                   onChange={(_, v) => { setDisplayName(v ?? ''); setSourceName(v ?? ''); markChanged(); }}
                   onFocus={() => { setGuidanceHighlight('display-name'); if (!suppressGuidanceSwitch.current) setRightRailTab('guide'); }}
-                  styles={{ root: { width: '100%' }, label: { fontWeight: 400, selectors: { '&': { fontWeight: 400 } } } }}
+                  styles={{ root: { width: '100%' } }}
                 />
               </div>
 
@@ -2053,7 +2053,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                   onChange={(_, v) => { setInstanceUrl(v ? `https://${v}` : ''); markChanged(); }}
                   onFocus={() => { setGuidanceHighlight('instance-url'); if (!suppressGuidanceSwitch.current) setRightRailTab('guide'); }}
                   placeholder="example.servicenow.com"
-                  styles={{ root: { width: '100%' }, label: { fontWeight: 400, selectors: { '&': { fontWeight: 400 } } } }}
+                  styles={{ root: { width: '100%' } }}
                 />
               </div>
 
@@ -2068,7 +2068,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                   options={AUTH_OPTIONS.map(o => ({ key: o.value, text: o.label })) as IDropdownOption[]}
                   onChange={(_, opt) => { if (opt) { setAuthMethod(opt.key as AuthMethod); markChanged(); autoApplyForField('auth-types'); } }}
                   onFocus={() => { setGuidanceHighlight('auth-types'); if (!suppressGuidanceSwitch.current) setRightRailTab('guide'); }}
-                  styles={{ root: { width: '100%' }, label: { fontWeight: 400, selectors: { '&': { fontWeight: 400 } } } }}
+                  styles={{ root: { width: '100%' } }}
                 />
 
                 {/* Basic Auth credential inputs */}
@@ -2081,7 +2081,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                       value={basicUsername}
                       onChange={(_, v) => { setBasicUsername(v ?? ''); markChanged(); autoApplyForField('auth-credentials'); }}
                       placeholder="e.g. svc-copilot@contoso.com"
-                      styles={{ root: { width: '100%' }, label: { fontWeight: 400, selectors: { '&': { fontWeight: 400 } } } }}
+                      styles={{ root: { width: '100%' } }}
                     />
                     <TextField
                       label="Password"
@@ -2090,7 +2090,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                       canRevealPassword
                       value={basicPassword}
                       onChange={(_, v) => { setBasicPassword(v ?? ''); markChanged(); autoApplyForField('auth-credentials'); }}
-                      styles={{ root: { width: '100%' }, label: { fontWeight: 400, selectors: { '&': { fontWeight: 400 } } } }}
+                      styles={{ root: { width: '100%' } }}
                     />
                   </div>
                 )}
@@ -2120,7 +2120,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                     onChange={(items?: IPersonaProps[]) => setSelectedPeople((items ?? []).map(i => i.key as string))}
                     inputProps={{ placeholder: 'Select users/groups', onFocus: () => { setGuidanceHighlight('staged-rollout'); if (!suppressGuidanceSwitch.current) setRightRailTab('guide'); } }}
                     pickerSuggestionsProps={{ suggestionsHeaderText: 'Suggested people', noResultsFoundText: 'No results found' }}
-                    styles={{ root: { width: '100%' }, label: { fontWeight: 400, selectors: { '&': { fontWeight: 400 } } } }}
+                    styles={{ root: { width: '100%' } }}
                   />
                 )}
               </div>

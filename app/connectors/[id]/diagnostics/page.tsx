@@ -1,6 +1,10 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { CONNECTORS } from '@/lib/mock-data';
+
+export function generateStaticParams() {
+  return CONNECTORS.map((c) => ({ id: c.id }));
+}
 import Breadcrumb from '@/components/layout/Breadcrumb';
 import Badge from '@/components/ui/Badge';
 import Card from '@/components/ui/Card';
