@@ -7,6 +7,14 @@ This project uses the **Admin Controls** library as the **first priority** compo
 - Always check this library first for any UI component (buttons, inputs, dialogs, etc.).
 - Only fall back to **Fluent UI** (https://github.com/microsoft/fluentui) if a component is not available in the Admin Controls library.
 
+## UI Components — Fluent First
+When building any UI concept or feature in this project, **always use Fluent UI v8 or v9 components first**.
+
+- Use **Fluent UI v9** (`@fluentui/react-components`) for modern components: `Button`, `Badge`, `MessageBar`, `Card`, `Dialog`, `Input`, `Checkbox`, etc.
+- Use **Fluent UI v8** (`@fluentui/react`) for components not yet in v9: `Panel`, `Pivot`, `Stack`, `TextField`, `CommandBar`, etc.
+- **Do NOT reach for Tailwind CSS classes** to build UI components that already exist in Fluent UI. Tailwind is only acceptable for layout spacing, page-level structure, and utility styling where no Fluent component applies.
+- Never build a custom button, badge, input, dialog, or similar control from scratch with Tailwind when a Fluent equivalent exists.
+
 ## Icon Library
 This project uses `@fluentui/react-icons-mdl2` (v1.4.5) as the **default icon library**.
 
