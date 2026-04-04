@@ -29,27 +29,28 @@ This project uses `@fluentui/react-icons-mdl2` (v1.4.5) as the **default icon li
 ## Concept Branch Workflow
 When a user provides a product spec or asks to generate a concept, follow this workflow:
 
-1. **Always create a `concept/` branch** — never work on `main` directly:
+1. **Always create a feature branch** — never work on `main` or `Boilerplate` directly:
    ```bash
-   git checkout -b concept/feature-name
+   git checkout -b your-name/feature-name
    ```
 
 2. **Build the concept** on that branch only.
 
-3. **Push the branch** — GitHub Actions will automatically deploy it to a unique preview URL:
-   - `Boilerplate` branch → main site URL
-   - `concept/feature-name` branch → `<site-url>/concept-feature-name/`
+3. **Push the branch** — GitHub Actions automatically builds and deploys it to a unique preview URL:
+   - `Boilerplate` → main site
+   - Any other branch → `<site-url>/<branch-slug>/connectors`
+   - A comment with the preview URL is posted on the commit automatically
 
 4. **Share the preview URL** with stakeholders for review.
 
-5. **Selective merge** — once approved, only cherry-pick the specific files/components the user wants into `main`:
+5. **Selective merge** — once approved, only cherry-pick the specific files/components the user wants into `Boilerplate`:
    ```bash
-   git checkout main
-   git checkout concept/feature-name -- components/SomeComponent.tsx
+   git checkout Boilerplate
+   git checkout your-name/feature-name -- components/SomeComponent.tsx
    ```
-   Never merge the entire concept branch into `main` without explicit user approval of each file.
+   Never merge the entire branch without explicit user approval of each file.
 
-6. **Clean up** — delete the concept branch after merging approved parts.
+6. **Clean up** — delete the feature branch after merging approved parts.
 
 > Never push spec-generated or experimental code directly to `main` or `Boilerplate`.
 
