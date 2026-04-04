@@ -1,39 +1,36 @@
-# /publish — Push Your Branch and Share Preview URL
+# /publish — Push Your Concept and Share Preview URL
 
-This skill guides you through pushing your current feature branch to GitHub and getting a shareable preview URL for stakeholders.
+This skill handles everything needed to push your work to GitHub and get a shareable preview URL. You don't need to know anything about branches.
 
 ## Step 1 — Collect concept details
-Before doing anything, ask the user these two questions:
+Ask the user two things:
 
-1. **"What is the name of this feature or concept?"**
-   - This becomes the human-readable title (e.g. "Connector Health Dashboard", "ISV Onboarding Flow")
-   - Keep it clear and presentable — stakeholders will see this in the shared message
+1. **"What would you like to call this concept?"**
+   - Suggest a generated name based on what was built if they're unsure (e.g. "Connector Health Dashboard", "ISV Setup Flow")
+   - This becomes the branch name and appears in the stakeholder message
+   - Keep it short and descriptive
 
 2. **"What is your name?"**
-   - This is recorded as the owner in the commit metadata — it will NOT appear on any screens
-   - Used only for internal tracking and record-keeping
+   - Recorded silently in the commit — never shown on any screen
+   - Used only for internal record-keeping
 
-Store both as variables: `CONCEPT_NAME` and `OWNER_NAME`.
+Store as `CONCEPT_NAME` and `OWNER_NAME`.
 
-## Step 2 — Check current branch
-Run: `git branch --show-current`
+## Step 2 — Create and switch to a feature branch automatically
+Generate a branch name from their inputs:
+- Lowercase, spaces → hyphens, remove special characters
+- Format: `<owner-slug>/<concept-slug>`
+- Example: `ranjith/connector-health-dashboard`
 
-If the user is on `main` or `Boilerplate`, stop and say:
-"You are on a protected branch. Let me create a feature branch for you first."
-
-Create the branch using their name and concept:
+Run:
 ```bash
-git checkout -b <owner-name-slug>/<concept-name-slug>
-# e.g. ranjith/connector-health-dashboard
+git checkout -b <owner-slug>/<concept-slug>
 ```
 
-Slugify both: lowercase, spaces → hyphens, remove special characters.
+Tell the user: "I've created a branch for your concept — you don't need to worry about this."
 
-## Step 3 — Check for uncommitted changes
-Run: `git status`
-
-If there are uncommitted changes, stage and commit them with a structured commit message that includes both the concept name and owner — but only in the commit metadata, not visible in the UI:
-
+## Step 3 — Commit all changes
+Stage and commit everything with structured metadata in the commit body:
 ```bash
 git add -A
 git commit -m "feat: <CONCEPT_NAME>
@@ -43,17 +40,6 @@ Owner: <OWNER_NAME>
 Date: <today's date>"
 ```
 
-Example:
-```
-feat: Connector Health Dashboard
-
-Concept: Connector Health Dashboard
-Owner: Ranjith Ravi
-Date: 2026-04-04
-```
-
-This records the owner permanently in git history without surfacing it anywhere in the app.
-
 ## Step 4 — Push to GitHub
 ```bash
 git push -u origin <branch-name>
@@ -61,41 +47,37 @@ git push -u origin <branch-name>
 
 ## Step 5 — Wait for deployment
 Tell the user:
-"Your branch is being built and deployed. This usually takes 2–3 minutes. You can watch progress at:
+"Your concept is being deployed. This usually takes 2–3 minutes. You can watch progress at:
 https://github.com/gim-home/Connectors/actions"
 
 ## Step 6 — Share the preview URL
-The preview URL is:
-```
-https://studious-adventure-j17vp6o.pages.github.io/<branch-slug>/connectors
-```
+Compute the preview URL:
+- Branch `ranjith/connector-health-dashboard` → slug `ranjith-connector-health-dashboard`
+- URL: `https://studious-adventure-j17vp6o.pages.github.io/<slug>/connectors`
 
-Where `<branch-slug>` is the branch name with `/` replaced by `-` and lowercased.
-For example: `ranjith/connector-health-dashboard` → `ranjith-connector-health-dashboard`
-
-Give the user this ready-to-send stakeholder message:
+Give the user this ready-to-send message:
 
 ---
 **Stakeholder message template:**
-> Hi team, I'd like to share a prototype for your review.
+> Hi team, here's a prototype I'd like to share for your review.
 >
-> **Feature:** `<CONCEPT_NAME>`
-> 🔗 **Preview link:** `<URL>`
+> **Concept:** <CONCEPT_NAME>
+> 🔗 **Preview:** <URL>
 >
-> This is an interactive prototype — you can click through the UI as you normally would.
-> To see a guided walkthrough, add `?tour=true` to the URL: `<URL>?tour=true`
+> You can click through the UI as you normally would.
+> For a guided walkthrough, open: <URL>?tour=true
 >
 > Please share any feedback directly or reply to this message.
 ---
 
-## Step 7 — Confirm the URL works
-Ask the user: "Would you like me to verify the deployment is live before you share it?"
+## Step 7 — Offer to verify
+Ask: "Would you like me to confirm the deployment is live before you share the link?"
 
-If yes, wait ~3 minutes and check if the URL returns a valid page.
+If yes, wait ~3 minutes and check the URL.
 
-## Important reminders
-- The concept name and owner are recorded in git commit history — this is permanent and searchable
-- The preview URL is public — anyone with the link can view it
-- The URL updates automatically every time you push to the same branch
-- Do NOT share `main` or `Boilerplate` branch URLs as concept previews
-- When ready to promote approved work, run `/handoff`
+## Rules
+- Always auto-create the branch — never ask the user to do it manually
+- If a branch with that name already exists, append a short timestamp suffix
+- Concept name and owner are recorded in git history permanently — not shown in the UI
+- The preview URL updates automatically on every subsequent push to the same branch
+- When approved work needs to go to the shared baseline, run `/handoff`
