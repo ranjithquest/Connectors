@@ -194,6 +194,7 @@ export default function OnboardingPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
               {[
                 { cmd: '/onboard', desc: 'Walk through role-specific setup and answer questions about the boilerplate.' },
+                { cmd: '/publish', desc: 'Push your branch to GitHub, get your preview URL, and share it with stakeholders.' },
                 { cmd: '/walkthrough', desc: 'Add an interactive guided tour to your prototype for stakeholder presentations.' },
                 { cmd: '/handoff', desc: 'Extract approved components into production-ready code for the engineering team.' },
               ].map((s) => (
