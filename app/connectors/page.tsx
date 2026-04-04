@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { SearchBox } from '@fluentui/react';
-import { Badge, Tooltip } from '@fluentui/react-components';
-import { WarningFilled } from '@fluentui/react-icons';
+import { Badge, Tooltip, MessageBar, MessageBarBody, MessageBarTitle, MessageBarActions, Button as FButton, FluentProvider, webLightTheme, webDarkTheme } from '@fluentui/react-components';
+import { WarningFilled, DismissRegular } from '@fluentui/react-icons';
 import { CONNECTORS } from '@/lib/mock-data';
 import type { Connector } from '@/lib/types';
 import ConnectorDetailPanel from '@/components/connectors/ConnectorDetailPanel';
@@ -30,9 +30,9 @@ function StatusBadge({ status, blockerCount }: { status: string; blockerCount: n
     </span>
   );
   if (status === 'pending') return (
-    <span className="flex items-center gap-1.5 text-[13px] text-[#0078d4]">
+    <span className="flex items-center gap-1.5 text-[13px] text-[#323130]">
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-        <circle cx="7" cy="7" r="7" fill="#107c10" />
+        <circle cx="7" cy="7" r="7" fill="#0078d4" />
         <path d="M7 3.5A3.5 3.5 0 0 1 10.5 7" stroke="white" strokeWidth="1.3" strokeLinecap="round" fill="none"/>
         <path d="M7 10.5A3.5 3.5 0 0 1 3.5 7" stroke="white" strokeWidth="1.3" strokeLinecap="round" fill="none"/>
         <path d="M10.5 7l-1.2-.8M10.5 7l-.8 1.2" stroke="white" strokeWidth="1.1" strokeLinecap="round"/>
@@ -93,6 +93,19 @@ export default function ConnectorsPage() {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [selectedConnector, setSelectedConnector] = useState<Connector | null>(null);
   const [editConnector, setEditConnector] = useState<Connector | null>(null);
+  const [authBannerDismissed, setAuthBannerDismissed] = useState(false);
+  const [openToAuth, setOpenToAuth] = useState(false);
+  const [isDark, setIsDark] = useState(false);
+
+  const hrPoliciesConnector = CONNECTORS.find((c) => c.id === 'hr-policies');
+
+  useEffect(() => {
+    const update = () => setIsDark(document.documentElement.classList.contains('dark'));
+    update();
+    const observer = new MutationObserver(update);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
 
   function handleSort(key: SortKey) {
     if (sortKey === key) setSortAsc((v) => !v);
@@ -157,7 +170,8 @@ export default function ConnectorsPage() {
         Connect your organization&apos;s data to improve insights and information provided by Copilot, agents, and Microsoft Search.
       </p>
 
-      {/* ── Command bar ───────────────────────────────────────────── */}
+
+{/* ── Command bar ───────────────────────────────────────────── */}
       <div className="px-4 sm:px-8 lg:px-12">
         <div className="border-t border-[#edebe9] dark:border-[#333333]" />
       </div>
@@ -233,7 +247,6 @@ export default function ConnectorsPage() {
                   <SortIndicator col="lastSyncAt" />
                 </button>
               </th>
-              <th className="w-8" />
             </tr>
           </thead>
 
@@ -241,18 +254,41 @@ export default function ConnectorsPage() {
             {sorted.map((connector) => (
               <tr
                 key={connector.id}
-                className="border-b border-[#f3f2f1] dark:border-[#2e2e2e] hover:bg-[#faf9f8] dark:hover:bg-[#1f1f1f] transition-colors group cursor-pointer relative"
+                className={`border-b border-[#f3f2f1] dark:border-[#2e2e2e] hover:bg-[#faf9f8] dark:hover:bg-[#1f1f1f] transition-colors group cursor-pointer relative ${openMenu === connector.id ? 'z-10' : ''}`}
                 onClick={() => setSelectedConnector(connector)}
               >
                 {/* Source name */}
-                <td className="py-0 pr-4 w-1/4">
-                  <div className="h-12 flex items-center gap-2 min-w-0">
+                <td className="py-0 pr-4 w-1/4 relative" onClick={(e) => e.stopPropagation()}>
+                  <div className="h-12 flex items-center gap-2 min-w-0" onClick={() => setSelectedConnector(connector)}>
                     <ConnectorLogo type={connector.connectorType} logoUrl={connector.logoUrl} />
                     <span className="text-[14px] text-[#323130] dark:text-[#f5f5f5] truncate">{connector.connectorType}</span>
                     {(connector.blockerCount + connector.warningCount) > 0 && (
                       <Tooltip content="Action required" relationship="label"><Badge appearance="ghost" color="danger" size="large" shape="circular" icon={<WarningFilled fontSize={16} />} style={{ flexShrink: 0 }} /></Tooltip>
                     )}
                   </div>
+                  {/* Overflow button — right edge of first column */}
+                  <button
+                    className="absolute right-6 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded hover:bg-[#edebe9] dark:hover:bg-[#333333] text-[#605e5c] dark:text-[#adadad] transition-all"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOpenMenu(openMenu === connector.id ? null : connector.id);
+                    }}
+                  >
+                    <MoreVerticalIcon style={{ fontSize: 16 }} />
+                  </button>
+                  {openMenu === connector.id && (
+                    <div
+                      className="absolute right-6 top-12 bg-white dark:bg-[#292929] border border-[#e1e1e1] dark:border-[#444444] rounded-[4px] shadow-[0px_4px_8px_rgba(0,0,0,0.14)] z-50 w-44"
+                      onClick={(e) => { e.stopPropagation(); setOpenMenu(null); }}
+                    >
+                      <button
+                        onClick={() => setSelectedConnector(connector)}
+                        className="block w-full text-left px-4 py-2 text-[14px] text-[#323130] dark:text-[#f5f5f5] hover:bg-[#f5f5f5] dark:hover:bg-[#383838]"
+                      >
+                        View details
+                      </button>
+                    </div>
+                  )}
                 </td>
 
                 {/* Connection name */}
@@ -276,43 +312,12 @@ export default function ConnectorsPage() {
                   </div>
                 </td>
 
-                {/* Row overflow */}
-                <td className="py-0 w-8" onClick={(e) => e.stopPropagation()}>
-                  <div className="h-12 flex items-center justify-center">
-                    <button
-                      className="opacity-0 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded hover:bg-[#edebe9] dark:hover:bg-[#333333] text-[#605e5c] dark:text-[#adadad] transition-all"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setOpenMenu(openMenu === connector.id ? null : connector.id);
-                      }}
-                    >
-                      <MoreVerticalIcon style={{ fontSize: 16 }} />
-                    </button>
-                    {openMenu === connector.id && (
-                      <div
-                        className="absolute right-[48px] bg-white dark:bg-[#292929] border border-[#e1e1e1] dark:border-[#444444] rounded-[4px] shadow-[0px_4px_8px_rgba(0,0,0,0.14)] z-20 w-44 top-1/2"
-                        onClick={(e) => { e.stopPropagation(); setOpenMenu(null); }}
-                      >
-                        <button
-                          onClick={() => setSelectedConnector(connector)}
-                          className="block w-full text-left px-4 py-2 text-[14px] text-[#323130] dark:text-[#f5f5f5] hover:bg-[#f5f5f5] dark:hover:bg-[#383838]"
-                        >
-                          View details
-                        </button>
-                        <button className="flex items-center gap-2 w-full text-left px-4 py-2 text-[14px] text-[#a80000] dark:text-[#f87171] hover:bg-[#f5f5f5] dark:hover:bg-[#383838]">
-                          <DeleteIcon style={{ fontSize: 14 }} />
-                          Delete
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </td>
               </tr>
             ))}
 
             {sorted.length === 0 && (
               <tr>
-                <td colSpan={5} className="py-12 text-center text-[14px] text-[#605e5c] dark:text-[#adadad]">
+                <td colSpan={4} className="py-12 text-center text-[14px] text-[#605e5c] dark:text-[#adadad]">
                   No connections found.
                 </td>
               </tr>
@@ -331,7 +336,8 @@ export default function ConnectorsPage() {
       {editConnector && (
         <EditPanel
           connector={editConnector}
-          onClose={() => setEditConnector(null)}
+          onClose={() => { setEditConnector(null); setOpenToAuth(false); }}
+          initialFieldFocus={openToAuth ? { tab: 'Setup', fieldId: 'auth-credentials' } : undefined}
         />
       )}
     </div>

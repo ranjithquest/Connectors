@@ -69,7 +69,7 @@ function SectionGrid({ connectors, onAdd, onSelect, selectedId }: {
   selectedId: string | null;
 }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-4">
       {connectors.map((c) => (
         <ConnectorTile key={c.id} connector={c} onAdd={onAdd} onSelect={onSelect} selected={selectedId === c.id} />
       ))}
@@ -147,7 +147,7 @@ export default function GalleryPage() {
             />
           </div>
 
-          {/* Filter + category chips — horizontal scroll on mobile, vertical list on desktop */}
+          {/* Filter + category chips — vertical list on desktop */}
           <div className="flex lg:flex-col gap-1 overflow-x-auto py-3 lg:py-0 lg:overflow-visible lg:pr-6"
             style={{ scrollbarWidth: 'none' }}>
 
@@ -188,19 +188,19 @@ export default function GalleryPage() {
 
           {/* Hero banner */}
           {!search && !activeCategory && filter === 'all' && (
-            <div className="mt-4 lg:mt-6 lg:mx-6 rounded-[4px] overflow-hidden flex flex-row h-[160px] sm:h-[210px] lg:h-[256px]"
+            <div className="lg:mt-6 lg:ml-6 rounded-[4px] overflow-hidden flex flex-row h-[160px] md:h-[210px] lg:h-[256px]"
               style={{ background: 'linear-gradient(162.2deg, rgb(221,218,240) 0%, rgb(232,226,238) 50%, rgb(242,232,228) 100%)' }}>
               {/* Text */}
               <div className="flex flex-col justify-center px-6 sm:px-10 flex-1 min-w-0">
                 <h2 className="text-[15px] sm:text-[19px] lg:text-[22px] font-bold leading-[1.25] mb-2" style={{ color: '#1a1a2e' }}>
                   Power decision-making with your organization&apos;s data
                 </h2>
-                <p className="hidden sm:block text-[13px] leading-[20px]" style={{ color: '#323130' }}>
+                <p className="hidden md:block text-[13px] leading-[20px]" style={{ color: '#323130' }}>
                   Connect your organization&apos;s data to Copilot to give users tailored, relevant, and meaningful insights across their Microsoft apps.
                 </p>
               </div>
               {/* Image — oversized and cropped to fill, matching original scale */}
-              <div className="relative w-[55%] h-full overflow-hidden flex-shrink-0">
+              <div className="relative w-[55%] h-full overflow-hidden">
                 <img
                   src="https://res.cdn.office.net/admincenter/admin-content/admin/images/udt/catalogbanner-2x.png"
                   alt=""
@@ -211,9 +211,9 @@ export default function GalleryPage() {
             </div>
           )}
 
-          {/* Mobile search + categories — shown below banner on < lg */}
-          <div className="lg:hidden mt-4 flex flex-col gap-2">
-            {/* Search */}
+
+          {/* Mobile search + category chips — shown below banner on < lg */}
+          <div className="lg:hidden mt-4">
             <SearchBox
               placeholder="Search"
               value={search}
@@ -221,37 +221,36 @@ export default function GalleryPage() {
               onClear={() => setSearch('')}
               styles={{ root: { width: '100%' } }}
             />
-            {/* Filter + category chips */}
-            <div className="flex gap-1 overflow-x-auto py-2" style={{ scrollbarWidth: 'none' }}>
+          </div>
+          <div className="lg:hidden mt-2 flex gap-1 overflow-x-auto py-2" style={{ scrollbarWidth: 'none' }}>
+            <button
+              onClick={() => { setFilter('all'); setActiveCategory(null); }}
+              className={`shrink-0 flex items-center h-8 px-3 text-[14px] rounded-full transition-colors whitespace-nowrap
+                ${filter === 'all' && !activeCategory ? 'bg-[#ededed] dark:bg-[#3d3d3d] font-semibold text-[#323130] dark:text-[#f0f0f0]' : 'text-[#323130] dark:text-[#d6d6d6] hover:bg-[#f5f5f5] dark:hover:bg-[#2d2d2d]'}`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => { setFilter('recommended'); setActiveCategory(null); }}
+              className={`shrink-0 flex items-center h-8 px-3 text-[14px] rounded-full transition-colors whitespace-nowrap
+                ${filter === 'recommended' && !activeCategory ? 'bg-[#ededed] dark:bg-[#3d3d3d] font-semibold text-[#323130] dark:text-[#f0f0f0]' : 'text-[#323130] dark:text-[#d6d6d6] hover:bg-[#f5f5f5] dark:hover:bg-[#2d2d2d]'}`}
+            >
+              Recommended
+            </button>
+            {CATEGORIES.map((cat) => (
               <button
-                onClick={() => { setFilter('all'); setActiveCategory(null); }}
+                key={cat}
+                onClick={() => { setActiveCategory(cat === activeCategory ? null : cat); setFilter('all'); }}
                 className={`shrink-0 flex items-center h-8 px-3 text-[14px] rounded-full transition-colors whitespace-nowrap
-                  ${filter === 'all' && !activeCategory ? 'bg-[#ededed] dark:bg-[#3d3d3d] font-semibold text-[#323130] dark:text-[#f0f0f0]' : 'text-[#323130] dark:text-[#d6d6d6] hover:bg-[#f5f5f5] dark:hover:bg-[#2d2d2d]'}`}
+                  ${activeCategory === cat ? 'bg-[#ededed] dark:bg-[#3d3d3d] font-semibold text-[#323130] dark:text-[#f0f0f0]' : 'text-[#323130] dark:text-[#d6d6d6] hover:bg-[#f5f5f5] dark:hover:bg-[#2d2d2d]'}`}
               >
-                All
+                {cat}
               </button>
-              <button
-                onClick={() => { setFilter('recommended'); setActiveCategory(null); }}
-                className={`shrink-0 flex items-center h-8 px-3 text-[14px] rounded-full transition-colors whitespace-nowrap
-                  ${filter === 'recommended' && !activeCategory ? 'bg-[#ededed] dark:bg-[#3d3d3d] font-semibold text-[#323130] dark:text-[#f0f0f0]' : 'text-[#323130] dark:text-[#d6d6d6] hover:bg-[#f5f5f5] dark:hover:bg-[#2d2d2d]'}`}
-              >
-                Recommended
-              </button>
-              {CATEGORIES.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => { setActiveCategory(cat === activeCategory ? null : cat); setFilter('all'); }}
-                  className={`shrink-0 flex items-center h-8 px-3 text-[14px] rounded-full transition-colors whitespace-nowrap
-                    ${activeCategory === cat ? 'bg-[#ededed] dark:bg-[#3d3d3d] font-semibold text-[#323130] dark:text-[#f0f0f0]' : 'text-[#323130] dark:text-[#d6d6d6] hover:bg-[#f5f5f5] dark:hover:bg-[#2d2d2d]'}`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
+            ))}
           </div>
 
           {/* Connector sections */}
-          <div className="py-6 lg:px-8 lg:py-8 flex flex-col gap-10 lg:gap-12 mb-[120px]">
+          <div className="pt-4 pb-6 px-2 lg:pl-8 lg:pr-2 lg:pt-8 lg:pb-8 flex flex-col gap-10 lg:gap-12 mb-[120px]">
 
             {showRecommended && (
               <section>

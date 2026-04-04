@@ -19,8 +19,8 @@ export default function TopNav() {
         Microsoft 365 admin center
       </span>
 
-      {/* Center: search — fluid, max 468px */}
-      <div className="flex-1 flex justify-center px-2 sm:px-4 min-w-0">
+      {/* Center: search — hidden below md, fluid on md+ */}
+      <div className="hidden md:flex flex-1 justify-center px-2 md:px-4 min-w-0">
         <div className="w-full max-w-[468px] h-8 bg-[#333] rounded-sm flex items-center gap-2 px-3">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-[#479ef5] flex-shrink-0">
             <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.3" />
@@ -30,10 +30,26 @@ export default function TopNav() {
         </div>
       </div>
 
+      {/* spacer below md so right actions push to the right */}
+      <div className="flex-1 md:hidden" />
+
       {/* Right: actions */}
       <div className="flex items-center flex-shrink-0">
-        {/* Copilot button */}
-        <button className="flex items-center gap-1.5 h-[48px] px-3 hover:bg-white/10 transition-colors" aria-label="Copilot">
+        {/* Search icon — below md only */}
+        <button className="md:hidden w-10 h-[48px] flex items-center justify-center text-white hover:bg-white/10 transition-colors" aria-label="Search">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-white">
+            <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.3" />
+            <path d="M11 11l2.5 2.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+          </svg>
+        </button>
+
+        {/* Overflow "..." — below md only */}
+        <button className="md:hidden w-10 h-[48px] flex items-center justify-center text-white hover:bg-white/10 transition-colors" aria-label="More">
+          <span className="text-[18px] font-bold leading-none tracking-widest">···</span>
+        </button>
+
+        {/* Copilot button — md+ only */}
+        <button className="hidden md:flex items-center gap-1.5 h-[48px] px-3 hover:bg-white/10 transition-colors" aria-label="Copilot">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M11.6696 1.98972C11.469 1.39807 10.9137 1 10.2889 1L9.3884 1C8.6873 1 8.08549 1.49905 7.95572 2.18803L7.02441 7.13282L7.48743 5.54883C7.66914 4.92722 8.23912 4.5 8.88674 4.5L11.7655 4.5L13.01 6.12858L14.118 4.5L13.5658 4.5C12.9411 4.5 12.3858 4.10193 12.1852 3.51027L11.6696 1.98972Z" fill="url(#tnav_a)"/>
             <path d="M4.50309 14.0036C4.70167 14.5987 5.25866 15 5.88598 15H7.35221C8.14798 15 8.79674 14.3619 8.80987 13.5662L8.88301 9.13477L8.49768 10.4516C8.31584 11.073 7.74595 11.5 7.09849 11.5L4.20857 11.5L2.97822 10.4147L2.07031 11.5H2.61719C3.24451 11.5 3.80149 11.9013 4.00008 12.4964L4.50309 14.0036Z" fill="url(#tnav_b)"/>
@@ -65,10 +81,10 @@ export default function TopNav() {
           <span className="hidden lg:inline text-[14px] font-semibold text-white">Copilot</span>
         </button>
 
-        {/* Dark mode toggle */}
+        {/* Dark mode toggle — sm+ only */}
         <button
           onClick={() => setTheme(isDark ? 'light' : 'dark')}
-          className="flex items-center gap-1.5 h-[48px] px-3 text-white hover:bg-white/10 transition-colors text-[13px] font-semibold"
+          className="hidden md:flex items-center gap-1.5 h-[48px] px-3 text-white hover:bg-white/10 transition-colors text-[13px] font-semibold"
           aria-label="Toggle dark mode"
         >
           {mounted && (isDark
@@ -78,18 +94,18 @@ export default function TopNav() {
           <span className="hidden lg:inline">{mounted ? (isDark ? 'Enable Light mode' : 'Enable Dark mode') : ''}</span>
         </button>
 
-        {/* Notifications */}
-        <button className="w-12 h-[48px] flex items-center justify-center text-white hover:bg-white/10 transition-colors" aria-label="Notifications">
+        {/* Notifications — sm+ only */}
+        <button className="hidden md:flex w-12 h-[48px] items-center justify-center text-white hover:bg-white/10 transition-colors" aria-label="Notifications">
           <RingerIcon style={{ fontSize: 16 }} />
         </button>
 
-        {/* Settings */}
-        <button className="w-12 h-[48px] flex items-center justify-center text-white hover:bg-white/10 transition-colors" aria-label="Settings">
+        {/* Settings — sm+ only */}
+        <button className="hidden md:flex w-12 h-[48px] items-center justify-center text-white hover:bg-white/10 transition-colors" aria-label="Settings">
           <SettingsIcon style={{ fontSize: 16 }} />
         </button>
 
-        {/* Help */}
-        <button className="w-12 h-[48px] flex items-center justify-center text-white hover:bg-white/10 transition-colors" aria-label="Help">
+        {/* Help — sm+ only */}
+        <button className="hidden md:flex w-12 h-[48px] items-center justify-center text-white hover:bg-white/10 transition-colors" aria-label="Help">
           <HelpIcon style={{ fontSize: 16 }} />
         </button>
 

@@ -323,6 +323,12 @@ const snIssues: DiagnosticIssue[] = [
   },
 ];
 
+const hrPoliciesSyncHistory: SyncEvent[] = [
+  { id: 'hr-ev-0', startedAt: '2026-04-03T09:00:00Z', completedAt: null as any, status: 'running', itemsIndexed: 0, errorCount: 0 },
+  { id: 'hr-ev-1', startedAt: '2026-03-17T08:00:00Z', completedAt: '2026-03-17T08:12:00Z', status: 'success', itemsIndexed: 274, errorCount: 0 },
+  { id: 'hr-ev-2', startedAt: '2026-03-16T08:00:00Z', completedAt: '2026-03-16T08:14:00Z', status: 'success', itemsIndexed: 312, errorCount: 0 },
+];
+
 const snSyncHistory: SyncEvent[] = [
   { id: 'ev-1',  startedAt: '2026-03-17T08:00:00Z', completedAt: '2026-03-17T08:12:00Z', status: 'partial', itemsIndexed: 274,  errorCount: 2 },
   { id: 'ev-2',  startedAt: '2026-03-16T08:00:00Z', completedAt: '2026-03-16T08:14:00Z', status: 'partial', itemsIndexed: 312,  errorCount: 1 },
@@ -380,13 +386,13 @@ export const CONNECTORS: Connector[] = [
     authMethod: 'basic',
     basicUsername: 'svc-copilot@contoso.com',
     basicPassword: 'P@ssw0rd!',
-    healthStatus: 'healthy',
-    blockerCount: 3,
-    warningCount: 2,
-    suggestionCount: 2,
-    issues: snIssues,
+    healthStatus: 'pending',
+    blockerCount: 0,
+    warningCount: 0,
+    suggestionCount: 0,
+    issues: [],
     guideSteps: snGuideSteps,
-    syncHistory: snSyncHistory,
+    syncHistory: hrPoliciesSyncHistory,
     createdAt: '2026-03-17T14:00:00Z',
     lastSyncAt: '2026-03-24T10:32:00Z',
   },
@@ -418,7 +424,7 @@ export const CONNECTORS: Connector[] = [
     authMethod: 'basic',
     basicUsername: 'svc-copilot@contoso.com',
     basicPassword: 'P@ssw0rd!',
-    healthStatus: 'healthy',
+    healthStatus: 'error',
     blockerCount: 3,
     warningCount: 2,
     suggestionCount: 2,

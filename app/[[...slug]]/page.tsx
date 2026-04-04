@@ -161,15 +161,15 @@ export default function BoilerplatePage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-48px)] px-10 py-12">
       <div className="max-w-3xl w-full">
-        <h1 className="text-[40px] font-bold text-[#111] mb-4 leading-tight">
+        <h1 className="text-[40px] font-bold text-[#111] dark:text-[#f5f5f5] mb-4 leading-tight">
           Boilerplate
         </h1>
-        <p className="text-[16px] text-[#323130] leading-relaxed mb-5 max-w-xl">
+        <p className="text-[16px] text-[#323130] dark:text-[#adadad] leading-relaxed mb-5 max-w-xl">
           This template was created just for you to quickly prototype. Please connect with the{' '}
           <strong>Connectors Design team</strong> to add any pages on this.
         </p>
         <div className="mb-6 flex items-center gap-4">
-          <span className="text-[13px] text-[#605e5c]">Contact:</span>
+          <span className="text-[13px] text-[#605e5c] dark:text-[#adadad]">Contact:</span>
           <Persona text="Ranjith Ravi" size={PersonaSize.size32} hidePersonaDetails={false} />
           <Persona text="Rohan Baruah" size={PersonaSize.size32} hidePersonaDetails={false} />
         </div>

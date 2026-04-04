@@ -52,7 +52,7 @@ const GUIDANCE_SECTIONS: GuideSection[] = [
     ),
   },
   {
-    id: 'display-name', title: 'Connector name', defaultOpen: false,
+    id: 'display-name', title: 'Connection name', defaultOpen: false,
     content: (
       <div className="text-[12px] text-[#323130] dark:text-[#f5f5f5] leading-[18px] flex flex-col gap-2">
         <p>The connector name is a unique label used to manage and identify this connection in the admin portal. It is not shown to end users.</p>
@@ -446,7 +446,7 @@ function DiagnosticFlow({ issue }: { issue: DiagnosticIssue }) {
   );
 }
 
-function getSyncCycleLabel(detectedAt: string, syncHistory: SyncEvent[]): string {
+export function getSyncCycleLabel(detectedAt: string, syncHistory: SyncEvent[]): string {
   const detectedMs = new Date(detectedAt).getTime();
   const sorted = [...syncHistory].sort((a, b) => new Date(a.startedAt).getTime() - new Date(b.startedAt).getTime());
   const match = sorted.find((e) => new Date(e.startedAt).getTime() >= detectedMs) ?? sorted[sorted.length - 1];
@@ -454,7 +454,7 @@ function getSyncCycleLabel(detectedAt: string, syncHistory: SyncEvent[]): string
   return new Date(match.startedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' sync';
 }
 
-function IssueCard({ issue, onToggle, detectedSyncLabel, isChecked, onCheck, onDismiss, onFix }: { issue: DiagnosticIssue; expanded: boolean; onToggle: () => void; onDiagnose?: () => void; detectedSyncLabel?: string; onNavigateToField?: (tab: string, fieldId: string) => void; isChecked?: boolean; onCheck?: () => void; onDismiss?: () => void; onFix?: () => void }) {
+export function IssueCard({ issue, onToggle, detectedSyncLabel, isChecked, onCheck, onDismiss, onFix }: { issue: DiagnosticIssue; expanded: boolean; onToggle: () => void; onDiagnose?: () => void; detectedSyncLabel?: string; onNavigateToField?: (tab: string, fieldId: string) => void; isChecked?: boolean; onCheck?: () => void; onDismiss?: () => void; onFix?: () => void }) {
   const cfg = SEVERITY_CONFIG[issue.severity];
   const isBlocker = issue.severity === 'blocker' || issue.severity === 'warning';
   const [hovered, setHovered] = useState(false);
@@ -960,7 +960,7 @@ function formatSyncDate(iso: string): string {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-function SyncHealthChart({ connector }: { connector: Connector }) {
+export function SyncHealthChart({ connector }: { connector: Connector }) {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
   if (connector.syncHistory.length === 0) return null;
@@ -1095,7 +1095,81 @@ function SyncHealthChart({ connector }: { connector: Connector }) {
   );
 }
 
-function HealthRail({ connector, onNavigateToField, onFocusedChange, backTrigger, appliedRowsMap, setAppliedRowsMap }: { connector: Connector; onNavigateToField?: (tab: string, fieldId: string) => void; onFocusedChange?: (focused: boolean) => void; backTrigger?: number; appliedRowsMap: Map<string, Set<string>>; setAppliedRowsMap: React.Dispatch<React.SetStateAction<Map<string, Set<string>>>> }) {
+export function ConnectorStatusCard({ connector }: { connector: Connector }) {
+  const [trendOpen, setTrendOpen] = useState(false);
+  const activeIssues = connector.issues.filter((i) => !i.resolvedAt);
+  const blockerIssues = activeIssues.filter((i) => i.severity === 'blocker' || i.severity === 'warning');
+  const suggestionIssues = activeIssues.filter((i) => i.severity === 'suggestion');
+
+  return (
+    <div>
+      {blockerIssues.length === 0 ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <Badge appearance="filled" color="success" size="medium" shape="circular" style={{ alignSelf: 'flex-start', textTransform: 'uppercase', fontSize: 10, fontWeight: 700, letterSpacing: '0.05em' }}>Healthy</Badge>
+          <Button
+            appearance="transparent"
+            onClick={() => setTrendOpen((v) => !v)}
+            style={{ padding: 0, minWidth: 0, height: 'auto', width: '100%', justifyContent: 'space-between' }}
+            icon={<ChevronDownIcon style={{ fontSize: 12, color: tokens.colorNeutralForeground3, transform: trendOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />}
+            iconPosition="after"
+          >
+            <Text weight="semibold" size={400}>No issues detected</Text>
+          </Button>
+          {trendOpen && <SyncHealthChart connector={connector} />}
+          {trendOpen && <div style={{ height: 8 }} />}
+          <div style={{ display: 'flex', alignItems: 'stretch', gap: 20 }}>
+            {[{ label: 'Blockers', count: 0, color: tokens.colorNeutralStroke1 }, { label: 'Suggestions', count: suggestionIssues.length, color: tokens.colorNeutralStroke1 }].map(({ label, count, color }) => (
+              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ width: 3, borderRadius: 99, backgroundColor: color, flexShrink: 0, alignSelf: 'stretch' }} />
+                <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>{label}</Text>
+                  <Text weight="bold" size={400}>{count}</Text>
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <Button
+            appearance="transparent"
+            onClick={() => setTrendOpen((v) => !v)}
+            style={{ padding: 0, minWidth: 0, height: 'auto', width: '100%', justifyContent: 'space-between' }}
+            icon={<ChevronDownIcon style={{ fontSize: 12, color: tokens.colorNeutralForeground3, transform: trendOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />}
+            iconPosition="after"
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Badge appearance="filled" color="danger" size="medium" shape="circular" style={{ textTransform: 'uppercase', fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', flexShrink: 0 }}>Action required</Badge>
+              <Text weight="semibold" size={400}>Syncing blocked</Text>
+            </div>
+          </Button>
+          {trendOpen && <SyncHealthChart connector={connector} />}
+          {trendOpen && <div style={{ height: 8 }} />}
+          <div style={{ display: 'flex', alignItems: 'stretch', gap: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ width: 3, borderRadius: 99, backgroundColor: tokens.colorPaletteRedBackground3, flexShrink: 0, alignSelf: 'stretch' }} />
+              <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>Blocker{blockerIssues.length !== 1 ? 's' : ''}</Text>
+                <Text weight="bold" size={400}>{blockerIssues.length}</Text>
+              </span>
+            </div>
+            {suggestionIssues.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ width: 3, borderRadius: 99, backgroundColor: tokens.colorPaletteMarigoldBackground3, flexShrink: 0, alignSelf: 'stretch' }} />
+                <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>Suggestion{suggestionIssues.length !== 1 ? 's' : ''}</Text>
+                  <Text weight="bold" size={400}>{suggestionIssues.length}</Text>
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function HealthRail({ connector, onNavigateToField, onFocusedChange, backTrigger, appliedRowsMap, setAppliedRowsMap }: { connector: Connector; onNavigateToField?: (tab: string, fieldId: string) => void; onFocusedChange?: (focused: boolean) => void; backTrigger?: number; appliedRowsMap: Map<string, Set<string>>; setAppliedRowsMap: React.Dispatch<React.SetStateAction<Map<string, Set<string>>>> }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [trendOpen, setTrendOpen] = useState(false);
   const [diagnosing, setDiagnosing] = useState<DiagnosticIssue | null>(null);
@@ -1250,7 +1324,7 @@ function HealthRail({ connector, onNavigateToField, onFocusedChange, backTrigger
               icon={<ChevronDownIcon style={{ fontSize: 12, color: tokens.colorNeutralForeground3, transform: trendOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />}
               iconPosition="after"
             >
-              <Text weight="semibold" size={400}>Connector stopped syncing</Text>
+              <Text weight="semibold" size={400}>Syncing blocked</Text>
             </Button>
 
             {trendOpen && <SyncHealthChart connector={connector} />}
@@ -1579,7 +1653,7 @@ function SyncTabContent({ fieldHighlight, fieldRefs }: { fieldHighlight?: string
           selectedKey={timezone}
           options={TIMEZONES.map(tz => ({ key: tz, text: tz }))}
           onChange={(_, opt) => { if (opt) setTimezone(opt.key as string); }}
-          styles={{ root: { width: '100%' } }}
+          styles={{ root: { width: '100%' }, label: { fontWeight: 400, selectors: { '&': { fontWeight: 400 } } } }}
         />
       </div>
 
@@ -1600,7 +1674,7 @@ function SyncTabContent({ fieldHighlight, fieldRefs }: { fieldHighlight?: string
                 selectedKey={incRecurrence}
                 options={['Hour', 'Day', 'Week', 'Month'].map(v => ({ key: v, text: `Every ${v}` }))}
                 onChange={(_, opt) => { if (opt) setIncRecurrence(opt.key as string); }}
-                styles={{ root: { width: '100%' } }}
+                styles={{ root: { width: '100%' }, label: { fontWeight: 400, selectors: { '&': { fontWeight: 400 } } } }}
               />
               <FluentV8Checkbox
                 label="Run once in a day"
@@ -1612,7 +1686,7 @@ function SyncTabContent({ fieldHighlight, fieldRefs }: { fieldHighlight?: string
                 selectedKey={incFreq}
                 options={['5 minutes', '15 minutes', '30 minutes', '1 hour', '2 hours'].map(v => ({ key: v, text: `Every ${v}` }))}
                 onChange={(_, opt) => { if (opt) setIncFreq(opt.key as string); }}
-                styles={{ root: { width: '100%' } }}
+                styles={{ root: { width: '100%' }, label: { fontWeight: 400, selectors: { '&': { fontWeight: 400 } } } }}
               />
               <button className="text-[14px] text-[#0078d4] dark:text-[#479ef5] hover:underline text-left w-fit">
                 Add starting time
@@ -1631,7 +1705,7 @@ function SyncTabContent({ fieldHighlight, fieldRefs }: { fieldHighlight?: string
             selectedKey={fullRecurrence}
             options={['Day', 'Week', 'Month'].map(v => ({ key: v, text: `Every ${v}` }))}
             onChange={(_, opt) => { if (opt) setFullRecurrence(opt.key as string); }}
-            styles={{ root: { width: '100%' } }}
+            styles={{ root: { width: '100%' }, label: { fontWeight: 400, selectors: { '&': { fontWeight: 400 } } } }}
           />
 
           <button className="text-[14px] text-[#0078d4] hover:underline text-left w-fit">
@@ -1652,6 +1726,7 @@ interface AdvancedSetupPanelProps {
   connectorType?: string;
   existingConnector?: Connector;
   onClose: () => void;
+  initialFieldFocus?: { tab: string; fieldId: string };
 }
 
 const AUTH_OPTIONS = [
@@ -1662,7 +1737,7 @@ const AUTH_OPTIONS = [
 const SETUP_TABS = ['Setup', 'Users', 'Content', 'Sync'] as const;
 type SetupTab = typeof SETUP_TABS[number];
 
-export default function AdvancedSetupPanel({ connectorType, existingConnector, onClose }: AdvancedSetupPanelProps) {
+export default function AdvancedSetupPanel({ connectorType, existingConnector, onClose, initialFieldFocus }: AdvancedSetupPanelProps) {
   const isEdit = !!existingConnector;
   const [typeName, setTypeName] = useState(existingConnector?.connectorType ?? connectorType ?? 'ServiceNow Knowledge');
 
@@ -1725,6 +1800,14 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
   }, []);
   const fieldRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
   const formScrollRef = React.useRef<HTMLDivElement>(null);
+
+  // Auto-focus a specific field on open (e.g. from Authenticate CTA)
+  React.useEffect(() => {
+    if (initialFieldFocus) {
+      setTimeout(() => handleNavigateToField(initialFieldFocus.tab, initialFieldFocus.fieldId), 300);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const railScrollRef = React.useRef<HTMLDivElement>(null);
   const accordionRefsCache = React.useRef<Record<string, HTMLDivElement | null>>({});
   const suppressGuidanceSwitch = React.useRef(false);
@@ -1757,8 +1840,8 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
     { value: 'maria-garcia', name: 'Maria Garcia' },
     { value: 'it-pilot-group', name: 'IT Pilot Group' },
   ];
-  const [selectedPeople, setSelectedPeople] = useState<string[]>(['alex-johnson', 'maria-garcia', 'it-pilot-group']);
-  const [rolloutLimited, setRolloutLimited] = useState(false);
+  const [selectedPeople, setSelectedPeople] = useState<string[]>(isEdit ? ['alex-johnson', 'maria-garcia', 'it-pilot-group'] : []);
+  const [rolloutLimited, setRolloutLimited] = useState(isEdit);
   const [hasChanges, setHasChanges] = useState(false);
   const [validating, setValidating] = useState(false);
   const [validateProgress, setValidateProgress] = useState(0);
@@ -1805,7 +1888,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
         <div className="flex-1 bg-white dark:bg-[#212121] flex flex-col min-w-0 shadow-2xl">
 
           {/* Header */}
-          <div className="px-8 pt-12">
+          <div className="px-8 pt-8">
             {editingHeader ? (
               /* ── Edit mode ── */
               <div className="flex items-start gap-16 pb-6 mb-6">
@@ -1844,7 +1927,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                     autoFocus
                     value={editName}
                     onChange={(_, v) => setEditName(v ?? '')}
-                    styles={{ root: { width: '100%' } }}
+                    styles={{ root: { width: '100%' }, label: { fontWeight: 400, selectors: { '&': { fontWeight: 400 } } } }}
                   />
 
                   {/* Save / Cancel */}
@@ -1924,7 +2007,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
           </div>
 
           {/* Form body */}
-          <div ref={formScrollRef} className="flex-1 overflow-y-auto px-8 pt-12 pb-6" onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setGuidanceHighlight(undefined); }}>
+          <div ref={formScrollRef} className="flex-1 overflow-y-auto px-8 pt-8 pb-6" onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setGuidanceHighlight(undefined); }}>
             {activeTab === 'Users' && <UsersTabContent fieldHighlight={fieldHighlight} fieldRefs={fieldRefs} />}
             {activeTab === 'Content' && <ContentTabContent fieldHighlight={fieldHighlight} fieldRefs={fieldRefs} />}
             {activeTab === 'Sync' && <SyncTabContent fieldHighlight={fieldHighlight} fieldRefs={fieldRefs} />}
@@ -1932,21 +2015,21 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
 
               {/* Connection name */}
               <div ref={(el) => { fieldRefs.current['display-name'] = el; }}>
-                <p className="text-[14px] font-semibold text-[#323130] mb-2">Enter a unique name to manage this connection</p>
+                <p className="text-[14px] font-semibold text-[#323130] mb-1">Enter a unique name to manage this connection</p>
                 <TextField
                   label="Connection name"
                   required
                   value={displayName}
                   onChange={(_, v) => { setDisplayName(v ?? ''); setSourceName(v ?? ''); markChanged(); }}
                   onFocus={() => { setGuidanceHighlight('display-name'); if (!suppressGuidanceSwitch.current) setRightRailTab('guide'); }}
-                  styles={{ root: { width: '100%' } }}
+                  styles={{ root: { width: '100%' }, label: { fontWeight: 400, selectors: { '&': { fontWeight: 400 } } } }}
                 />
               </div>
 
               {/* User criteria — ServiceNow only */}
               {typeName !== 'ADO' && (
                 <div ref={(el) => { fieldRefs.current['user-criteria'] = el; }}>
-                  <p className="text-[14px] font-semibold text-[#323130] mb-2">User criteria setup in ServiceNow</p>
+                  <p className="text-[14px] font-semibold text-[#323130] mb-1">User criteria setup in ServiceNow</p>
                   <ChoiceGroup
                     selectedKey={userCriteria}
                     options={[
@@ -1961,7 +2044,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
 
               {/* Instance URL */}
               <div ref={(el) => { fieldRefs.current['instance-url'] = el; }}>
-                <p className="text-[14px] font-semibold text-[#323130] mb-2">Provide basic information about your {typeName === 'ADO' ? 'ADO' : 'ServiceNow'} instance</p>
+                <p className="text-[14px] font-semibold text-[#323130] mb-1">Provide basic information about your {typeName === 'ADO' ? 'ADO' : 'ServiceNow'} instance</p>
                 <TextField
                   label="Instance URL"
                   required
@@ -1970,13 +2053,13 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                   onChange={(_, v) => { setInstanceUrl(v ? `https://${v}` : ''); markChanged(); }}
                   onFocus={() => { setGuidanceHighlight('instance-url'); if (!suppressGuidanceSwitch.current) setRightRailTab('guide'); }}
                   placeholder="example.servicenow.com"
-                  styles={{ root: { width: '100%' } }}
+                  styles={{ root: { width: '100%' }, label: { fontWeight: 400, selectors: { '&': { fontWeight: 400 } } } }}
                 />
               </div>
 
               {/* Authentication */}
               <div ref={(el) => { fieldRefs.current['auth-types'] = el; }} className={`transition-colors duration-500 rounded-[4px] -mx-2 px-2 ${fieldHighlight === 'auth-types' ? 'bg-[#eff6ff]' : ''}`}>
-                <p className="text-[14px] font-semibold text-[#323130] mb-2">Authenticate your {typeName === 'ADO' ? 'ADO' : 'ServiceNow'} instance</p>
+                <p className="text-[14px] font-semibold text-[#323130] mb-1">Authenticate your {typeName === 'ADO' ? 'ADO' : 'ServiceNow'} instance</p>
                 <Dropdown
                   label="Authentication type"
                   required
@@ -1985,7 +2068,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                   options={AUTH_OPTIONS.map(o => ({ key: o.value, text: o.label })) as IDropdownOption[]}
                   onChange={(_, opt) => { if (opt) { setAuthMethod(opt.key as AuthMethod); markChanged(); autoApplyForField('auth-types'); } }}
                   onFocus={() => { setGuidanceHighlight('auth-types'); if (!suppressGuidanceSwitch.current) setRightRailTab('guide'); }}
-                  styles={{ root: { width: '100%' } }}
+                  styles={{ root: { width: '100%' }, label: { fontWeight: 400, selectors: { '&': { fontWeight: 400 } } } }}
                 />
 
                 {/* Basic Auth credential inputs */}
@@ -1998,7 +2081,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                       value={basicUsername}
                       onChange={(_, v) => { setBasicUsername(v ?? ''); markChanged(); autoApplyForField('auth-credentials'); }}
                       placeholder="e.g. svc-copilot@contoso.com"
-                      styles={{ root: { width: '100%' } }}
+                      styles={{ root: { width: '100%' }, label: { fontWeight: 400, selectors: { '&': { fontWeight: 400 } } } }}
                     />
                     <TextField
                       label="Password"
@@ -2007,7 +2090,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                       canRevealPassword
                       value={basicPassword}
                       onChange={(_, v) => { setBasicPassword(v ?? ''); markChanged(); autoApplyForField('auth-credentials'); }}
-                      styles={{ root: { width: '100%' } }}
+                      styles={{ root: { width: '100%' }, label: { fontWeight: 400, selectors: { '&': { fontWeight: 400 } } } }}
                     />
                   </div>
                 )}
@@ -2016,7 +2099,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
               {/* Staged rollout */}
               <div ref={(el) => { fieldRefs.current['staged-rollout'] = el; }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                  <p className="text-[14px] font-semibold text-[#323130]">Rollout to limited audience.</p>
+                  <p className="text-[14px] font-semibold text-[#323130]">Rollout to limited audience</p>
                   <Toggle
                     checked={rolloutLimited}
                     onChange={(_, checked) => setRolloutLimited(!!checked)}
@@ -2037,32 +2120,42 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                     onChange={(items?: IPersonaProps[]) => setSelectedPeople((items ?? []).map(i => i.key as string))}
                     inputProps={{ placeholder: 'Select users/groups', onFocus: () => { setGuidanceHighlight('staged-rollout'); if (!suppressGuidanceSwitch.current) setRightRailTab('guide'); } }}
                     pickerSuggestionsProps={{ suggestionsHeaderText: 'Suggested people', noResultsFoundText: 'No results found' }}
-                    styles={{ root: { width: '100%' } }}
+                    styles={{ root: { width: '100%' }, label: { fontWeight: 400, selectors: { '&': { fontWeight: 400 } } } }}
                   />
                 )}
               </div>
 
-              {/* Privacy notice */}
-              <div>
-                <FluentV8Checkbox
-                  checked={privacyAccepted}
-                  onChange={(_, checked) => setPrivacyAccepted(!!checked)}
-                  onRenderLabel={() => (
-                    <div style={{ marginLeft: 8 }}>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: '#323130' }}>Privacy notice</span>
-                      {' '}<span style={{ color: '#a80000' }}>*</span>
-                      <p style={{ fontSize: 13, color: '#484644', lineHeight: '20px', margin: '4px 0 0' }}>
-                        By using this Copilot connector, you agree to the{' '}
-                        <a href="https://learn.microsoft.com/en-us/microsoftsearch/terms-of-use" target="_blank" rel="noreferrer" style={{ color: '#0078d4' }}>
-                          Copilot connectors: Terms of use
-                        </a>. You as data controller authorize Microsoft to create an index of third-party data in your Microsoft 365 tenant subject to your configurations. Learn more{' '}
-                        <a href="https://learn.microsoft.com/en-us/microsoftsearch/connectors-overview" target="_blank" rel="noreferrer" style={{ color: '#0078d4' }}>here</a>.
-                      </p>
-                    </div>
-                  )}
-                  styles={{ root: { alignItems: 'flex-start' }, checkbox: { marginTop: 2 } }}
-                />
-              </div>
+              {/* Privacy notice — create only */}
+              {!isEdit && (
+                <div className="flex items-start gap-2 pt-6">
+                  <div
+                    onClick={() => setPrivacyAccepted(v => !v)}
+                    className={`mt-0.5 w-5 h-5 rounded-[2px] border flex-shrink-0 cursor-pointer flex items-center justify-center ${
+                      privacyAccepted ? 'bg-[#0078d4] border-[#0078d4]' : 'border-[#323130] dark:border-[#adadad] bg-white dark:bg-[#212121]'
+                    }`}
+                  >
+                    {privacyAccepted && (
+                      <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                        <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
+                  </div>
+                  <div>
+                    <span className="text-[14px] text-[#323130] dark:text-[#f5f5f5] leading-5 font-semibold">Privacy notice</span>
+                    {' '}<span className="text-[#900] text-[14px]">*</span>
+                    <p className="text-[14px] text-[#484644] dark:text-[#adadad] leading-5 mt-0">
+                      By using this Copilot connector, you agree to the{' '}
+                      <a href="https://learn.microsoft.com/en-us/microsoftsearch/terms-of-use" target="_blank" rel="noreferrer" className="text-[#006cbe] hover:underline">
+                        Copilot connectors: Terms of use
+                      </a>
+                      . You as data controller authorize Microsoft to create an index of third-party data in your Microsoft 365 tenant subject to your configurations. Learn more{' '}
+                      <a href="https://learn.microsoft.com/en-us/microsoftsearch/connectors-overview" target="_blank" rel="noreferrer" className="text-[#006cbe] hover:underline">
+                        here
+                      </a>.
+                    </p>
+                  </div>
+                </div>
+              )}
 
             </div>}
           </div>
@@ -2090,9 +2183,9 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
             </div>
           ) : !healthFocused ? (
             <div className="flex items-center justify-between px-6 pt-12 pb-4 flex-shrink-0">
-              <span />
+              <span className="text-[14px] font-bold text-[#323130] dark:text-[#f5f5f5]">Setup guide</span>
               <a href="https://learn.microsoft.com/en-us/microsoft-365/copilot/connectors/servicenow-knowledge-deployment" target="_blank" rel="noreferrer"
-                className="text-[13px] text-[#0078d4] whitespace-nowrap hover:underline">
+                className="text-[13px] text-[#0078d4] dark:text-[#479ef5] whitespace-nowrap hover:underline">
                 Read detailed documentation
               </a>
             </div>

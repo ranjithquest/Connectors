@@ -4,8 +4,9 @@ import AdvancedSetupPanel from './AdvancedSetupPanel';
 interface EditPanelProps {
   connector: Connector;
   onClose: () => void;
+  initialFieldFocus?: { tab: string; fieldId: string };
 }
 
-export default function EditPanel({ connector, onClose }: EditPanelProps) {
-  return <AdvancedSetupPanel existingConnector={connector} onClose={onClose} />;
+export default function EditPanel({ connector, onClose, initialFieldFocus }: EditPanelProps) {
+  return <AdvancedSetupPanel existingConnector={connector} onClose={onClose} initialFieldFocus={initialFieldFocus} />;
 }

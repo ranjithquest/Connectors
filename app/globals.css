@@ -381,3 +381,8 @@ body {
 }
 
 /* Gallery connector cards use explicit dark:bg-* Tailwind classes */
+
+/* Field labels normal weight in setup/edit panels */
+.ms-Label {
+  font-weight: 400 !important;
+}

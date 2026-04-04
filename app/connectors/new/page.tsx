@@ -255,7 +255,7 @@ function SetupInner() {
 
               {/* Connection display name */}
               <div>
-                <p className="text-[14px] font-semibold text-[#323130] mb-1 leading-5">
+                <p className="text-[14px] font-semibold text-[#323130] mb-0 leading-5">
                   Enter a unique name to manage this connection
                 </p>
                 <FieldLabel required info>Connection display name</FieldLabel>
@@ -373,7 +373,7 @@ function SetupInner() {
                     <span className="text-[#900]">*</span>
                   </span>
                 </div>
-                <p className="pl-7 text-[12px] text-[#484644] leading-4">
+                <p className="pl-7 text-[14px] text-[#484644] leading-5">
                   By using this Copilot connector, you agree to the{' '}
                   <a href="https://learn.microsoft.com/en-us/microsoftsearch/terms-of-use"
                     target="_blank" rel="noreferrer" className="text-[#006cbe]">

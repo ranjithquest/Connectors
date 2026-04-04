@@ -14,7 +14,7 @@ function useDarkMode(): boolean {
   }, []);
   return dark;
 }
-import { PrimaryButton, DefaultButton, TextField, Dropdown, Checkbox as FluentV8Checkbox, Toggle, Link, Text } from '@fluentui/react';
+import { PrimaryButton, DefaultButton, TextField, Dropdown, Toggle, Link, Text } from '@fluentui/react';
 import type { IDropdownOption } from '@fluentui/react';
 import { EditIcon, SettingsIcon } from '@fluentui/react-icons-mdl2';
 import { CONNECTOR_CATALOG } from '@/lib/gallery-data';
@@ -77,11 +77,11 @@ const GUIDE_SECTIONS: GuideSection[] = [
   },
   {
     id: 'display-name',
-    title: 'Connection display name',
+    title: 'Connection name',
     content: (
       <>
         <Text variant="small" styles={{ root: { color: '#323130', lineHeight: '18px', display: 'block' } }}>
-          Connection display name is a unique identifier for this connection that helps you manage multiple connections of the same type in the admin portal. It is not visible to end users.
+          Connection name is a unique identifier for this connection that helps you manage multiple connections of the same type in the admin portal. It is not visible to end users.
         </Text>
         <Text variant="small" styles={{ root: { color: '#323130', lineHeight: '18px', display: 'block', marginTop: 8 } }}>
           Use a descriptive name, e.g. <Text variant="small" styles={{ root: { fontWeight: 600 } }}>GitHub Issues – Engineering</Text>.{' '}
@@ -674,11 +674,11 @@ export default function SetupPanel({ connectorType, onClose }: SetupPanelProps) 
             </div>
 
             {/* Scrollable form */}
-            <div className="flex-1 overflow-y-auto px-8 py-6">
+            <div className="flex-1 overflow-y-auto px-8 pt-12 pb-6">
               <div className="max-w-[480px] flex flex-col gap-6">
 
                 {/* 1. Connector name — always present */}
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-1">
                   <p className="text-[14px] font-semibold text-[#323130] dark:text-[#f5f5f5]">Provide a unique name that will be displayed to users in results.</p>
                   <TextField
                     label="Connector name"
@@ -687,13 +687,13 @@ export default function SetupPanel({ connectorType, onClose }: SetupPanelProps) 
                     onChange={(_, v) => setDisplayName(v ?? '')}
                     onFocus={() => handleFieldFocus('display-name')}
                     onBlur={handleFieldBlur}
-                    styles={{ root: { width: '100%' }, ...darkFieldStyles }}
+                    styles={{ root: { width: '100%' }, label: { fontWeight: 400, selectors: { '&': { fontWeight: 400 } } }, ...darkFieldStyles }}
                   />
                 </div>
 
                 {/* 2. Instance / org field — connector-specific */}
                 {config.instanceSection && (
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-1">
                     <p className="text-[14px] font-semibold text-[#323130] dark:text-[#f5f5f5]">{config.instanceSection.heading}</p>
                     <TextField
                       label={config.instanceSection.fieldLabel}
@@ -703,13 +703,13 @@ export default function SetupPanel({ connectorType, onClose }: SetupPanelProps) 
                       onChange={(_, v) => setInstanceUrl(v ?? '')}
                       onFocus={() => handleFieldFocus('instance-url')}
                       onBlur={handleFieldBlur}
-                      styles={{ root: { width: '100%' }, ...darkFieldStyles }}
+                      styles={{ root: { width: '100%' }, label: { fontWeight: 400, selectors: { '&': { fontWeight: 400 } } }, ...darkFieldStyles }}
                     />
                   </div>
                 )}
 
                 {/* 3. Authentication — connector-specific options */}
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-1">
                   <p className="text-[14px] font-semibold text-[#323130] dark:text-[#f5f5f5]">{config.authHeading ?? `Authenticate your ${catalogItem.name} instance`}</p>
                   <Dropdown
                     label="Authentication type"
@@ -734,18 +734,6 @@ export default function SetupPanel({ connectorType, onClose }: SetupPanelProps) 
                   />
                 </div>
 
-                {/* 4. Rollout to limited audience — connector-specific */}
-                {config.hasRolloutToggle && (
-                  <div className="flex flex-col gap-2">
-                    <p className="text-[14px] font-semibold text-[#323130] dark:text-[#f5f5f5]">Rollout to limited audience.</p>
-                    <Toggle
-                      checked={rolloutLimited}
-                      onChange={(_, checked) => setRolloutLimited(!!checked)}
-                      styles={{ root: { margin: 0 } }}
-                    />
-                  </div>
-                )}
-
                 {/* Install-app note — connector-specific */}
                 {config.installNote && (
                   <p className="text-[13px] text-[#323130] dark:text-[#f5f5f5] leading-5">
@@ -757,28 +745,35 @@ export default function SetupPanel({ connectorType, onClose }: SetupPanelProps) 
                   </p>
                 )}
 
-                {/* Notice — always present */}
-                <FluentV8Checkbox
-                  checked={privacyAccepted}
-                  onChange={(_, checked) => setPrivacyAccepted(!!checked)}
-                  onRenderLabel={() => (
-                    <div style={{ marginLeft: 8 }}>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: isDark ? '#f5f5f5' : '#323130' }}>Notice</span>
-                      {' '}<span style={{ color: '#a80000' }}>*</span>
-                      <p style={{ fontSize: 13, color: isDark ? '#adadad' : '#484644', lineHeight: '20px', margin: '4px 0 0' }}>
-                        By enabling this connection, you authorize Microsoft to create an index of third-party data in your Microsoft 365 tenant subject to your configurations. All data that is indexed by your connection is subject to the{' '}
-                        <a href="https://learn.microsoft.com/en-us/microsoftsearch/terms-of-use" style={{ color: isDark ? '#479ef5' : '#0078d4' }}>
-                          Microsoft Services Agreement
-                        </a>
-                        . Learn more{' '}
-                        <a href="https://learn.microsoft.com/en-us/microsoftsearch/connectors-overview" style={{ color: isDark ? '#479ef5' : '#0078d4' }}>
-                          here
-                        </a>.
-                      </p>
-                    </div>
-                  )}
-                  styles={{ root: { alignItems: 'flex-start' }, checkbox: { marginTop: 2 } }}
-                />
+                {/* Privacy notice */}
+                <div className="flex items-start gap-2 pt-6">
+                  <div
+                    onClick={() => setPrivacyAccepted(v => !v)}
+                    className={`mt-0.5 w-5 h-5 rounded-[2px] border flex-shrink-0 cursor-pointer flex items-center justify-center ${
+                      privacyAccepted ? 'bg-[#0078d4] border-[#0078d4]' : 'border-[#323130] dark:border-[#adadad] bg-white dark:bg-[#212121]'
+                    }`}
+                  >
+                    {privacyAccepted && (
+                      <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                        <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
+                  </div>
+                  <div>
+                    <span className="text-[14px] font-semibold text-[#323130] dark:text-[#f5f5f5] leading-5">Privacy notice</span>
+                    {' '}<span className="text-[#900] text-[14px]">*</span>
+                    <p className="text-[14px] text-[#484644] dark:text-[#adadad] leading-5 mt-0">
+                      By using this Copilot connector, you agree to the{' '}
+                      <a href="https://learn.microsoft.com/en-us/microsoftsearch/terms-of-use" target="_blank" rel="noreferrer" className="text-[#006cbe] hover:underline">
+                        Copilot connectors: Terms of use
+                      </a>
+                      . You as data controller authorize Microsoft to create an index of third-party data in your Microsoft 365 tenant subject to your configurations. Learn more{' '}
+                      <a href="https://learn.microsoft.com/en-us/microsoftsearch/connectors-overview" target="_blank" rel="noreferrer" className="text-[#006cbe] hover:underline">
+                        here
+                      </a>.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
