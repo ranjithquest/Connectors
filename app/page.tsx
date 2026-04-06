@@ -1,9 +1,7 @@
 'use client';
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 
 export default function RootPage() {
-  const router = useRouter();
-  useEffect(() => { router.replace('/get-started'); }, [router]);
+  useEffect(() => { window.location.replace('./get-started/'); }, []);
   return null;
 }
