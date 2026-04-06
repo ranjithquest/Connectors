@@ -3,7 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches-ignore:
-      - main
+      - Boilerplate
 
 permissions:
   contents: write
@@ -31,7 +31,7 @@ jobs:
       - name: Set deploy path
         id: path
         run: |
-          if [ "${{ github.ref_name }}" = "Boilerplate" ]; then
+          if [ "${{ github.ref_name }}" = "main" ]; then
             echo "basepath=" >> $GITHUB_OUTPUT
             echo "deploydir=." >> $GITHUB_OUTPUT
             echo "previewurl=https://studious-adventure-j17vp6o.pages.github.io/connectors" >> $GITHUB_OUTPUT

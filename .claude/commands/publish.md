@@ -67,8 +67,8 @@ Generate a branch name:
 
 Run:
 ```bash
-git checkout Boilerplate
-git pull gim-connectors Boilerplate
+git checkout main
+git pull gim-connectors main
 git checkout -b <owner-slug>/<feature-slug>
 ```
 
@@ -126,7 +126,7 @@ Ask: "Would you like me to confirm the deployment is live before you share the l
 If yes, wait ~3 minutes and check the URL is reachable.
 
 ## Rules
-- Always branch off `Boilerplate` — never off `main`
+- Always branch off `main` — never commit directly to `main`
 - Branch format is `<owner>/<feature>` — no `bp/` prefix
 - Always push to `gim-connectors` remote — never to `origin` or `main`
 - Never merge to `Boilerplate` or `main` — feature branches are standalone previews
