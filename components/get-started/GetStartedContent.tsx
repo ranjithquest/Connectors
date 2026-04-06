@@ -259,9 +259,21 @@ export default function GetStartedContent() {
       </div>
 
       <div style={{ marginTop: 64, paddingTop: 24, borderTop: '1px solid #f0f0f0' }}>
-        <p style={{ fontSize: 13, color: '#a19f9d', lineHeight: '20px' }}>
-          Created with love by Copilot Connectors team
-        </p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+          <p style={{ fontSize: 13, color: '#a19f9d', lineHeight: '20px', margin: 0 }}>
+            Created with love by Copilot Connectors team · <strong style={{ color: '#8a8886' }}>Boilerplate V 1.0 (Beta)</strong>
+          </p>
+          <a
+            href="https://github.com/gim-home/Connectors/tree/v1.0-beta"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ fontSize: 13, color: '#0f6cbd', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+            onMouseOver={e => (e.currentTarget.style.textDecoration = 'underline')}
+            onMouseOut={e => (e.currentTarget.style.textDecoration = 'none')}
+          >
+            ↩ Restore stable build (v1.0-beta)
+          </a>
+        </div>
       </div>
     </section>
   );

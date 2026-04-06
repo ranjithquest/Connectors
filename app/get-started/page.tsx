@@ -32,7 +32,7 @@ export default function GetStartedPage() {
                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
                 style={{ fontSize: 16, fontWeight: 600, color: '#242424', lineHeight: '22px', cursor: 'pointer' }}
               >
-                Copilot Connectors
+                Copilot Connectors Admin
               </div>
             </div>
 
