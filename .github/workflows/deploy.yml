@@ -86,6 +86,11 @@ jobs:
             cp -r "/tmp/deploy-out/out/${DEPLOYDIR}/." "${DEPLOYDIR}/"
           fi
 
+          # Remove build artifacts left over in the working directory — these
+          # are not git-tracked so git rm won't catch them, but git add -A would
+          # pick them up and they exceed GitHub's 100MB file size limit.
+          rm -rf node_modules .next
+
           # Add root index.html redirect if it doesn't exist
           if [ ! -f index.html ]; then
             echo '<meta http-equiv="refresh" content="0; url=/connectors">' > index.html
