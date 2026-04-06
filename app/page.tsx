@@ -2,6 +2,9 @@
 import { useEffect } from 'react';
 
 export default function RootPage() {
-  useEffect(() => { window.location.replace('./connectors/'); }, []);
+  useEffect(() => {
+    const base = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
+    window.location.replace(base + '/connectors/');
+  }, []);
   return null;
 }
