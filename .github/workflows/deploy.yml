@@ -48,12 +48,27 @@ jobs:
           NEXT_PUBLIC_BASE_PATH: ${{ steps.path.outputs.basepath }}
 
       - name: Deploy to gh-pages branch
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./out
-          destination_dir: ${{ steps.path.outputs.deploydir }}
-          keep_files: true
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Fetch or create gh-pages branch
+          git fetch origin gh-pages || true
+          git checkout gh-pages 2>/dev/null || git checkout --orphan gh-pages
+
+          # Remove old content for this deploy path only
+          rm -rf ${{ steps.path.outputs.deploydir }}
+
+          # Copy new build output
+          mkdir -p ${{ steps.path.outputs.deploydir }}
+          cp -r out/. ${{ steps.path.outputs.deploydir }}/
+
+          # Commit and push
+          git add ${{ steps.path.outputs.deploydir }}
+          git commit -m "Deploy ${{ github.ref_name }} to ${{ steps.path.outputs.deploydir }}" || echo "Nothing to commit"
+          git push origin gh-pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Print preview URL
         run: echo "Preview URL ${{ steps.path.outputs.previewurl }}"
