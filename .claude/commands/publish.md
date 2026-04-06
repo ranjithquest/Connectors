@@ -28,7 +28,7 @@ Say to the user:
 > What would you like to call this feature?
 > *(e.g. "icon edit", "new setup flow", "diagnostics panel")*
 >
-> Once published, you'll get a preview link you can share directly with stakeholders."
+> Once published, you'll get a preview link to share directly with stakeholders."
 
 Store the answer as `FEATURE_NAME`.
 
