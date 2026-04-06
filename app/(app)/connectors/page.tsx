@@ -354,13 +354,14 @@ export default function ConnectorsPage() {
           ] as IBreadcrumbItem[]}
           styles={{
             root: { margin: '0 0 11px' },
-            item: { fontSize: 12 },
-            itemLink: { fontSize: 12 },
+            item: { fontSize: 12, color: isDark ? '#c8c6c4' : undefined },
+            itemLink: { fontSize: 12, color: isDark ? '#c8c6c4' : undefined, selectors: { ':hover': { color: isDark ? '#f5f5f5' : undefined, background: 'transparent' } } },
+            chevron: { color: isDark ? '#8a8886' : undefined },
           }}
         />
         <Text
           variant="xxLarge"
-          styles={{ root: { fontSize: 28, fontWeight: 700, lineHeight: 'normal', display: 'block', marginBottom: 27 } }}
+          styles={{ root: { fontSize: 28, fontWeight: 700, lineHeight: 'normal', display: 'block', marginBottom: 27, color: isDark ? '#f5f5f5' : undefined } }}
         >
           Connectors
         </Text>
@@ -370,7 +371,11 @@ export default function ConnectorsPage() {
             if (item?.props.itemKey === 'gallery') setTab('gallery');
             else if (item?.props.itemKey === 'connections') setTab('connections');
           }}
-          styles={{ root: { marginLeft: -12 }, link: { height: 44, padding: '12px', lineHeight: '20px' } }}
+          styles={{
+            root: { marginLeft: -12 },
+            link: { height: 44, padding: '12px', lineHeight: '20px', color: isDark ? '#c8c6c4' : undefined, selectors: { ':hover': { color: isDark ? '#f5f5f5' : undefined, backgroundColor: isDark ? '#2d2d2d' : undefined } } },
+            linkIsSelected: { color: isDark ? '#f5f5f5' : undefined, selectors: { '::before': { backgroundColor: isDark ? '#479ef5' : undefined } } },
+          }}
         >
           <PivotItem headerText="Gallery" itemKey="gallery" />
           <PivotItem headerText="Your connections" itemKey="connections" />
