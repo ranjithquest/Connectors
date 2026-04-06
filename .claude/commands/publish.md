@@ -1,89 +1,111 @@
 # /publish — Push Your Concept and Share Preview URL
 
-This skill handles everything needed to push your work to GitHub and get a shareable preview URL. You don't need to know anything about branches.
+This skill handles everything needed to push your work to GitHub and get a shareable preview URL.
 
-## Step 1 — Collect concept details
-Ask the user two things:
+## Step 1 — Detect the contributor's name
 
-1. **"What would you like to call this concept?"**
-   - Suggest a generated name based on what was built if they're unsure (e.g. "Connector Health Dashboard", "ISV Setup Flow")
-   - This becomes the branch name and appears in the stakeholder message
-   - Keep it short and descriptive
+Run this silently before saying anything to the user:
+```bash
+git config user.name
+```
+Also extract the username from the remote URL:
+```bash
+git remote get-url gim-connectors
+```
+The remote URL contains the GitHub username before the `:` (e.g. `https://ranjithravi_microsoft:...@github.com/...` → `ranjithravi_microsoft`).
 
-2. **"What is your name?"**
-   - Recorded silently in the commit — never shown on any screen
-   - Used only for internal record-keeping
+Use the GitHub username (from the remote URL) as `OWNER_SLUG` — it's already URL-safe.
+Use the `git config user.name` value as `OWNER_DISPLAY_NAME` for display only.
 
-Store as `CONCEPT_NAME` and `OWNER_NAME`.
+Store as `OWNER_SLUG` and `OWNER_DISPLAY_NAME`.
 
-## Step 2 — Create and switch to a feature branch automatically
-Generate a branch name from their inputs:
+## Step 2 — Ask only for the feature name
+
+Say to the user:
+
+> "Hi **<OWNER_DISPLAY_NAME>**! 👋
+>
+> What would you like to call this feature?
+> *(e.g. "icon edit", "new setup flow", "diagnostics panel")*
+>
+> Once published, you'll get a preview link you can share directly with stakeholders — no merging needed."
+
+Store the answer as `FEATURE_NAME`.
+
+If the user seems unsure, suggest a name based on what was built.
+
+## Step 3 — Create and switch to a feature branch
+
+Generate a branch name:
 - Lowercase, spaces → hyphens, remove special characters
-- Format: `<owner-slug>/<concept-slug>`
-- Example: `ranjith/connector-health-dashboard`
+- Format: `<owner-slug>/<feature-slug>`
+- Example: `aatman/icon-edit`
 
 Run:
 ```bash
-git checkout -b <owner-slug>/<concept-slug>
+git checkout Boilerplate
+git pull gim-connectors Boilerplate
+git checkout -b <owner-slug>/<feature-slug>
 ```
 
-Tell the user: "I've created a branch for your concept — you don't need to worry about this."
+Tell the user: "Creating your branch — you don't need to worry about this part."
 
-## Step 3 — Commit all changes
-Stage and commit everything with structured metadata in the commit body:
+## Step 4 — Commit all changes
 ```bash
 git add -A
-git commit -m "feat: <CONCEPT_NAME>
+git commit -m "feat: <FEATURE_NAME>
 
-Concept: <CONCEPT_NAME>
-Owner: <OWNER_NAME>
+Feature: <FEATURE_NAME>
+Owner: <OWNER_DISPLAY_NAME>
 Date: <today's date>"
 ```
 
-## Step 4 — Push to GitHub
+## Step 5 — Push to GitHub
 ```bash
-git push -u origin <branch-name>
+git push -u gim-connectors <owner-slug>/<feature-slug>
 ```
 
-## Step 5 — Wait for deployment
-Tell the user:
-"Your concept is being deployed. This usually takes 2–3 minutes. You can watch progress at:
-https://github.com/gim-home/Connectors/actions"
+**Never push to `main` or `Boilerplate`.**
 
-## Step 6 — Share the preview URL
+## Step 6 — Tell them what's happening
+
+Say:
+> "Your feature is deploying now — this takes about 2–3 minutes.
+>
+> Watch the build here: https://github.com/gim-home/Connectors/actions"
+
+## Step 7 — Share the preview URL
+
 Compute the preview URL:
-- Branch `ranjith/connector-health-dashboard` → slug `ranjith-connector-health-dashboard`
-- URL: `https://studious-adventure-j17vp6o.pages.github.io/<slug>/connectors`
+- Branch `aatman/icon-edit` → `https://studious-adventure-j17vp6o.pages.github.io/aatman/icon-edit/connectors`
+- Pattern: `https://studious-adventure-j17vp6o.pages.github.io/<owner-slug>/<feature-slug>/connectors`
 
-Give the user both links:
-
-- **Prototype link** (clean, no tour): `<URL>`
-- **Guided walkthrough link** (with annotations): `<URL>?tour=true`
-
-Then say:
-> Share the **prototype link** when you want stakeholders to explore freely — it looks exactly like the real product.
-> Share the **guided walkthrough link** when you're presenting to LTs or want to walk them through a specific flow step-by-step.
-
-Then give the user this ready-to-send message (using the prototype link by default):
+Give the user this ready-to-send message:
 
 ---
-**Stakeholder message template:**
-> Hi team, here's a prototype I'd like to share for your review.
+**Your preview link is live at:**
+🔗 `https://studious-adventure-j17vp6o.pages.github.io/<owner-slug>/<feature-slug>/connectors`
+
+**Share this with your stakeholders:**
+> Hi team, here's a prototype I'd like your feedback on.
 >
-> **Concept:** <CONCEPT_NAME>
-> 🔗 **Preview:** <URL>
+> **Feature:** <FEATURE_NAME>
+> 🔗 **Preview:** `<URL>`
 >
-> Please share any feedback directly or reply to this message.
+> This is a standalone preview — it won't affect the shared baseline. Please share any feedback directly or reply to this message.
+
 ---
 
-## Step 7 — Offer to verify
+## Step 8 — Offer to verify
 Ask: "Would you like me to confirm the deployment is live before you share the link?"
 
-If yes, wait ~3 minutes and check the URL.
+If yes, wait ~3 minutes and check the URL is reachable.
 
 ## Rules
-- Always auto-create the branch — never ask the user to do it manually
+- Always branch off `Boilerplate` — never off `main`
+- Branch format is `<owner>/<feature>` — no `bp/` prefix
+- Always push to `gim-connectors` remote — never to `origin` or `main`
+- Never merge to `Boilerplate` or `main` — feature branches are standalone previews
 - If a branch with that name already exists, append a short timestamp suffix
-- Concept name and owner are recorded in git history permanently — not shown in the UI
 - The preview URL updates automatically on every subsequent push to the same branch
 - When approved work needs to go to the shared baseline, run `/handoff`
