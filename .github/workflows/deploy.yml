@@ -6,7 +6,9 @@ on:
       - main
 
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
 
 concurrency:
   group: deploy-${{ github.ref_name }}
@@ -15,6 +17,10 @@ concurrency:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
     steps:
       - uses: actions/checkout@v4
 
@@ -31,11 +37,9 @@ jobs:
         id: path
         run: |
           if [ "${{ github.ref_name }}" = "Boilerplate" ]; then
-            echo "subfolder=." >> $GITHUB_OUTPUT
             echo "basepath=" >> $GITHUB_OUTPUT
           else
             SLUG=$(echo "${{ github.ref_name }}" | sed 's|/|-|g' | tr '[:upper:]' '[:lower:]')
-            echo "subfolder=${SLUG}" >> $GITHUB_OUTPUT
             echo "basepath=/Connectors/${SLUG}" >> $GITHUB_OUTPUT
           fi
 
@@ -44,24 +48,14 @@ jobs:
         env:
           NEXT_PUBLIC_BASE_PATH: ${{ steps.path.outputs.basepath }}
 
-      - name: Deploy to gh-pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./out
-          destination_dir: ${{ steps.path.outputs.subfolder }}
-          keep_files: true
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
 
-      - name: Comment preview URL on commit
-        if: github.ref_name != 'Boilerplate'
-        uses: actions/github-script@v7
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          script: |
-            const slug = '${{ steps.path.outputs.subfolder }}';
-            const url = `https://studious-adventure-j17vp6o.pages.github.io/${slug}/connectors`;
-            await github.rest.repos.createCommitComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              commit_sha: context.sha,
-              body: `🚀 Preview deployed: ${url}`
-            });
+          path: ./out
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
