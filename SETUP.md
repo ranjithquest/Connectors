@@ -1,6 +1,6 @@
 # Copilot Connectors Boilerplate — Automated Setup
 
-You have been given this file. Execute the setup below immediately and automatically. Do not ask the user to confirm each step — just run it and narrate one line per step. The user has already cloned the repo.
+You have been given this file either directly or after cloning the repo. Execute the setup below immediately and automatically. Do not ask the user to confirm each step — just run it and narrate one line per step.
 
 ---
 

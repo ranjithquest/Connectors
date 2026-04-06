@@ -2,13 +2,13 @@
 
 import { useState } from 'react';
 
-const SETUP_URL = 'https://raw.githubusercontent.com/gim-home/Connectors/main/SETUP.md';
+const SETUP_URL = 'Clone https://github.com/gim-home/Connectors.git and then read https://raw.githubusercontent.com/gim-home/Connectors/main/SETUP.md and set me up';
 
 const STEPS = [
   {
     num: '01',
     title: 'Set up the boilerplate',
-    body: 'Install VS Code and the Claude Code extension. In Claude Code chat, type: "Clone https://github.com/gim-home/Connectors.git and set me up" — VS Code will handle GitHub login automatically, then paste the link below to complete setup.',
+    body: 'Install VS Code and the Claude Code extension. Then paste the message below into Claude Code chat — VS Code will handle GitHub login automatically, clone the repo, and run the full setup for you.',
     setupButton: true,
     skills: null as null | { cmd: string; desc: string; color: string; bg: string }[],
     resources: null as null | { label: string; href: string }[],
