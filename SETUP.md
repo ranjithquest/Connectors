@@ -1,6 +1,6 @@
 # Copilot Connectors Boilerplate — Automated Setup
 
-You are setting up the Copilot Connectors Prototyping Boilerplate on this user's machine. Run every step automatically. Do not wait for confirmation between steps unless something fails. Narrate what you're doing in one line per step so the user can follow along.
+You have been given this file via a URL. Execute the setup below immediately and automatically. Do not ask the user to confirm each step — just run it and narrate one line per step. The user has already been told this will set up the project for them.
 
 ---
 
