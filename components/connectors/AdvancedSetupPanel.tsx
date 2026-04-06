@@ -1494,6 +1494,9 @@ function CollapsibleSection({ title, children, defaultOpen = true }: { title: st
 
 function UsersTabContent({ fieldHighlight, fieldRefs, onFocusSection }: { fieldHighlight?: string; fieldRefs?: React.MutableRefObject<Record<string, HTMLDivElement | null>>; onFocusSection?: (id: string) => void }) {
   const [accessType, setAccessType] = useState<'acl' | 'everyone'>('acl');
+  const isDark = typeof window !== 'undefined' && document.documentElement.classList.contains('dark');
+  const labelClr = isDark ? '#f5f5f5' : '#323130';
+  const descClr = isDark ? '#c8c6c4' : '#605e5c';
   return (
     <div className="max-w-[528px] flex flex-col">
       {/* Access Permissions */}
@@ -1508,10 +1511,10 @@ function UsersTabContent({ fieldHighlight, fieldRefs, onFocusSection }: { fieldH
               onRenderLabel: () => (
                 <div style={{ paddingLeft: 28 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-                    <span style={{ fontSize: 14, color: '#323130' }}>Only people with access to this data</span>
+                    <span style={{ fontSize: 14, color: labelClr }}>Only people with access to this data</span>
                     <span style={{ padding: '1px 6px', fontSize: 10, fontWeight: 600, color: '#107c10', background: '#f0f7ec', border: '1px solid #c8e0b8', borderRadius: 2, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Recommended</span>
                   </div>
-                  <p style={{ fontSize: 13, color: '#605e5c', lineHeight: '20px', margin: 0 }}>Only users in your Access Control List (ACL) will see results from this data source.</p>
+                  <p style={{ fontSize: 13, color: descClr, lineHeight: '20px', margin: 0 }}>Only users in your Access Control List (ACL) will see results from this data source.</p>
                 </div>
               ),
             },
@@ -1520,8 +1523,8 @@ function UsersTabContent({ fieldHighlight, fieldRefs, onFocusSection }: { fieldH
               text: 'Everyone',
               onRenderLabel: () => (
                 <div style={{ paddingLeft: 28 }}>
-                  <span style={{ fontSize: 14, color: '#323130' }}>Everyone</span>
-                  <p style={{ fontSize: 13, color: '#605e5c', lineHeight: '20px', margin: '2px 0 0' }}>Everyone in your organisation will see results from this data source.</p>
+                  <span style={{ fontSize: 14, color: labelClr }}>Everyone</span>
+                  <p style={{ fontSize: 13, color: descClr, lineHeight: '20px', margin: '2px 0 0' }}>Everyone in your organisation will see results from this data source.</p>
                 </div>
               ),
             },
@@ -1578,7 +1581,7 @@ function ContentTabContent({ fieldHighlight, fieldRefs, onFocusSection }: { fiel
       {/* Include data */}
       <div ref={(el) => { if (fieldRefs) fieldRefs.current['include-data'] = el; }} className={`transition-colors duration-500 rounded-[4px] -mx-2 px-2 ${fieldHighlight === 'include-data' ? 'bg-[#eff6ff]' : ''}`} onClick={() => onFocusSection?.('include-data')}>
       <CollapsibleSection title="Include data which you want to index" defaultOpen={false}>
-        <p className="text-[13px] text-[#605e5c] dark:text-[#adadad] leading-5">Configure which data from this source should be indexed by Microsoft Search and Copilot.</p>
+        <p className="text-[13px] text-[#605e5c] dark:text-[#c8c6c4] leading-5">Configure which data from this source should be indexed by Microsoft Search and Copilot.</p>
       </CollapsibleSection>
       </div>
 
