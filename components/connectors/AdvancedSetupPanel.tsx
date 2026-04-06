@@ -2196,7 +2196,14 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                   onChange={(_, v) => { setInstanceUrl(v ? `https://${v}` : ''); markChanged(); }}
                   onFocus={() => { setGuidanceHighlight('instance-url'); if (!suppressGuidanceSwitch.current) setRightRailTab('guide'); }}
                   placeholder="example.servicenow.com"
-                  styles={{ root: { width: '100%' } }}
+                  styles={{
+                    root: { width: '100%' },
+                    ...(isDarkMode ? {
+                      prefix: { background: '#3d3d3d', color: '#c8c6c4', borderColor: '#616161' },
+                      field: { background: '#292929', color: '#f5f5f5' },
+                      fieldGroup: { borderColor: '#616161', background: '#292929', selectors: { ':hover': { borderColor: '#adadad' } } },
+                    } : {}),
+                  }}
                 />
               </div>
 
@@ -2263,7 +2270,21 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                     onChange={(items?: IPersonaProps[]) => setSelectedPeople((items ?? []).map(i => i.key as string))}
                     inputProps={{ placeholder: 'Select users/groups', onFocus: () => { setGuidanceHighlight('staged-rollout'); if (!suppressGuidanceSwitch.current) setRightRailTab('guide'); } }}
                     pickerSuggestionsProps={{ suggestionsHeaderText: 'Suggested people', noResultsFoundText: 'No results found' }}
-                    styles={{ root: { width: '100%' } }}
+                    styles={{
+                      root: { width: '100%' },
+                      ...(isDarkMode ? {
+                        text: { background: '#292929', borderColor: '#616161', selectors: { ':hover': { borderColor: '#adadad' }, '::after': { borderColor: '#479ef5' } } },
+                        input: { background: '#292929', color: '#f5f5f5', selectors: { '::placeholder': { color: '#8a8886' } } },
+                        itemsWrapper: { background: '#292929' },
+                      } : {}),
+                    }}
+                    itemProps={isDarkMode ? {
+                      styles: {
+                        root: { background: '#3d3d3d', border: '1px solid #555', borderRadius: 16 },
+                        text: { color: '#f5f5f5' },
+                        removeButton: { color: '#c8c6c4', selectors: { ':hover': { color: '#ffffff', background: '#555' } } },
+                      }
+                    } : undefined}
                   />
                 )}
               </div>
