@@ -407,3 +407,20 @@ body {
 .ms-Label {
   font-weight: 400 !important;
 }
+
+/* ── People picker pills — dark mode ── */
+.dark .ms-PickerItem {
+  background-color: #3d3d3d !important;
+  border-color: #555 !important;
+}
+.dark .ms-PickerItem-content,
+.dark .ms-Persona-primaryText {
+  color: #f5f5f5 !important;
+}
+.dark .ms-PickerItem-removeButton {
+  color: #c8c6c4 !important;
+}
+.dark .ms-PickerItem-removeButton:hover {
+  background-color: #555 !important;
+  color: #ffffff !important;
+}

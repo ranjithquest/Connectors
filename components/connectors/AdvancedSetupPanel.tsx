@@ -2278,13 +2278,6 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                         itemsWrapper: { background: '#292929' },
                       } : {}),
                     }}
-                    itemProps={isDarkMode ? {
-                      styles: {
-                        root: { background: '#3d3d3d', border: '1px solid #555', borderRadius: 16 },
-                        text: { color: '#f5f5f5' },
-                        removeButton: { color: '#c8c6c4', selectors: { ':hover': { color: '#ffffff', background: '#555' } } },
-                      }
-                    } : undefined}
                   />
                 )}
               </div>
