@@ -1716,14 +1716,15 @@ function SyncTabContent({ fieldHighlight, fieldRefs, onFocusSection }: { fieldHi
       </div>
 
       {/* Full sync */}
-      <div onClick={() => onFocusSection?.('full-sync')}>
+      <div>
         <CollapsibleSection title="Full sync" defaultOpen={true}>
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4" onClick={() => onFocusSection?.('full-sync')}>
             <Dropdown
               label="Recurrence"
               selectedKey={fullRecurrence}
               options={['Day', 'Week', 'Month'].map(v => ({ key: v, text: `Every ${v}` }))}
               onChange={(_, opt) => { if (opt) setFullRecurrence(opt.key as string); }}
+              onFocus={() => onFocusSection?.('full-sync')}
               styles={{ root: { width: '100%' } }}
             />
             <button className="text-[14px] text-[#0078d4] dark:text-[#479ef5] hover:underline text-left w-fit">Add day(s)</button>
@@ -1733,9 +1734,9 @@ function SyncTabContent({ fieldHighlight, fieldRefs, onFocusSection }: { fieldHi
       </div>
 
       {/* Incremental sync */}
-      <div ref={(el) => { if (fieldRefs) fieldRefs.current["sync-frequency"] = el; }} className={`transition-colors duration-500 rounded-[4px] -mx-2 px-2 ${fieldHighlight === 'sync-frequency' ? 'bg-[#eff6ff]' : ''}`} onClick={() => onFocusSection?.('incremental-sync')}>
+      <div ref={(el) => { if (fieldRefs) fieldRefs.current["sync-frequency"] = el; }} className={`transition-colors duration-500 rounded-[4px] -mx-2 px-2 ${fieldHighlight === 'sync-frequency' ? 'bg-[#eff6ff]' : ''}`}>
         <CollapsibleSection title="Incremental sync" defaultOpen={false}>
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4" onClick={() => onFocusSection?.('incremental-sync')}>
             <Toggle
               checked={incrementalOn}
               onChange={(_, checked) => setIncrementalOn(!!checked)}
@@ -1749,6 +1750,7 @@ function SyncTabContent({ fieldHighlight, fieldRefs, onFocusSection }: { fieldHi
                   selectedKey={incRecurrence}
                   options={['Hour', 'Day', 'Week', 'Month'].map(v => ({ key: v, text: `Every ${v}` }))}
                   onChange={(_, opt) => { if (opt) setIncRecurrence(opt.key as string); }}
+                  onFocus={() => onFocusSection?.('incremental-sync')}
                   styles={{ root: { width: '100%' } }}
                 />
                 <FluentV8Checkbox
@@ -1761,6 +1763,7 @@ function SyncTabContent({ fieldHighlight, fieldRefs, onFocusSection }: { fieldHi
                   selectedKey={incFreq}
                   options={['5 minutes', '15 minutes', '30 minutes', '1 hour', '2 hours'].map(v => ({ key: v, text: `Every ${v}` }))}
                   onChange={(_, opt) => { if (opt) setIncFreq(opt.key as string); }}
+                  onFocus={() => onFocusSection?.('incremental-sync')}
                   styles={{ root: { width: '100%' } }}
                 />
                 <button className="text-[14px] text-[#0078d4] dark:text-[#479ef5] hover:underline text-left w-fit">Add starting time</button>
