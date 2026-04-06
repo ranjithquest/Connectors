@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-const SETUP_URL = 'https://raw.githubusercontent.com/gim-home/Connectors/Boilerplate/SETUP.md';
+const SETUP_URL = 'https://raw.githubusercontent.com/gim-home/Connectors/main/SETUP.md';
 
 const STEPS = [
   {
@@ -198,7 +198,7 @@ export default function GetStartedContent() {
                     <SetupButton />
                     <p style={{ fontSize: 16, color: '#1b1a19', margin: '16px 0 0', lineHeight: '24px' }}>
                       Or{' '}<a
-                        href="https://github.com/gim-home/Connectors/tree/Boilerplate"
+                        href="https://github.com/gim-home/Connectors/tree/main"
                         target="_blank" rel="noopener noreferrer"
                         style={{ color: '#0f6cbd', textDecoration: 'none' }}
                         onMouseOver={e => (e.currentTarget.style.textDecoration = 'underline')}

@@ -56,12 +56,12 @@ export default function GetStartedPage() {
             </nav>
 
             <div style={{ paddingTop: 20, marginTop: 16 }}>
-              <a href="https://github.com/gim-home/Connectors/tree/Boilerplate" target="_blank" rel="noopener noreferrer"
+              <a href="https://github.com/gim-home/Connectors/tree/main" target="_blank" rel="noopener noreferrer"
                 style={{ display: 'block', fontSize: 14, color: '#484644', textDecoration: 'none', padding: '6px 14px', borderRadius: 8 }}
                 onMouseOver={e => { e.currentTarget.style.background = '#f5f5f5'; }}
                 onMouseOut={e => { e.currentTarget.style.background = 'transparent'; }}
               >On GitHub →</a>
-              <a href="https://github.com/gim-home/Connectors/blob/Boilerplate/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer"
+              <a href="https://github.com/gim-home/Connectors/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer"
                 style={{ display: 'block', fontSize: 14, color: '#484644', textDecoration: 'none', padding: '6px 14px', borderRadius: 8 }}
                 onMouseOver={e => { e.currentTarget.style.background = '#f5f5f5'; }}
                 onMouseOut={e => { e.currentTarget.style.background = 'transparent'; }}
