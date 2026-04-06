@@ -1,0 +1,8 @@
+2:I[19107,[],"ClientPageRoot"]
+3:I[57340,["931","static/chunks/app/page-d7ed315c315ba24e.js"],"default",1]
+4:I[97297,["280","static/chunks/280-0205f556cb75707f.js","809","static/chunks/809-55e768cd90248224.js","903","static/chunks/903-a88a967d2a61882c.js","185","static/chunks/app/layout-4c9f98be0363ea10.js"],"default"]
+5:I[4707,[],""]
+6:I[36423,[],""]
+0:["u7PZlVnD21wpawx-i2U5y",[[["",{"children":["__PAGE__",{}]},"$undefined","$undefined",true],["",{"children":["__PAGE__",{},[["$L1",["$","$L2",null,{"props":{"params":{},"searchParams":{}},"Component":"$3"}],null],null],null]},[[[["$","link","0",{"rel":"stylesheet","href":"/_next/static/css/5e67411107bf77f0.css","precedence":"next","crossOrigin":"$undefined"}]],["$","html",null,{"lang":"en","suppressHydrationWarning":true,"children":["$","body",null,{"className":"antialiased","suppressHydrationWarning":true,"children":["$","$L4",null,{"children":["$","$L5",null,{"parallelRouterKey":"children","segmentPath":["children"],"error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L6",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":null,"notFoundStyles":[]}]}]}]}]],null],null],["$L7",null]]]]
+7:[["$","meta","0",{"name":"viewport","content":"width=device-width, initial-scale=1"}],["$","meta","1",{"charSet":"utf-8"}],["$","title","2",{"children":"Microsoft 365 admin center"}],["$","meta","3",{"name":"description","content":"Manage your Microsoft 365 connectors"}],["$","link","4",{"rel":"icon","href":"/favicon.ico","type":"image/x-icon","sizes":"16x16"}]]
+1:null
