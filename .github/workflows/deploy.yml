@@ -76,9 +76,22 @@ jobs:
           git fetch origin gh-pages 2>/dev/null && git checkout gh-pages || (git checkout --orphan gh-pages && git rm -rf . --quiet)
 
           if [ "$DEPLOYDIR" = "." ]; then
-            # Boilerplate: replace entire site
+            # Boilerplate: replace root content but preserve feature branch subdirs.
+            # Feature branch dirs are top-level dirs that don't exist in the new build output.
+            mkdir -p /tmp/feature-save
+            for d in */; do
+              d="${d%/}"
+              if [ -d "$d" ] && [ ! -e "/tmp/deploy-out/out/$d" ]; then
+                echo "Preserving feature branch dir: $d"
+                cp -r "$d" /tmp/feature-save/
+              fi
+            done
             git rm -rf . --quiet 2>/dev/null || true
             cp -r /tmp/deploy-out/out/. .
+            # Restore preserved feature branch dirs
+            if [ "$(ls /tmp/feature-save 2>/dev/null)" ]; then
+              cp -r /tmp/feature-save/. .
+            fi
           else
             # Feature branch: only update that contributor's subfolder
             rm -rf "${DEPLOYDIR}"
