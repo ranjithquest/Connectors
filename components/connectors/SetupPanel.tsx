@@ -677,7 +677,7 @@ export default function SetupPanel({ connectorType, onClose, onCreated }: SetupP
       >
       {creating ? (
         <DrawerBody style={{ padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
-          <div className={`flex-1 overflow-y-auto bg-white dark:bg-[#212121] ${slideInClass}`} style={{ padding: '48px 48px 24px' }}>
+          <div className={`flex-1 overflow-y-auto bg-white dark:bg-[#292929] ${slideInClass}`} style={{ padding: '48px 48px 24px' }}>
             {/* Heading */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
               <CompletedSolidIcon style={{ fontSize: 20, color: created ? '#107c10' : '#c8c6c4' }} />
@@ -709,7 +709,7 @@ export default function SetupPanel({ connectorType, onClose, onCreated }: SetupP
             </div>
           </div>
           {/* Footer */}
-          <div style={{ borderTop: `1px solid ${isDark ? '#3d3d3d' : '#e1e1e1'}`, padding: '0 32px', height: 64, flexShrink: 0, background: isDark ? '#212121' : '#fff', display: 'flex', alignItems: 'center' }}>
+          <div style={{ borderTop: `1px solid ${isDark ? '#3d3d3d' : '#e1e1e1'}`, padding: '0 32px', height: 64, flexShrink: 0, background: isDark ? '#292929' : '#fff', display: 'flex', alignItems: 'center' }}>
             <DefaultButton
               onClick={onClose}
               styles={isDark ? { root: { background: '#292929', color: '#f5f5f5', borderColor: '#616161', selectors: { ':hover': { background: '#383838' } } } } : {}}
@@ -724,7 +724,7 @@ export default function SetupPanel({ connectorType, onClose, onCreated }: SetupP
         <div ref={panelRef} className="flex flex-1 overflow-hidden relative">
 
           {/* Form side */}
-          <div className="flex-1 bg-white dark:bg-[#212121] flex flex-col min-w-0 overflow-hidden">
+          <div className="flex-1 bg-white dark:bg-[#292929] flex flex-col min-w-0 overflow-hidden">
 
             {/* Header */}
             <div className="px-8 pt-8 pb-0 flex-shrink-0">
@@ -891,7 +891,7 @@ export default function SetupPanel({ connectorType, onClose, onCreated }: SetupP
                   <div
                     onClick={() => { setPrivacyAccepted(v => !v); markChanged(); }}
                     className={`mt-0.5 w-5 h-5 rounded-[2px] border flex-shrink-0 cursor-pointer flex items-center justify-center ${
-                      privacyAccepted ? 'bg-[#0078d4] border-[#0078d4]' : 'border-[#323130] dark:border-[#adadad] bg-white dark:bg-[#212121]'
+                      privacyAccepted ? 'bg-[#0078d4] border-[#0078d4]' : 'border-[#323130] dark:border-[#adadad] bg-white dark:bg-[#292929]'
                     }`}
                   >
                     {privacyAccepted && (
@@ -993,7 +993,7 @@ export default function SetupPanel({ connectorType, onClose, onCreated }: SetupP
         </div>
 
         {/* Footer */}
-        <div className="border-t border-[#e1e1e1] dark:border-[#3d3d3d] px-8 py-3 flex items-center justify-between flex-shrink-0 bg-white dark:bg-[#212121]">
+        <div className="border-t border-[#e1e1e1] dark:border-[#3d3d3d] px-8 py-3 flex items-center justify-between flex-shrink-0 bg-white dark:bg-[#292929]">
           {loading ? (
             <FluentProvider theme={isDark ? webDarkTheme : webLightTheme} style={{ background: 'transparent', width: '100%', display: 'flex', justifyContent: 'space-between' }}>
               <Skeleton style={{ display: 'flex', gap: 8 }}>
