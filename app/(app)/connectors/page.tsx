@@ -404,6 +404,7 @@ export default function ConnectorsPage() {
                   key: 'refresh',
                   text: 'Refresh',
                   iconProps: { iconName: 'Refresh' },
+                  buttonStyles: isDark ? { root: { backgroundColor: '#141414', color: '#f5f5f5' }, label: { color: '#f5f5f5' }, icon: { color: '#f5f5f5' }, rootHovered: { backgroundColor: '#2d2d2d' } } : {},
                 },
               ] as ICommandBarItemProps[]}
               farItems={[
@@ -417,6 +418,7 @@ export default function ConnectorsPage() {
                   key: 'filter',
                   text: 'Filter',
                   iconProps: { iconName: 'Filter' },
+                  buttonStyles: isDark ? { root: { backgroundColor: '#141414', color: '#f5f5f5' }, label: { color: '#f5f5f5' }, icon: { color: '#f5f5f5' }, rootHovered: { backgroundColor: '#2d2d2d' } } : {},
                 },
                 {
                   key: 'search',
@@ -437,6 +439,8 @@ export default function ConnectorsPage() {
                   backgroundColor: isDark ? '#141414' : '#ffffff',
                   borderTop: `1px solid ${isDark ? '#333333' : '#edebe9'}`,
                 },
+                primarySet: { backgroundColor: isDark ? '#141414' : '#ffffff' },
+                secondarySet: { backgroundColor: isDark ? '#141414' : '#ffffff' },
               }}
             />
           </div>
