@@ -147,9 +147,10 @@ export default function GetStartedContent() {
         }} />
         {/* Text content — left side */}
         <div style={{ position: 'relative', maxWidth: '52%' }}>
-          <h1 style={{ fontSize: 68, fontWeight: 600, color: '#000000', lineHeight: '92px', margin: '0 0 16px' }}>
+          <h1 style={{ fontSize: 68, fontWeight: 600, color: '#000000', lineHeight: '92px', margin: '0 0 4px' }}>
             Boilerplate
           </h1>
+          <p style={{ fontSize: 14, color: '#a19f9d', fontWeight: 400, margin: '0 0 16px' }}>V1.0 (Beta)</p>
           <p style={{ fontSize: 20, fontWeight: 400, color: '#242424', lineHeight: '28px', margin: '0 0 28px' }}>
             Quickly prototype specs into concepts, share with stakeholders, validate with customers, and deliver high‑quality production‑ready outcomes.
           </p>
