@@ -124,7 +124,7 @@ export default function GetStartedContent() {
           position: 'absolute',
           top: -48, left: -320, right: -48,
           height: '140%',
-          backgroundImage: 'url(/hero-bg.webp)',
+          backgroundImage: 'url(/hero-bg.png)',
           backgroundSize: 'cover',
           backgroundPosition: 'center center',
           opacity: 0.25,
