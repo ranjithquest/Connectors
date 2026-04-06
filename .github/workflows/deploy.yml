@@ -55,9 +55,14 @@ jobs:
           # Next.js references assets as /<basepath>/_next/... so they must live inside deploydir
           mv out/_next out/${DEPLOYDIR}/_next
 
-          # Copy public files (icons, images, SVGs) from out/ root into deploydir
-          # These are referenced as /<basepath>/filename.svg in the app
-          find out -maxdepth 1 -type f | xargs -I {} cp {} out/${DEPLOYDIR}/
+          # Copy all public files and directories from out/ root into deploydir
+          # These are referenced as /<basepath>/... in the app (logos/, icons, images, SVGs etc.)
+          for item in out/*; do
+            name=$(basename "$item")
+            if [ "$name" != "_next" ] && [ "$name" != "${DEPLOYDIR}" ]; then
+              cp -r "$item" out/${DEPLOYDIR}/
+            fi
+          done
 
           # Save the deploydir contents to temp
           cp -r out/${DEPLOYDIR} /tmp/deploy-out
