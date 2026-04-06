@@ -1572,6 +1572,7 @@ const PROPERTIES = [
 ];
 
 function ContentTabContent({ fieldHighlight, fieldRefs, onFocusSection }: { fieldHighlight?: string; fieldRefs?: React.MutableRefObject<Record<string, HTMLDivElement | null>>; onFocusSection?: (id: string) => void }) {
+  const isDark = typeof window !== 'undefined' && document.documentElement.classList.contains('dark');
   return (
     <div className="max-w-[640px] flex flex-col">
       {/* Include data */}
@@ -1607,6 +1608,7 @@ function ContentTabContent({ fieldHighlight, fieldRefs, onFocusSection }: { fiel
               text: 'Add property',
               iconProps: { iconName: 'Add' },
               style: { fontSize: 13 },
+              buttonStyles: isDark ? { root: { backgroundColor: '#141414', color: '#f5f5f5' }, label: { color: '#f5f5f5' }, icon: { color: '#f5f5f5' }, rootHovered: { backgroundColor: '#2d2d2d' } } : {},
             },
           ]}
           farItems={[
@@ -1614,10 +1616,10 @@ function ContentTabContent({ fieldHighlight, fieldRefs, onFocusSection }: { fiel
               key: 'count',
               text: `${PROPERTIES.length} items`,
               disabled: true,
-              buttonStyles: { root: { fontSize: 12, color: '#605e5c', cursor: 'default' }, rootDisabled: { background: 'transparent', color: '#605e5c' } },
+              buttonStyles: { root: { fontSize: 12, color: isDark ? '#adadad' : '#605e5c', cursor: 'default', backgroundColor: isDark ? '#141414' : 'transparent' }, rootDisabled: { background: isDark ? '#141414' : 'transparent', color: isDark ? '#adadad' : '#605e5c' } },
             },
           ]}
-          styles={{ root: { padding: 0, marginBottom: 8, height: 36 }, primarySet: { alignItems: 'center' } }}
+          styles={{ root: { padding: 0, marginBottom: 8, height: 36, backgroundColor: isDark ? '#141414' : '#ffffff' }, primarySet: { alignItems: 'center', backgroundColor: isDark ? '#141414' : '#ffffff' }, secondarySet: { backgroundColor: isDark ? '#141414' : '#ffffff' } }}
         />
 
         {/* Table */}
@@ -2117,7 +2119,11 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                       setFieldHighlight(undefined);
                     }
                   }}
-                  styles={{ root: { marginLeft: -12 }, link: { height: 44, padding: '12px', lineHeight: '20px' } }}
+                  styles={{
+                    root: { marginLeft: -12 },
+                    link: { height: 44, padding: '12px', lineHeight: '20px', color: isDarkMode ? '#adadad' : undefined, selectors: { ':hover': { color: isDarkMode ? '#f5f5f5' : undefined, backgroundColor: isDarkMode ? '#2d2d2d' : undefined } } },
+                    linkIsSelected: { color: isDarkMode ? '#f5f5f5' : undefined, selectors: { '::before': { backgroundColor: isDarkMode ? '#479ef5' : undefined } } },
+                  }}
                 >
                   {SETUP_TABS.map((tab) => (
                     <PivotItem key={tab} itemKey={tab} headerText={tab} />
