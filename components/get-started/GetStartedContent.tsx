@@ -117,46 +117,52 @@ export default function GetStartedContent() {
 
   return (
     <section id="getting-started" style={{ padding: '0 0 96px', fontFamily: font, color: '#242424', width: '100%' }}>
-      {/* Hero header with faded background image */}
-      <div style={{ position: 'relative', marginBottom: 0, marginLeft: -48, marginRight: -48, paddingLeft: 48, paddingRight: 48, overflow: 'hidden' }}>
+      {/* Hero header */}
+      <div style={{ position: 'relative', paddingBottom: 48 }}>
+        {/* Background image */}
         <div style={{
-          position: 'absolute', inset: 0,
+          position: 'absolute',
+          top: -48, left: -320, right: -48,
+          height: '140%',
           backgroundImage: 'url(/hero-bg.webp)',
           backgroundSize: 'cover',
-          backgroundPosition: 'center top',
-          opacity: 0.22,
+          backgroundPosition: 'center center',
+          opacity: 0.25,
           pointerEvents: 'none',
         }} />
         {/* Fade to white at bottom */}
         <div style={{
-          position: 'absolute', bottom: 0, left: 0, right: 0, height: '60%',
+          position: 'absolute',
+          bottom: 0, left: -320, right: -48,
+          height: '55%',
           background: 'linear-gradient(to bottom, transparent, #ffffff)',
           pointerEvents: 'none',
         }} />
+        {/* Content */}
         <div style={{ position: 'relative' }}>
           <h1 style={{ fontSize: 68, fontWeight: 600, color: '#000000', lineHeight: '92px', margin: '0 0 27px' }}>
             Boilerplate
           </h1>
-      <div style={{ maxWidth: '60%' }}>
-        <p style={{ fontSize: 20, fontWeight: 400, color: '#000000', lineHeight: '28px', margin: '0 0 28px' }}>
-          Quickly turn specs into concepts, share with stakeholders, validate with customers, and deliver high‑quality production‑ready outcomes.
-        </p>
-        <a
-          href="https://studious-adventure-j17vp6o.pages.github.io/connectors/"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8,
-            padding: '10px 20px', borderRadius: 4, fontSize: 14, fontWeight: 600,
-            background: '#0078d4', color: '#ffffff', textDecoration: 'none',
-            marginBottom: 40, transition: 'background 0.15s',
-          }}
-          onMouseOver={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#106ebe'; }}
-          onMouseOut={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#0078d4'; }}
-        >
-          Open the app ↗
-        </a>
-      </div>
+          <div style={{ maxWidth: '60%' }}>
+            <p style={{ fontSize: 20, fontWeight: 400, color: '#000000', lineHeight: '28px', margin: '0 0 28px' }}>
+              Quickly turn specs into concepts, share with stakeholders, validate with customers, and deliver high‑quality production‑ready outcomes.
+            </p>
+            <a
+              href="https://studious-adventure-j17vp6o.pages.github.io/connectors/"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                padding: '10px 20px', borderRadius: 4, fontSize: 14, fontWeight: 600,
+                background: '#0078d4', color: '#ffffff', textDecoration: 'none',
+                marginBottom: 0, transition: 'background 0.15s',
+              }}
+              onMouseOver={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#106ebe'; }}
+              onMouseOut={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#0078d4'; }}
+            >
+              Open the app ↗
+            </a>
+          </div>
         </div>
       </div>
 
