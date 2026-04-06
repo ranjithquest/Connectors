@@ -8,7 +8,7 @@ const STEPS = [
   {
     num: '01',
     title: 'Set up the boilerplate',
-    body: 'Install VS Code and the Claude Code extension, then paste this link into Claude Code chat to begin.',
+    body: 'Install VS Code and the Claude Code extension. In Claude Code chat, type: "Clone https://github.com/gim-home/Connectors.git and set me up" — VS Code will handle GitHub login automatically, then paste the link below to complete setup.',
     setupButton: true,
     skills: null as null | { cmd: string; desc: string; color: string; bg: string }[],
     resources: null as null | { label: string; href: string }[],
