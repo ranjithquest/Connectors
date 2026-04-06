@@ -412,7 +412,7 @@ export default function ConnectorsPage() {
                   key: 'count',
                   text: `${sorted.length} items`,
                   disabled: true,
-                  buttonStyles: { root: { cursor: 'default' }, label: { color: isDark ? '#f5f5f5' : '#323130' } },
+                  buttonStyles: { root: { cursor: 'default', backgroundColor: isDark ? '#141414' : '#ffffff' }, rootDisabled: { backgroundColor: isDark ? '#141414' : '#ffffff' }, label: { color: isDark ? '#adadad' : '#323130' } },
                 },
                 {
                   key: 'filter',
@@ -428,7 +428,16 @@ export default function ConnectorsPage() {
                       value={search}
                       onChange={(_, v) => setSearch(v ?? '')}
                       onClear={() => setSearch('')}
-                      styles={{ root: { width: 182, height: 26, alignSelf: 'center', margin: '0 8px' } }}
+                      styles={{
+                        root: {
+                          width: 182, height: 26, alignSelf: 'center', margin: '0 8px',
+                          backgroundColor: isDark ? '#141414' : undefined,
+                          border: isDark ? '1px solid #555' : undefined,
+                        },
+                        field: { backgroundColor: isDark ? '#141414' : undefined, color: isDark ? '#f5f5f5' : undefined },
+                        icon: { color: isDark ? '#adadad' : undefined },
+                        clearButton: { color: isDark ? '#adadad' : undefined },
+                      }}
                     />
                   ),
                 },
