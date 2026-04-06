@@ -151,7 +151,7 @@ export default function GetStartedContent() {
             Boilerplate
           </h1>
           <p style={{ fontSize: 20, fontWeight: 400, color: '#242424', lineHeight: '28px', margin: '0 0 28px' }}>
-            Quickly turn specs into concepts, share with stakeholders, validate with customers, and deliver high‑quality production‑ready outcomes.
+            Quickly prototype specs into concepts, share with stakeholders, validate with customers, and deliver high‑quality production‑ready outcomes.
           </p>
           <a
             href="https://studious-adventure-j17vp6o.pages.github.io/connectors/"
