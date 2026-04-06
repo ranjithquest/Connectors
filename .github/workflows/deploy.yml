@@ -91,6 +91,9 @@ jobs:
           # pick them up and they exceed GitHub's 100MB file size limit.
           rm -rf node_modules .next
 
+          # Disable Jekyll so GitHub Pages serves _next/ static assets correctly
+          touch .nojekyll
+
           # Add root index.html redirect if it doesn't exist
           if [ ! -f index.html ]; then
             echo '<meta http-equiv="refresh" content="0; url=/connectors">' > index.html
