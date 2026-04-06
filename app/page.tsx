@@ -2,6 +2,6 @@
 import { useEffect } from 'react';
 
 export default function RootPage() {
-  useEffect(() => { window.location.replace('./get-started/'); }, []);
+  useEffect(() => { window.location.replace('./connectors/'); }, []);
   return null;
 }
