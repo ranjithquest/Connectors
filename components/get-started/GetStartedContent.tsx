@@ -121,9 +121,24 @@ export default function GetStartedContent() {
         Boilerplate
       </h1>
       <div style={{ maxWidth: '60%' }}>
-        <p style={{ fontSize: 20, fontWeight: 400, color: '#000000', lineHeight: '28px', margin: '0 0 40px' }}>
+        <p style={{ fontSize: 20, fontWeight: 400, color: '#000000', lineHeight: '28px', margin: '0 0 28px' }}>
           Quickly turn specs into concepts, share with stakeholders, validate with customers, and deliver high‑quality production‑ready outcomes.
         </p>
+        <a
+          href="https://studious-adventure-j17vp6o.pages.github.io/connectors/"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            padding: '10px 20px', borderRadius: 4, fontSize: 14, fontWeight: 600,
+            background: '#0078d4', color: '#ffffff', textDecoration: 'none',
+            marginBottom: 40, transition: 'background 0.15s',
+          }}
+          onMouseOver={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#106ebe'; }}
+          onMouseOut={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#0078d4'; }}
+        >
+          Open the app ↗
+        </a>
       </div>
 
       <div>
