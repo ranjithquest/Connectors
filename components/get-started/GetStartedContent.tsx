@@ -118,51 +118,56 @@ export default function GetStartedContent() {
   return (
     <section id="getting-started" style={{ padding: '0 0 96px', fontFamily: font, color: '#242424', width: '100%' }}>
       {/* Hero header */}
-      <div style={{ position: 'relative', paddingBottom: 48 }}>
-        {/* Background image */}
+      <div style={{ position: 'relative', minHeight: 260, marginBottom: 40, display: 'flex', alignItems: 'center' }}>
+        {/* Image — right side, natural aspect, fades left */}
         <div style={{
           position: 'absolute',
-          top: -48, left: -320, right: -48,
-          height: '140%',
+          top: -48, right: -48, bottom: -40,
+          width: '65%',
           backgroundImage: 'url(/hero-bg.png)',
           backgroundSize: 'cover',
           backgroundPosition: 'center center',
-          opacity: 0.25,
+          pointerEvents: 'none',
+        }} />
+        {/* Fade: right image → white on left */}
+        <div style={{
+          position: 'absolute',
+          top: -48, right: -48, bottom: -40,
+          width: '75%',
+          background: 'linear-gradient(to right, #ffffff 30%, transparent 70%)',
           pointerEvents: 'none',
         }} />
         {/* Fade to white at bottom */}
         <div style={{
           position: 'absolute',
-          bottom: 0, left: -320, right: -48,
-          height: '55%',
+          bottom: -40, left: 0, right: -48,
+          height: 80,
           background: 'linear-gradient(to bottom, transparent, #ffffff)',
           pointerEvents: 'none',
         }} />
-        {/* Content */}
-        <div style={{ position: 'relative' }}>
-          <h1 style={{ fontSize: 68, fontWeight: 600, color: '#000000', lineHeight: '92px', margin: '0 0 27px' }}>
+        {/* Text content — left side */}
+        <div style={{ position: 'relative', maxWidth: '52%' }}>
+          <h1 style={{ fontSize: 68, fontWeight: 600, color: '#000000', lineHeight: '92px', margin: '0 0 16px' }}>
             Boilerplate
           </h1>
-          <div style={{ maxWidth: '60%' }}>
-            <p style={{ fontSize: 20, fontWeight: 400, color: '#000000', lineHeight: '28px', margin: '0 0 28px' }}>
-              Quickly turn specs into concepts, share with stakeholders, validate with customers, and deliver high‑quality production‑ready outcomes.
-            </p>
-            <a
-              href="https://studious-adventure-j17vp6o.pages.github.io/connectors/"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 8,
-                padding: '10px 20px', borderRadius: 4, fontSize: 14, fontWeight: 600,
-                background: '#0078d4', color: '#ffffff', textDecoration: 'none',
-                marginBottom: 0, transition: 'background 0.15s',
-              }}
-              onMouseOver={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#106ebe'; }}
-              onMouseOut={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#0078d4'; }}
-            >
-              Open the app ↗
-            </a>
-          </div>
+          <p style={{ fontSize: 20, fontWeight: 400, color: '#242424', lineHeight: '28px', margin: '0 0 28px' }}>
+            Quickly turn specs into concepts, share with stakeholders, validate with customers, and deliver high‑quality production‑ready outcomes.
+          </p>
+          <a
+            href="https://studious-adventure-j17vp6o.pages.github.io/connectors/"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              padding: '10px 20px', borderRadius: 4, fontSize: 14, fontWeight: 600,
+              background: '#0078d4', color: '#ffffff', textDecoration: 'none',
+              transition: 'background 0.15s',
+            }}
+            onMouseOver={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#106ebe'; }}
+            onMouseOut={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#0078d4'; }}
+          >
+            Open the app ↗
+          </a>
         </div>
       </div>
 
