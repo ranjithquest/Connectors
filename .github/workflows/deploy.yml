@@ -47,16 +47,24 @@ jobs:
         env:
           NEXT_PUBLIC_BASE_PATH: ${{ steps.path.outputs.basepath }}
 
+      - name: Restructure output for deployment
+        run: |
+          DEPLOYDIR="${{ steps.path.outputs.deploydir }}"
+
+          # Move _next assets inside the deploydir so relative paths work correctly
+          # Next.js references assets as /<basepath>/_next/... so they must live inside deploydir
+          mv out/_next out/${DEPLOYDIR}/_next
+
+          # Save the deploydir contents to temp
+          cp -r out/${DEPLOYDIR} /tmp/deploy-out
+
       - name: Deploy to gh-pages branch
         run: |
-          # Save built output to a temp location outside the repo
-          cp -r out /tmp/deploy-out
-
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           # Switch to gh-pages branch (create orphan if it doesn't exist)
-          git fetch origin gh-pages 2>/dev/null && git checkout gh-pages || git checkout --orphan gh-pages && git rm -rf . --quiet
+          git fetch origin gh-pages 2>/dev/null && git checkout gh-pages || (git checkout --orphan gh-pages && git rm -rf . --quiet)
 
           # Remove old content for this deploy path only, keep everything else
           rm -rf ${{ steps.path.outputs.deploydir }}
