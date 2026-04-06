@@ -150,7 +150,11 @@ export default function ISVPanel({ connector, onAdd, onClose }: ISVPanelProps) {
           <Pivot
             selectedKey="overview"
             onLinkClick={(item) => { if (item?.props.itemKey === 'learn') scrollToLearn(); }}
-            styles={{ root: { marginLeft: -12 }, link: { height: 44, padding: '12px', lineHeight: '20px' } }}
+            styles={{
+              root: { marginLeft: -12 },
+              link: { height: 44, padding: '12px', lineHeight: '20px', color: isDark ? '#adadad' : undefined, selectors: { ':hover': { color: isDark ? '#f5f5f5' : undefined, backgroundColor: isDark ? '#2d2d2d' : undefined } } },
+              linkIsSelected: { color: isDark ? '#f5f5f5' : undefined, selectors: { '::before': { backgroundColor: isDark ? '#479ef5' : undefined } } },
+            }}
           >
             <PivotItem itemKey="overview" headerText="Overview" />
             <PivotItem itemKey="learn" headerText="Learn" />
