@@ -65,6 +65,12 @@ jobs:
           mkdir -p ${{ steps.path.outputs.deploydir }}
           cp -r /tmp/deploy-out/. ${{ steps.path.outputs.deploydir }}/
 
+          # Add root index.html redirect if it doesn't exist
+          if [ ! -f index.html ]; then
+            echo '<meta http-equiv="refresh" content="0; url=/connectors">' > index.html
+            git add index.html
+          fi
+
           # Commit and push
           git add ${{ steps.path.outputs.deploydir }}
           git diff --cached --quiet && echo "Nothing to commit" || git commit -m "Deploy ${{ github.ref_name }} to ${{ steps.path.outputs.deploydir }}"
