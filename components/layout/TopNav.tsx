@@ -12,7 +12,7 @@ export default function TopNav() {
   return (
     <header className="h-[48px] bg-[#1b1a19] flex items-center flex-shrink-0 z-50 relative">
       {/* Left: app launcher waffle + title */}
-      <a href="/get-started" className="w-12 h-[48px] flex items-center justify-center text-white hover:bg-white/10 transition-colors flex-shrink-0" aria-label="App launcher">
+      <a href="https://studious-adventure-j17vp6o.pages.github.io/get-started/" target="_blank" rel="noopener noreferrer" className="w-12 h-[48px] flex items-center justify-center text-white hover:bg-white/10 transition-colors flex-shrink-0" aria-label="App launcher">
         <WaffleIcon style={{ fontSize: 22 }} />
       </a>
       <span className="text-[16px] font-semibold text-white whitespace-nowrap pl-2 pr-6">
