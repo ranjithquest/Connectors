@@ -36,10 +36,11 @@ jobs:
             echo "deploydir=." >> $GITHUB_OUTPUT
             echo "previewurl=https://studious-adventure-j17vp6o.pages.github.io/connectors" >> $GITHUB_OUTPUT
           else
-            SLUG=$(echo "${{ github.ref_name }}" | sed 's|^bp/||' | tr '[:upper:]' '[:lower:]')
-            echo "basepath=/connectors/${SLUG}" >> $GITHUB_OUTPUT
-            echo "deploydir=connectors/${SLUG}" >> $GITHUB_OUTPUT
-            echo "previewurl=https://studious-adventure-j17vp6o.pages.github.io/connectors/${SLUG}/connectors" >> $GITHUB_OUTPUT
+            # Use branch name as-is (lowercased) — e.g. aatman/new-icon-edit → aatman/new-icon-edit
+            SLUG=$(echo "${{ github.ref_name }}" | tr '[:upper:]' '[:lower:]')
+            echo "basepath=/${SLUG}" >> $GITHUB_OUTPUT
+            echo "deploydir=${SLUG}" >> $GITHUB_OUTPUT
+            echo "previewurl=https://studious-adventure-j17vp6o.pages.github.io/${SLUG}/connectors" >> $GITHUB_OUTPUT
           fi
 
       - name: Build
@@ -52,18 +53,21 @@ jobs:
           DEPLOYDIR="${{ steps.path.outputs.deploydir }}"
 
           if [ "$DEPLOYDIR" != "." ]; then
-            # Feature branch: move _next inside deploydir, copy public files
-            mv out/_next out/${DEPLOYDIR}/_next
+            # Feature branch: move _next inside deploydir so assets resolve correctly
+            mv out/_next "out/${DEPLOYDIR}/_next"
+            # Copy any public files (favicon, logos, etc.) into the deploydir
             for item in out/*; do
               name=$(basename "$item")
-              if [ "$name" != "_next" ] && [ "$name" != "connectors" ]; then
-                cp -r "$item" out/${DEPLOYDIR}/
+              # Skip _next (already moved) and the deploydir folder itself
+              if [ "$name" != "_next" ] && [ "$name" != "$(echo "$DEPLOYDIR" | cut -d/ -f1)" ]; then
+                cp -r "$item" "out/${DEPLOYDIR}/"
               fi
             done
           fi
 
-          # Save built output to temp
-          cp -r out /tmp/deploy-out
+          # Save built output to temp before switching branches
+          mkdir -p /tmp/deploy-out/out
+          cp -r out/. /tmp/deploy-out/out/
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -76,10 +80,10 @@ jobs:
             git rm -rf . --quiet 2>/dev/null || true
             cp -r /tmp/deploy-out/out/. .
           else
-            # Feature branch: only update the feature subfolder
-            rm -rf ${DEPLOYDIR}
-            mkdir -p ${DEPLOYDIR}
-            cp -r /tmp/deploy-out/out/${DEPLOYDIR}/. ${DEPLOYDIR}/
+            # Feature branch: only update that contributor's subfolder
+            rm -rf "${DEPLOYDIR}"
+            mkdir -p "${DEPLOYDIR}"
+            cp -r "/tmp/deploy-out/out/${DEPLOYDIR}/." "${DEPLOYDIR}/"
           fi
 
           # Add root index.html redirect if it doesn't exist
