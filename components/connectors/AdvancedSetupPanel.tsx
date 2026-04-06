@@ -2001,7 +2001,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
         {/* Left column: form + footer */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden" style={{ minHeight: 0, minWidth: 0 }}>
         {/* Form side */}
-        <div className="flex-1 bg-white dark:bg-[#292929] flex flex-col min-w-0 shadow-2xl overflow-hidden" style={{ minHeight: 0 }}>
+        <div className="flex-1 bg-white dark:bg-[#292929] flex flex-col min-w-0 overflow-hidden" style={{ minHeight: 0 }}>
 
           {/* Header */}
           <div className="px-8 pt-8">
