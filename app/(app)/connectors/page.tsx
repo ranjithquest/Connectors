@@ -403,7 +403,7 @@ export default function ConnectorsPage() {
                   text: 'Add connection',
                   iconProps: { iconName: 'Add' },
                   onClick: () => setTab('gallery'),
-                  styles: { root: { color: '#0078d4' }, label: { color: '#0078d4', fontWeight: 600 }, icon: { color: '#0078d4' } },
+                  buttonStyles: { root: { backgroundColor: isDark ? '#141414' : '#ffffff', color: '#0078d4' }, label: { color: '#0078d4', fontWeight: 600 }, icon: { color: '#0078d4' }, rootHovered: { backgroundColor: isDark ? '#2d2d2d' : '#f3f2f1' } },
                 },
                 {
                   key: 'refresh',

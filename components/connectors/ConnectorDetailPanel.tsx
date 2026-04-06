@@ -455,7 +455,11 @@ export default function ConnectorDetailPanel({ connector, onClose, onEdit }: Con
                   <Pivot
                     selectedKey={activeTab}
                     onLinkClick={(item) => item?.props.itemKey && setActiveTab(item.props.itemKey as TabId)}
-                    styles={{ root: { display: 'flex' }, link: { fontSize: 14, height: 40, padding: '0 8px' }, linkIsSelected: { fontSize: 14, height: 40, padding: '0 8px' } }}
+                    styles={{
+                      root: { display: 'flex' },
+                      link: { fontSize: 14, height: 40, padding: '0 8px', color: isDark ? '#adadad' : undefined, selectors: { ':hover': { color: isDark ? '#f5f5f5' : undefined, backgroundColor: isDark ? '#2d2d2d' : undefined } } },
+                      linkIsSelected: { fontSize: 14, height: 40, padding: '0 8px', color: isDark ? '#f5f5f5' : undefined, selectors: { '::before': { backgroundColor: isDark ? '#479ef5' : undefined } } },
+                    }}
                   >
                     {TABS.map((tab) => (
                       <PivotItem key={tab.id} itemKey={tab.id} headerText={tab.label} />
