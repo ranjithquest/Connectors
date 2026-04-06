@@ -99,31 +99,33 @@ function ConnectorLogo({ connectorType, logoUrl }: { connectorType: string; logo
   );
 }
 
-function StatBar({ label, value, color }: { label: string; value: string; color: string }) {
+function StatBar({ label, value, color, isDark }: { label: string; value: string; color: string; isDark?: boolean }) {
   return (
     <Stack horizontal tokens={{ childrenGap: 6 }} styles={{ root: { width: 184, minHeight: 52, padding: '0 12px', alignItems: 'flex-end' } }}>
       <div style={{ width: 3, alignSelf: 'stretch', borderRadius: 2, flexShrink: 0, backgroundColor: color }} />
       <Stack tokens={{ childrenGap: 0 }}>
-        <Text styles={{ root: { fontSize: 11, color: '#605e5c', whiteSpace: 'nowrap' } }}>{label}</Text>
+        <Text styles={{ root: { fontSize: 11, color: isDark ? '#adadad' : '#605e5c', whiteSpace: 'nowrap' } }}>{label}</Text>
         <Text variant="xLargePlus" styles={{ root: { color, fontWeight: 700, lineHeight: '28px' } }}>{value}</Text>
       </Stack>
     </Stack>
   );
 }
 
-function MetaRow({ col1Label, col1Value, col2Label, col2Value, col1Extra }: {
-  col1Label: string; col1Value: React.ReactNode; col2Label: string; col2Value: React.ReactNode; col1Extra?: React.ReactNode;
+function MetaRow({ col1Label, col1Value, col2Label, col2Value, col1Extra, isDark }: {
+  col1Label: string; col1Value: React.ReactNode; col2Label: string; col2Value: React.ReactNode; col1Extra?: React.ReactNode; isDark?: boolean;
 }) {
+  const labelClr = isDark ? '#f5f5f5' : '#323130';
+  const valueClr = isDark ? '#adadad' : '#484644';
   return (
     <Stack horizontal tokens={{ childrenGap: 24 }}>
       <Stack tokens={{ childrenGap: 3 }} styles={{ root: { width: 198 } }}>
-        <Text styles={{ root: { fontWeight: '600', fontSize: 14, color: '#323130' } }}>{col1Label}</Text>
-        <Text styles={{ root: { fontSize: 14, color: '#484644' } }}>{col1Value}</Text>
+        <Text styles={{ root: { fontWeight: '600', fontSize: 14, color: labelClr } }}>{col1Label}</Text>
+        <Text styles={{ root: { fontSize: 14, color: valueClr } }}>{col1Value}</Text>
         {col1Extra}
       </Stack>
       <Stack tokens={{ childrenGap: 3 }} styles={{ root: { flex: 1 } }}>
-        <Text styles={{ root: { fontWeight: '600', fontSize: 14, color: '#323130' } }}>{col2Label}</Text>
-        <Text styles={{ root: { fontSize: 14, color: '#484644' } }}>{col2Value}</Text>
+        <Text styles={{ root: { fontWeight: '600', fontSize: 14, color: labelClr } }}>{col2Label}</Text>
+        <Text styles={{ root: { fontSize: 14, color: valueClr } }}>{col2Value}</Text>
       </Stack>
     </Stack>
   );
@@ -228,12 +230,12 @@ function ADOHealthSection({ connector, isDark, onEdit, lastSyncOpen, setLastSync
         {lastSyncOpen && lastRun && (
           <Stack tokens={{ childrenGap: 10 }} styles={{ root: { paddingTop: 16, paddingBottom: 12 } }}>
             <Stack horizontal>
-              <StatBar label={lastRunMetrics_[0].label} value={lastRunMetrics_[0].value} color={lastRunMetrics_[0].color} />
-              <StatBar label={lastRunMetrics_[1].label} value={lastRunMetrics_[1].value} color={lastRunMetrics_[1].color} />
+              <StatBar label={lastRunMetrics_[0].label} value={lastRunMetrics_[0].value} color={lastRunMetrics_[0].color} isDark={isDark} />
+              <StatBar label={lastRunMetrics_[1].label} value={lastRunMetrics_[1].value} color={lastRunMetrics_[1].color} isDark={isDark} />
             </Stack>
             <Stack horizontal>
-              <StatBar label={lastRunMetrics_[2].label} value={lastRunMetrics_[2].value} color={lastRunMetrics_[2].color} />
-              <StatBar label={lastRunMetrics_[3].label} value={lastRunMetrics_[3].value} color={lastRunMetrics_[3].color} />
+              <StatBar label={lastRunMetrics_[2].label} value={lastRunMetrics_[2].value} color={lastRunMetrics_[2].color} isDark={isDark} />
+              <StatBar label={lastRunMetrics_[3].label} value={lastRunMetrics_[3].value} color={lastRunMetrics_[3].color} isDark={isDark} />
             </Stack>
           </Stack>
         )}
@@ -560,12 +562,12 @@ export default function ConnectorDetailPanel({ connector, onClose, onEdit }: Con
             </Stack>
             <Stack tokens={{ childrenGap: 12 }}>
               <Stack horizontal>
-                <StatBar label={cabStats[0].label} value={cabStats[0].value} color={cabStats[0].color} />
-                <StatBar label={cabStats[1].label} value={cabStats[1].value} color={cabStats[1].color} />
+                <StatBar label={cabStats[0].label} value={cabStats[0].value} color={cabStats[0].color} isDark={isDark} />
+                <StatBar label={cabStats[1].label} value={cabStats[1].value} color={cabStats[1].color} isDark={isDark} />
               </Stack>
               <Stack horizontal>
-                <StatBar label={cabStats[2].label} value={cabStats[2].value} color={cabStats[2].color} />
-                <StatBar label={cabStats[3].label} value={cabStats[3].value} color={cabStats[3].color} />
+                <StatBar label={cabStats[2].label} value={cabStats[2].value} color={cabStats[2].color} isDark={isDark} />
+                <StatBar label={cabStats[3].label} value={cabStats[3].value} color={cabStats[3].color} isDark={isDark} />
               </Stack>
             </Stack>
           </Stack>
@@ -585,12 +587,14 @@ export default function ConnectorDetailPanel({ connector, onClose, onEdit }: Con
         <MetaRow
           col1Label="Item errors" col1Value={String(itemErrors)}
           col2Label="User and groups errors" col2Value="—"
+          isDark={isDark}
         />
 
         {/* Metadata row 2 */}
         <MetaRow
           col1Label="Data source" col1Value={connector.instanceUrl.replace(/^https?:\/\//, '')}
           col2Label="Permissions" col2Value="Visible only to people with access to this data source"
+          isDark={isDark}
         />
 
         {/* Metadata row 3 */}
@@ -600,6 +604,7 @@ export default function ConnectorDetailPanel({ connector, onClose, onEdit }: Con
           col1Extra={<Link styles={{ root: { fontSize: 14 } }}>Edit schema</Link>}
           col2Label="Last modified at"
           col2Value={lastModified}
+          isDark={isDark}
         />
       </Stack>
         )}
