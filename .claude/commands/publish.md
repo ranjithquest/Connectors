@@ -2,6 +2,30 @@
 
 This skill handles everything needed to push your work to GitHub and get a shareable preview URL.
 
+## Step 0 — Check GitHub authentication
+
+Before doing anything, check if the `gim-connectors` remote is configured with a PAT:
+```bash
+git remote get-url gim-connectors
+```
+
+If the URL does **not** contain a username and token (i.e. it's just `https://github.com/gim-home/Connectors.git`), stop and guide the user to set up authentication:
+
+> "Before we can publish, you need to set up GitHub access on your machine. Here's how:
+>
+> 1. Go to **github.com** → your profile → **Settings → Developer Settings → Personal Access Tokens → Tokens (classic)**
+> 2. Click **Generate new token (classic)**
+> 3. Give it a name (e.g. "Connectors deploy"), set expiry, and check the **`repo`** scope
+> 4. After creating it, click **Configure SSO** next to the token → **Authorize** for `gim-home`
+> 5. Copy the token
+> 6. Run this in your terminal (replace with your username and token):
+>    ```bash
+>    git remote set-url gim-connectors https://YOUR_GITHUB_USERNAME:YOUR_TOKEN@github.com/gim-home/Connectors.git
+>    ```
+> 7. Come back and run `/publish` again."
+
+Do not proceed until the remote URL contains valid credentials.
+
 ## Step 1 — Detect the contributor's name
 
 Run this silently before saying anything to the user:
