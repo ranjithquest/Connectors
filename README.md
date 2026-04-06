@@ -1,4 +1,4 @@
-# Copilot Connectors — Prototyping Boilerplate
+# Connector Admin Boilerplate
 
 A shared prototyping environment for **product, design, and engineering** teams to rapidly build and preview feature concepts for the Microsoft 365 Copilot Connectors admin experience.
 

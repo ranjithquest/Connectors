@@ -1,5 +1,5 @@
 {
-  "name": "connector-admin",
+  "name": "connector-admin-boilerplate",
   "version": "0.1.0",
   "private": true,
   "scripts": {

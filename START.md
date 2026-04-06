@@ -1,4 +1,4 @@
-# Copilot Connectors Boilerplate
+# Connector Admin Boilerplate
 
 A prototyping toolkit for designing and sharing Copilot connector experiences. Build features locally, publish them as shareable preview links, and share with stakeholders — no deployment knowledge needed.
 

@@ -262,7 +262,7 @@ export default function GetStartedContent() {
       <div style={{ marginTop: 64, paddingTop: 24, borderTop: '1px solid #f0f0f0' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <p style={{ fontSize: 13, color: '#a19f9d', lineHeight: '20px', margin: 0 }}>
-            Created with love by Copilot Connectors team · <strong style={{ color: '#8a8886' }}>Boilerplate V 1.0 (Beta)</strong>
+            Created with love by Copilot Connectors team · <strong style={{ color: '#8a8886' }}>Connector Admin Boilerplate V 1.0 (Beta)</strong>
           </p>
           <a
             href="https://github.com/gim-home/Connectors/tree/v1.0-beta"
