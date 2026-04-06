@@ -1611,7 +1611,7 @@ function ContentTabContent({ fieldHighlight, fieldRefs, onFocusSection }: { fiel
               text: 'Add property',
               iconProps: { iconName: 'Add' },
               style: { fontSize: 13 },
-              buttonStyles: isDark ? { root: { backgroundColor: '#141414', color: '#f5f5f5' }, label: { color: '#f5f5f5' }, icon: { color: '#f5f5f5' }, rootHovered: { backgroundColor: '#2d2d2d' } } : {},
+              buttonStyles: isDark ? { root: { backgroundColor: '#292929', color: '#f5f5f5' }, label: { color: '#f5f5f5' }, icon: { color: '#f5f5f5' }, rootHovered: { backgroundColor: '#3d3d3d' } } : {},
             },
           ]}
           farItems={[
@@ -1619,10 +1619,10 @@ function ContentTabContent({ fieldHighlight, fieldRefs, onFocusSection }: { fiel
               key: 'count',
               text: `${PROPERTIES.length} items`,
               disabled: true,
-              buttonStyles: { root: { fontSize: 12, color: isDark ? '#adadad' : '#605e5c', cursor: 'default', backgroundColor: isDark ? '#141414' : 'transparent' }, rootDisabled: { background: isDark ? '#141414' : 'transparent', color: isDark ? '#adadad' : '#605e5c' } },
+              buttonStyles: { root: { fontSize: 12, color: isDark ? '#adadad' : '#605e5c', cursor: 'default', backgroundColor: isDark ? '#292929' : 'transparent' }, rootDisabled: { background: isDark ? '#292929' : 'transparent', color: isDark ? '#adadad' : '#605e5c' } },
             },
           ]}
-          styles={{ root: { padding: 0, marginBottom: 8, height: 36, backgroundColor: isDark ? '#141414' : '#ffffff' }, primarySet: { alignItems: 'center', backgroundColor: isDark ? '#141414' : '#ffffff' }, secondarySet: { backgroundColor: isDark ? '#141414' : '#ffffff' } }}
+          styles={{ root: { padding: 0, marginBottom: 8, height: 36, backgroundColor: isDark ? '#292929' : '#ffffff' }, primarySet: { alignItems: 'center', backgroundColor: isDark ? '#292929' : '#ffffff' }, secondarySet: { backgroundColor: isDark ? '#292929' : '#ffffff' } }}
         />
 
         {/* Table */}
@@ -2330,7 +2330,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
               display: 'flex', flexDirection: 'column',
               position: 'absolute', top: 0, right: 0, bottom: 0,
               width: 400, zIndex: 40,
-              background: isDarkMode ? '#1f1f1f' : '#faf9f8',
+              background: isDarkMode ? '#292929' : '#faf9f8',
               borderLeft: `1px solid ${isDarkMode ? '#3d3d3d' : '#e1e1e1'}`,
               boxShadow: '-4px 0 16px rgba(0,0,0,0.12)',
             }}
@@ -2390,7 +2390,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
         )}
 
         {/* Right rail — static side column when panel is wide enough */}
-        {panelWide && <div style={{ display: 'flex', flexDirection: 'column', width: 360, flexShrink: 0, background: isDarkMode ? '#1f1f1f' : '#faf9f8', borderLeft: `1px solid ${isDarkMode ? '#3d3d3d' : '#e1e1e1'}`, overflow: 'hidden' }}>
+        {panelWide && <div style={{ display: 'flex', flexDirection: 'column', width: 360, flexShrink: 0, background: isDarkMode ? '#292929' : '#faf9f8', borderLeft: `1px solid ${isDarkMode ? '#3d3d3d' : '#e1e1e1'}`, overflow: 'hidden' }}>
           {isEdit && existingConnector && !actionFocused ? (
             <div className="flex px-6 flex-shrink-0 pt-12">
               {(['actions', 'guide'] as const).map((tab) => (
