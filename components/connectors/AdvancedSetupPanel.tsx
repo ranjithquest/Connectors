@@ -1,18 +1,21 @@
 'use client';
 
-import React, { useState } from 'react';
-import { PrimaryButton, ActionButton, DefaultButton, Dialog, DialogType, DialogFooter, TextField, Dropdown, ChoiceGroup, Toggle, Checkbox as FluentV8Checkbox, NormalPeoplePicker } from '@fluentui/react';
+import React, { useState, useEffect } from 'react';
+import { PrimaryButton, ActionButton, DefaultButton, Dialog, DialogType, DialogFooter, TextField, Dropdown, ChoiceGroup, Toggle, Checkbox as FluentV8Checkbox, NormalPeoplePicker, Pivot, PivotItem, AnimationStyles, CommandBar } from '@fluentui/react';
+import { mergeStyles } from '@fluentui/merge-styles';
+
+const slideInClass = mergeStyles(AnimationStyles.slideDownIn10);
 import type { IDropdownOption, IChoiceGroupOption, IPersonaProps } from '@fluentui/react';
 import type { Connector, AuthMethod, UserCriteriaType, DiagnosticIssue, IssueSource, SyncEvent, RecommendedAction } from '@/lib/types';
 import { CONNECTOR_CATALOG } from '@/lib/gallery-data';
 import SetupGuideRail, { type GuideSection } from './SetupGuideRail';
 import {
-  ChromeCloseIcon, EditIcon,
+  ChromeCloseIcon, EditIcon, OpenPaneMirroredIcon,
   ChevronDownIcon, ChevronUpIcon, ChevronLeftIcon, ChevronRightIcon, CheckMarkIcon, InfoIcon, BackIcon,
   OpenInNewWindowIcon, NavigateBackIcon, DiagnosticIcon,
   StatusCircleCheckmarkIcon, ErrorBadgeIcon, StatusCircleSyncIcon,
   WarningSolidIcon, AlertSolidIcon,
-  AddIcon, UploadIcon, RefreshIcon,
+  AddIcon, UploadIcon, RefreshIcon, CompletedSolidIcon,
 } from '@fluentui/react-icons-mdl2';
 import {
   Card,
@@ -28,7 +31,6 @@ import {
   MessageBarBody,
   tokens,
   Table,
-
   TableBody,
   TableRow,
   TableCell,
@@ -36,7 +38,19 @@ import {
   useTableFeatures,
   createTableColumn,
   useTableSelection,
+  Accordion,
+  AccordionItem,
+  AccordionHeader,
+  AccordionPanel,
+  FluentProvider,
+  webLightTheme,
+  webDarkTheme,
+  Skeleton,
+  SkeletonItem,
+  Dropdown as FluentDropdown,
+  Option,
 } from '@fluentui/react-components';
+import { OverlayDrawer, DrawerBody } from '@fluentui/react-drawer';
 
 // ─── Guidance panel ───────────────────────────────────────────────────────────
 
@@ -182,6 +196,15 @@ const CONTENT_GUIDANCE_SECTIONS: GuideSection[] = [
 
 const SYNC_GUIDANCE_SECTIONS: GuideSection[] = [
   {
+    id: 'timezone', title: 'Timezone', defaultOpen: false,
+    content: (
+      <div className="text-[12px] text-[#323130] dark:text-[#f5f5f5] leading-[18px] flex flex-col gap-2">
+        <p>Set the timezone to match your ServiceNow instance to ensure accurate change-detection timestamps during incremental syncs.</p>
+        <p>A mismatch can cause records to be skipped or re-indexed unnecessarily.</p>
+      </div>
+    ),
+  },
+  {
     id: 'full-sync', title: 'Full sync', defaultOpen: false,
     content: (
       <div className="text-[12px] text-[#323130] dark:text-[#f5f5f5] leading-[18px] flex flex-col gap-2">
@@ -196,15 +219,6 @@ const SYNC_GUIDANCE_SECTIONS: GuideSection[] = [
       <div className="text-[12px] text-[#323130] dark:text-[#f5f5f5] leading-[18px] flex flex-col gap-2">
         <p>Incremental syncs only index items that have been created, modified, or deleted since the last sync. They are faster and lighter on both your ServiceNow instance and Microsoft's indexing service.</p>
         <p>Set the frequency based on how time-sensitive your data is — every 15 minutes for high-velocity data, daily for more static content.</p>
-      </div>
-    ),
-  },
-  {
-    id: 'timezone', title: 'Timezone', defaultOpen: false,
-    content: (
-      <div className="text-[12px] text-[#323130] dark:text-[#f5f5f5] leading-[18px] flex flex-col gap-2">
-        <p>Set the timezone to match your ServiceNow instance to ensure accurate change-detection timestamps during incremental syncs.</p>
-        <p>A mismatch can cause records to be skipped or re-indexed unnecessarily.</p>
       </div>
     ),
   },
@@ -568,7 +582,7 @@ function GuideSection({ steps }: { steps: { step: number; title: string; descrip
 
 // ─── Issue focused view ───────────────────────────────────────────────────────
 
-// ─── Recommended-actions helpers (used inside IssueFocusView) ─────────────────
+// ─── Recommended-actions helpers (used inside ActionFocusView) ─────────────────
 
 const ISSUE_ERROR_LOGS: Record<string, string[]> = {
   'sn-1': [
@@ -704,7 +718,7 @@ function RecommendedActionsTable({ actions, onNavigateToField, onAnyApplied, app
                 <TableRow appearance="none">
                   <TableCell colSpan={3} style={{ padding: '4px 0 20px 4px' }}>
                     <TableCellLayout>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                      <div className={slideInClass} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                         {item.steps!.map((step, i) => {
                           const isNavigable = !!(step.tab && step.fieldId && onNavigateToField);
                           const stepApplied = isApplied && step.executable;
@@ -796,7 +810,7 @@ function IssueErrorLogPanel({ logs, open }: { logs: string[]; open: boolean }) {
   );
 }
 
-function IssueFocusView({ issue, onBack, detectedSyncLabel, onNavigateToField, currentIndex, total, onPrev, onNext, isResolved, appliedRows, onAppliedRowsChange, onGoToResolved }: {
+function ActionFocusView({ issue, onBack, detectedSyncLabel, onNavigateToField, currentIndex, total, onPrev, onNext, isResolved, appliedRows, onAppliedRowsChange, onGoToResolved }: {
   issue: DiagnosticIssue; onBack: () => void; detectedSyncLabel?: string;
   onNavigateToField?: (tab: string, fieldId: string) => void;
   currentIndex?: number; total?: number; onPrev?: () => void; onNext?: () => void;
@@ -823,9 +837,9 @@ function IssueFocusView({ issue, onBack, detectedSyncLabel, onNavigateToField, c
         : { text: 'Unsupported configuration', external: true };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: tokens.colorNeutralBackground1 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* CommandBar — 48px, matches DetailPanelV2 header pattern */}
-      <div style={{ flexShrink: 0, height: 48, padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ flexShrink: 0, height: 48, padding: '0 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Button
           appearance="subtle"
           icon={<BackIcon style={{ fontSize: 14 }} />}
@@ -848,7 +862,7 @@ function IssueFocusView({ issue, onBack, detectedSyncLabel, onNavigateToField, c
       </div>
 
       {/* Header area — title + meta */}
-      <div style={{ flexShrink: 0, padding: '16px 24px 12px' }}>
+      <div style={{ flexShrink: 0, padding: '8px 0 12px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
           <Badge appearance={isBlocker ? 'tint' : 'outline'} color={isBlocker ? 'danger' : 'warning'} size="small" shape="circular"
             style={{ textTransform: 'uppercase', fontSize: 10, fontWeight: 700, letterSpacing: '0.05em' }}>
@@ -862,7 +876,7 @@ function IssueFocusView({ issue, onBack, detectedSyncLabel, onNavigateToField, c
 
       {/* Scrollable body */}
       <div style={{ flex: 1, overflowY: 'auto' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, padding: '16px 24px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, padding: '8px 0' }}>
 
           {/* Description + show response */}
           <div>
@@ -894,7 +908,7 @@ function IssueFocusView({ issue, onBack, detectedSyncLabel, onNavigateToField, c
 
           {/* Recommended actions */}
           {issue.recommendedActions && issue.recommendedActions.length > 0 && (
-            <div>
+            <div key={issue.id} className={slideInClass}>
               <div style={{ marginBottom: 4 }}>
                 <Text size={200} weight="semibold" style={{ color: tokens.colorNeutralForeground3, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Recommended actions</Text>
               </div>
@@ -931,7 +945,7 @@ function DiagnosticDrillDown({ issue, onBack, detectedSyncLabel, onNavigateToFie
         className="flex items-center gap-1.5 text-[13px] text-[#0078d4] dark:text-[#479ef5] hover:underline mb-5 w-fit"
       >
         <NavigateBackIcon style={{ fontSize: 14 }} />
-        Connector health
+        Actions
       </button>
 
       {/* Issue identity */}
@@ -1169,7 +1183,7 @@ export function ConnectorStatusCard({ connector }: { connector: Connector }) {
   );
 }
 
-export function HealthRail({ connector, onNavigateToField, onFocusedChange, backTrigger, appliedRowsMap, setAppliedRowsMap }: { connector: Connector; onNavigateToField?: (tab: string, fieldId: string) => void; onFocusedChange?: (focused: boolean) => void; backTrigger?: number; appliedRowsMap: Map<string, Set<string>>; setAppliedRowsMap: React.Dispatch<React.SetStateAction<Map<string, Set<string>>>> }) {
+export function ActionRail({ connector, onNavigateToField, onFocusedChange, backTrigger, appliedRowsMap, setAppliedRowsMap }: { connector: Connector; onNavigateToField?: (tab: string, fieldId: string) => void; onFocusedChange?: (focused: boolean) => void; backTrigger?: number; appliedRowsMap: Map<string, Set<string>>; setAppliedRowsMap: React.Dispatch<React.SetStateAction<Map<string, Set<string>>>> }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [trendOpen, setTrendOpen] = useState(false);
   const [diagnosing, setDiagnosing] = useState<DiagnosticIssue | null>(null);
@@ -1182,22 +1196,22 @@ export function HealthRail({ connector, onNavigateToField, onFocusedChange, back
   // Dismissed suggestions
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
   // Focused issue view
-  const [focusedIssue, setFocusedIssue] = useState<DiagnosticIssue | null>(null);
-  const setFocused = (issue: DiagnosticIssue | null) => { setFocusedIssue(issue); onFocusedChange?.(issue !== null); };
+  const [focusedAction, setFocusedAction] = useState<DiagnosticIssue | null>(null);
+  const setFocused = (issue: DiagnosticIssue | null) => { setFocusedAction(issue); onFocusedChange?.(issue !== null); };
   React.useEffect(() => { if (backTrigger) { setFocused(null); } }, [backTrigger]);
 
   if (diagnosing) {
     return <DiagnosticDrillDown issue={diagnosing} onBack={() => setDiagnosing(null)} detectedSyncLabel={getSyncCycleLabel(diagnosing.detectedAt, connector.syncHistory)} onNavigateToField={onNavigateToField} />;
   }
 
-  if (focusedIssue) {
+  if (focusedAction) {
     const allIssues = connector.issues.filter((i) => !i.resolvedAt);
-    const focusedIdx = allIssues.findIndex((i) => i.id === focusedIssue.id);
-    const focusedIsResolved = (focusedIssue.severity === 'blocker' || focusedIssue.severity === 'warning') ? checkedIds.has(focusedIssue.id) : dismissedIds.has(focusedIssue.id);
+    const focusedIdx = allIssues.findIndex((i) => i.id === focusedAction.id);
+    const focusedIsResolved = (focusedAction.severity === 'blocker' || focusedAction.severity === 'warning') ? checkedIds.has(focusedAction.id) : dismissedIds.has(focusedAction.id);
     const unresolvedIssues = allIssues.filter((i) =>
       !checkedIds.has(i.id) && !dismissedIds.has(i.id) && (appliedRowsMap.get(i.id)?.size ?? 0) === 0
     );
-    const focusedUnresolvedIdx = unresolvedIssues.findIndex((i) => i.id === focusedIssue.id);
+    const focusedUnresolvedIdx = unresolvedIssues.findIndex((i) => i.id === focusedAction.id);
     const navigateTo = (issue: DiagnosticIssue) => {
       setFocused(issue);
       if (issue.connectorTab && issue.connectorFieldId && onNavigateToField) {
@@ -1205,19 +1219,18 @@ export function HealthRail({ connector, onNavigateToField, onFocusedChange, back
       }
     };
     return (
-      <IssueFocusView
-        issue={focusedIssue}
+      <ActionFocusView
+        issue={focusedAction}
         onBack={() => setFocused(null)}
-        detectedSyncLabel={getSyncCycleLabel(focusedIssue.detectedAt, connector.syncHistory)}
+        detectedSyncLabel={getSyncCycleLabel(focusedAction.detectedAt, connector.syncHistory)}
         onNavigateToField={onNavigateToField}
         currentIndex={focusedUnresolvedIdx >= 0 ? focusedUnresolvedIdx : focusedIdx}
         total={unresolvedIssues.length}
         onPrev={focusedIdx > 0 ? () => navigateTo(allIssues[focusedIdx - 1]) : undefined}
         onNext={focusedIdx < allIssues.length - 1 ? () => navigateTo(allIssues[focusedIdx + 1]) : undefined}
         isResolved={focusedIsResolved}
-
-        appliedRows={appliedRowsMap.get(focusedIssue.id) ?? new Set()}
-        onAppliedRowsChange={(rows) => setAppliedRowsMap(m => { const n = new Map(m); n.set(focusedIssue.id, rows); return n; })}
+        appliedRows={appliedRowsMap.get(focusedAction.id) ?? new Set()}
+        onAppliedRowsChange={(rows) => setAppliedRowsMap(m => { const n = new Map(m); n.set(focusedAction.id, rows); return n; })}
         onGoToResolved={() => { setFocused(null); setActiveFilter('resolved'); }}
       />
     );
@@ -1462,29 +1475,30 @@ export function HealthRail({ connector, onNavigateToField, onFocusedChange, back
 // ─── Users tab ────────────────────────────────────────────────────────────────
 
 function CollapsibleSection({ title, children, defaultOpen = true }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
-  const [open, setOpen] = useState(defaultOpen);
+  const isDark = typeof window !== 'undefined' && document.documentElement.classList.contains('dark');
   return (
-    <div className="border-b border-[#e1e1e1] dark:border-[#3d3d3d]">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between py-4 text-left"
-      >
-        <span className="text-[14px] font-semibold text-[#323130] dark:text-[#f5f5f5]">{title}</span>
-        <ChevronDownIcon style={{ fontSize: 16 }}
-          className={`text-[#605e5c] dark:text-[#adadad] transition-transform flex-shrink-0 ${open ? 'rotate-180' : ''}`} />
-      </button>
-      {open && <div className="pb-6">{children}</div>}
-    </div>
+    <FluentProvider theme={isDark ? webDarkTheme : webLightTheme} style={{ background: 'transparent' }}>
+      <Accordion collapsible defaultOpenItems={defaultOpen ? ['item'] : []} style={{ borderTop: '1px solid var(--colorNeutralStroke2)', marginBottom: 20 }}>
+        <AccordionItem value="item">
+          <AccordionHeader expandIconPosition="end" size="large">
+            {title}
+          </AccordionHeader>
+          <AccordionPanel style={{ paddingTop: 12, paddingBottom: 24, paddingLeft: 16, paddingRight: 16, marginLeft: 0 }}>
+            {children}
+          </AccordionPanel>
+        </AccordionItem>
+      </Accordion>
+    </FluentProvider>
   );
 }
 
-function UsersTabContent({ fieldHighlight, fieldRefs }: { fieldHighlight?: string; fieldRefs?: React.MutableRefObject<Record<string, HTMLDivElement | null>> }) {
+function UsersTabContent({ fieldHighlight, fieldRefs, onFocusSection }: { fieldHighlight?: string; fieldRefs?: React.MutableRefObject<Record<string, HTMLDivElement | null>>; onFocusSection?: (id: string) => void }) {
   const [accessType, setAccessType] = useState<'acl' | 'everyone'>('acl');
   return (
     <div className="max-w-[528px] flex flex-col">
       {/* Access Permissions */}
-      <div ref={(el) => { if (fieldRefs) fieldRefs.current['access-permissions'] = el; }} className={`transition-colors duration-500 rounded-[4px] -mx-2 px-2 ${fieldHighlight === 'access-permissions' ? 'bg-[#eff6ff]' : ''}`}>
-      <CollapsibleSection title="Access Permissions">
+      <div ref={(el) => { if (fieldRefs) fieldRefs.current['access-permissions'] = el; }} className={`transition-colors duration-500 rounded-[4px] -mx-2 px-2 ${fieldHighlight === 'access-permissions' ? 'bg-[#eff6ff]' : ''}`} onClick={() => onFocusSection?.('access-permissions')}>
+      <CollapsibleSection title="Access Permissions" defaultOpen={true}>
         <ChoiceGroup
           selectedKey={accessType}
           options={[
@@ -1529,7 +1543,8 @@ function UsersTabContent({ fieldHighlight, fieldRefs }: { fieldHighlight?: strin
       </div>
 
       {/* Map Identities */}
-      <CollapsibleSection title="Map Identities">
+      <div onClick={() => onFocusSection?.('user-mapping')}>
+      <CollapsibleSection title="Map Identities" defaultOpen={false}>
         <div className="flex flex-col gap-3">
           <p className="text-[13px] text-[#323130] dark:text-[#f5f5f5] leading-5">
             We have mapped your data source identities using Microsoft Entra IDs. We use both UPN and Mail in Microsoft Entra ID to map to your user&apos;s email in the data source. If you have a different mapping formula, use the custom mapping option below.
@@ -1539,6 +1554,7 @@ function UsersTabContent({ fieldHighlight, fieldRefs }: { fieldHighlight?: strin
           </button>
         </div>
       </CollapsibleSection>
+      </div>
     </div>
   );
 }
@@ -1546,7 +1562,7 @@ function UsersTabContent({ fieldHighlight, fieldRefs }: { fieldHighlight?: strin
 // ─── Content tab ──────────────────────────────────────────────────────────────
 
 const PROPERTIES = [
-  { name: 'OrderDescription (Content)', semanticLabel: 'Title', description: 'Lorem ipsum is simply dummy text of the printing and t...' },
+  { name: 'OrderDescription', tag: 'Content', semanticLabel: 'Title', description: 'Lorem ipsum is simply dummy text of the printing and t...' },
   { name: 'Order_URL', semanticLabel: 'URL', description: '-' },
   { name: 'Last_modified_by', semanticLabel: 'Last modified', description: '-' },
   { name: 'Order_initiator', semanticLabel: 'Author', description: 'Lorem ipsum is simply dummy text of the printing and t...' },
@@ -1555,64 +1571,100 @@ const PROPERTIES = [
   { name: 'Order_description', semanticLabel: '-', description: '-' },
 ];
 
-function ContentTabContent({ fieldHighlight, fieldRefs }: { fieldHighlight?: string; fieldRefs?: React.MutableRefObject<Record<string, HTMLDivElement | null>> }) {
+function ContentTabContent({ fieldHighlight, fieldRefs, onFocusSection }: { fieldHighlight?: string; fieldRefs?: React.MutableRefObject<Record<string, HTMLDivElement | null>>; onFocusSection?: (id: string) => void }) {
   return (
     <div className="max-w-[640px] flex flex-col">
       {/* Include data */}
-      <div ref={(el) => { if (fieldRefs) fieldRefs.current['include-data'] = el; }} className={`transition-colors duration-500 rounded-[4px] -mx-2 px-2 ${fieldHighlight === 'include-data' ? 'bg-[#eff6ff]' : ''}`}>
+      <div ref={(el) => { if (fieldRefs) fieldRefs.current['include-data'] = el; }} className={`transition-colors duration-500 rounded-[4px] -mx-2 px-2 ${fieldHighlight === 'include-data' ? 'bg-[#eff6ff]' : ''}`} onClick={() => onFocusSection?.('include-data')}>
       <CollapsibleSection title="Include data which you want to index" defaultOpen={false}>
         <p className="text-[13px] text-[#605e5c] dark:text-[#adadad] leading-5">Configure which data from this source should be indexed by Microsoft Search and Copilot.</p>
       </CollapsibleSection>
       </div>
 
       {/* Manage Properties */}
+      <div onClick={() => onFocusSection?.('manage-properties')}>
       <CollapsibleSection title="Manage Properties" defaultOpen={true}>
-        {/* Toolbar */}
-        <div className="flex items-center justify-between mb-3">
-          <button className="flex items-center gap-1 text-[13px] text-[#0078d4] dark:text-[#479ef5] hover:underline font-semibold">
-            <span className="text-[16px] leading-none font-light">+</span>
-            Add property
-          </button>
-          <span className="text-[13px] text-[#605e5c] dark:text-[#adadad]">{PROPERTIES.length} items</span>
+        {/* Content Property */}
+        <div style={{ marginBottom: 28 }}>
+          <Dropdown
+            label="Content Property"
+            placeholder="Description"
+            options={[
+              { key: 'description', text: 'Description' },
+              { key: 'body', text: 'Body' },
+              { key: 'content', text: 'Content' },
+              { key: 'summary', text: 'Summary' },
+            ]}
+            styles={{ root: { width: '100%' }, label: { fontWeight: 600, fontSize: 13 } }}
+          />
         </div>
 
+        {/* Toolbar */}
+        <CommandBar
+          items={[
+            {
+              key: 'add',
+              text: 'Add property',
+              iconProps: { iconName: 'Add' },
+              style: { fontSize: 13 },
+            },
+          ]}
+          farItems={[
+            {
+              key: 'count',
+              text: `${PROPERTIES.length} items`,
+              disabled: true,
+              buttonStyles: { root: { fontSize: 12, color: '#605e5c', cursor: 'default' }, rootDisabled: { background: 'transparent', color: '#605e5c' } },
+            },
+          ]}
+          styles={{ root: { padding: 0, marginBottom: 8, height: 36 }, primarySet: { alignItems: 'center' } }}
+        />
+
         {/* Table */}
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="border-b border-[#e1e1e1] dark:border-[#3d3d3d]">
-              <th className="text-left py-2 pr-4 text-[12px] font-semibold text-[#323130] dark:text-[#f5f5f5] w-[200px]">Properties</th>
-              <th className="text-left py-2 pr-4 text-[12px] font-semibold text-[#323130] dark:text-[#f5f5f5] w-[140px]">
-                <span className="flex items-center gap-1">
-                  Semantic Label
-                  <InfoIcon style={{ fontSize: 12 }} className="text-[#605e5c] dark:text-[#adadad]" />
-                </span>
-              </th>
-              <th className="text-left py-2 pr-4 text-[12px] font-semibold text-[#323130] dark:text-[#f5f5f5]">
-                <span className="flex items-center gap-1">
-                  Description
-                  <InfoIcon style={{ fontSize: 12 }} className="text-[#605e5c] dark:text-[#adadad]" />
-                </span>
-              </th>
-              <th className="text-right py-2 text-[12px]">
-                <button className="flex items-center gap-1 text-[12px] text-[#0078d4] dark:text-[#479ef5] hover:underline ml-auto">
-                  <AddIcon style={{ fontSize: 12 }} />
-                  Show all columns
-                </button>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {PROPERTIES.map((prop) => (
-              <tr key={prop.name} className="border-b border-[#f3f2f1] dark:border-[#2d2d2d] hover:bg-[#faf9f8] dark:hover:bg-[#292929] transition-colors">
-                <td className="py-2.5 pr-4 text-[13px] text-[#323130] dark:text-[#f5f5f5]">{prop.name}</td>
-                <td className="py-2.5 pr-4 text-[13px] text-[#323130] dark:text-[#f5f5f5]">{prop.semanticLabel}</td>
-                <td className="py-2.5 pr-4 text-[13px] text-[#605e5c] dark:text-[#adadad] truncate max-w-[200px]">{prop.description}</td>
-                <td className="py-2.5 text-right"></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <FluentProvider theme={typeof window !== 'undefined' && document.documentElement.classList.contains('dark') ? webDarkTheme : webLightTheme} style={{ background: 'transparent' }}>
+          <Table size="small" style={{ width: '100%' }}>
+            <TableBody>
+              {/* Header row */}
+              <TableRow style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke2}` }}>
+                <TableCell style={{ width: 200, fontWeight: 600, fontSize: 12, color: tokens.colorNeutralForeground1 }}>Properties</TableCell>
+                <TableCell style={{ width: 140, fontWeight: 600, fontSize: 12, color: tokens.colorNeutralForeground1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    Semantic Label
+                    <InfoIcon style={{ fontSize: 12, color: tokens.colorNeutralForeground3 }} />
+                  </div>
+                </TableCell>
+                <TableCell style={{ fontWeight: 600, fontSize: 12, color: tokens.colorNeutralForeground1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    Description
+                    <InfoIcon style={{ fontSize: 12, color: tokens.colorNeutralForeground3 }} />
+                  </div>
+                </TableCell>
+                <TableCell style={{ textAlign: 'right' }}>
+                  <button className="flex items-center gap-1 text-[12px] text-[#0078d4] dark:text-[#479ef5] hover:underline ml-auto">
+                    Show all columns
+                  </button>
+                </TableCell>
+              </TableRow>
+              {PROPERTIES.map((prop) => (
+                <TableRow key={prop.name}>
+                  <TableCell style={{ width: 200 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: 13, color: tokens.colorNeutralForeground1 }}>{prop.name}</span>
+                      {prop.tag && (
+                        <Badge appearance="tint" color="brand" size="small" style={{ fontSize: 10, fontWeight: 600 }}>{prop.tag}</Badge>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell style={{ width: 140, fontSize: 13, color: tokens.colorNeutralForeground1 }}>{prop.semanticLabel}</TableCell>
+                  <TableCell style={{ fontSize: 13, color: tokens.colorNeutralForeground3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 200 }}>{prop.description}</TableCell>
+                  <TableCell />
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </FluentProvider>
       </CollapsibleSection>
+      </div>
     </div>
   );
 }
@@ -1636,7 +1688,7 @@ const TIMEZONES = [
 ];
 
 
-function SyncTabContent({ fieldHighlight, fieldRefs }: { fieldHighlight?: string; fieldRefs?: React.MutableRefObject<Record<string, HTMLDivElement | null>> }) {
+function SyncTabContent({ fieldHighlight, fieldRefs, onFocusSection }: { fieldHighlight?: string; fieldRefs?: React.MutableRefObject<Record<string, HTMLDivElement | null>>; onFocusSection?: (id: string) => void }) {
   const [timezone, setTimezone] = useState('(UTC-08:00) Pacific Time (US & Canada)');
   const [incrementalOn, setIncrementalOn] = useState(true);
   const [incRecurrence, setIncRecurrence] = useState('Day');
@@ -1647,75 +1699,71 @@ function SyncTabContent({ fieldHighlight, fieldRefs }: { fieldHighlight?: string
   return (
     <div className="max-w-[528px] flex flex-col gap-6">
       {/* Time zone */}
-      <div>
+      <div style={{ marginBottom: 8, paddingLeft: 16, paddingRight: 16 }}>
         <Dropdown
           label="Time zone"
           selectedKey={timezone}
           options={TIMEZONES.map(tz => ({ key: tz, text: tz }))}
           onChange={(_, opt) => { if (opt) setTimezone(opt.key as string); }}
+          onFocus={() => onFocusSection?.('timezone')}
           styles={{ root: { width: '100%' } }}
         />
       </div>
 
-      {/* Incremental sync */}
-      <div ref={(el) => { if (fieldRefs) fieldRefs.current["sync-frequency"] = el; }} className={`transition-colors duration-500 rounded-[4px] -mx-2 px-2 ${fieldHighlight === 'sync-frequency' ? 'bg-[#eff6ff]' : ''}`}>
-      <CollapsibleSection title="Incremental sync" defaultOpen={true}>
-        <div className="flex flex-col gap-4">
-          <Toggle
-            checked={incrementalOn}
-            onChange={(_, checked) => setIncrementalOn(!!checked)}
-            onText="On" offText="Off"
-            styles={{ root: { marginBottom: 0 } }}
-          />
-          {incrementalOn && (
-            <>
-              <Dropdown
-                label="Recurrence"
-                selectedKey={incRecurrence}
-                options={['Hour', 'Day', 'Week', 'Month'].map(v => ({ key: v, text: `Every ${v}` }))}
-                onChange={(_, opt) => { if (opt) setIncRecurrence(opt.key as string); }}
-                styles={{ root: { width: '100%' } }}
-              />
-              <FluentV8Checkbox
-                label="Run once in a day"
-                checked={incRunOnce}
-                onChange={(_, checked) => setIncRunOnce(!!checked)}
-              />
-              <Dropdown
-                label="Frequency"
-                selectedKey={incFreq}
-                options={['5 minutes', '15 minutes', '30 minutes', '1 hour', '2 hours'].map(v => ({ key: v, text: `Every ${v}` }))}
-                onChange={(_, opt) => { if (opt) setIncFreq(opt.key as string); }}
-                styles={{ root: { width: '100%' } }}
-              />
-              <button className="text-[14px] text-[#0078d4] dark:text-[#479ef5] hover:underline text-left w-fit">
-                Add starting time
-              </button>
-            </>
-          )}
-        </div>
-      </CollapsibleSection>
+      {/* Full sync */}
+      <div onClick={() => onFocusSection?.('full-sync')}>
+        <CollapsibleSection title="Full sync" defaultOpen={true}>
+          <div className="flex flex-col gap-4">
+            <Dropdown
+              label="Recurrence"
+              selectedKey={fullRecurrence}
+              options={['Day', 'Week', 'Month'].map(v => ({ key: v, text: `Every ${v}` }))}
+              onChange={(_, opt) => { if (opt) setFullRecurrence(opt.key as string); }}
+              styles={{ root: { width: '100%' } }}
+            />
+            <button className="text-[14px] text-[#0078d4] dark:text-[#479ef5] hover:underline text-left w-fit">Add day(s)</button>
+            <button className="text-[14px] text-[#0078d4] dark:text-[#479ef5] hover:underline text-left w-fit">Add starting time</button>
+          </div>
+        </CollapsibleSection>
       </div>
 
-      {/* Full sync */}
-      <CollapsibleSection title="Full sync" defaultOpen={true}>
-        <div className="flex flex-col gap-4">
-          <Dropdown
-            label="Recurrence"
-            selectedKey={fullRecurrence}
-            options={['Day', 'Week', 'Month'].map(v => ({ key: v, text: `Every ${v}` }))}
-            onChange={(_, opt) => { if (opt) setFullRecurrence(opt.key as string); }}
-            styles={{ root: { width: '100%' } }}
-          />
-
-          <button className="text-[14px] text-[#0078d4] hover:underline text-left w-fit">
-            Add day(s)
-          </button>
-          <button className="text-[14px] text-[#0078d4] hover:underline text-left w-fit">
-            Add starting time
-          </button>
-        </div>
-      </CollapsibleSection>
+      {/* Incremental sync */}
+      <div ref={(el) => { if (fieldRefs) fieldRefs.current["sync-frequency"] = el; }} className={`transition-colors duration-500 rounded-[4px] -mx-2 px-2 ${fieldHighlight === 'sync-frequency' ? 'bg-[#eff6ff]' : ''}`} onClick={() => onFocusSection?.('incremental-sync')}>
+        <CollapsibleSection title="Incremental sync" defaultOpen={false}>
+          <div className="flex flex-col gap-4">
+            <Toggle
+              checked={incrementalOn}
+              onChange={(_, checked) => setIncrementalOn(!!checked)}
+              onText="On" offText="Off"
+              styles={{ root: { marginBottom: 0 } }}
+            />
+            {incrementalOn && (
+              <>
+                <Dropdown
+                  label="Recurrence"
+                  selectedKey={incRecurrence}
+                  options={['Hour', 'Day', 'Week', 'Month'].map(v => ({ key: v, text: `Every ${v}` }))}
+                  onChange={(_, opt) => { if (opt) setIncRecurrence(opt.key as string); }}
+                  styles={{ root: { width: '100%' } }}
+                />
+                <FluentV8Checkbox
+                  label="Run once in a day"
+                  checked={incRunOnce}
+                  onChange={(_, checked) => setIncRunOnce(!!checked)}
+                />
+                <Dropdown
+                  label="Frequency"
+                  selectedKey={incFreq}
+                  options={['5 minutes', '15 minutes', '30 minutes', '1 hour', '2 hours'].map(v => ({ key: v, text: `Every ${v}` }))}
+                  onChange={(_, opt) => { if (opt) setIncFreq(opt.key as string); }}
+                  styles={{ root: { width: '100%' } }}
+                />
+                <button className="text-[14px] text-[#0078d4] dark:text-[#479ef5] hover:underline text-left w-fit">Add starting time</button>
+              </>
+            )}
+          </div>
+        </CollapsibleSection>
+      </div>
     </div>
   );
 }
@@ -1727,6 +1775,7 @@ interface AdvancedSetupPanelProps {
   existingConnector?: Connector;
   onClose: () => void;
   initialFieldFocus?: { tab: string; fieldId: string };
+  embedded?: boolean;
 }
 
 const AUTH_OPTIONS = [
@@ -1737,7 +1786,7 @@ const AUTH_OPTIONS = [
 const SETUP_TABS = ['Setup', 'Users', 'Content', 'Sync'] as const;
 type SetupTab = typeof SETUP_TABS[number];
 
-export default function AdvancedSetupPanel({ connectorType, existingConnector, onClose, initialFieldFocus }: AdvancedSetupPanelProps) {
+export default function AdvancedSetupPanel({ connectorType, existingConnector, onClose, initialFieldFocus, embedded }: AdvancedSetupPanelProps) {
   const isEdit = !!existingConnector;
   const [typeName, setTypeName] = useState(existingConnector?.connectorType ?? connectorType ?? 'ServiceNow Knowledge');
 
@@ -1747,11 +1796,34 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
   );
   const resolvedLogoUrl = existingConnector?.logoUrl ?? catalogItem?.logoUrl;
   const [activeTab, setActiveTab] = useState<SetupTab>('Setup');
-  const [rightRailTab, setRightRailTab] = useState<'health' | 'guide'>(isEdit ? 'health' : 'guide');
-  const [healthFocused, setHealthFocused] = useState(false);
-  const [healthBackTrigger, setHealthBackTrigger] = useState(0);
+  const [rightRailTab, setRightRailTab] = useState<'actions' | 'guide'>(isEdit ? 'actions' : 'guide');
+  const MIN_CONTENT = 520;
+  const MIN_RAIL = 280;
+  const RAIL_THRESHOLD = MIN_CONTENT + MIN_RAIL; // 800px
+  const panelRef = React.useRef<HTMLDivElement>(null);
+  const [railOpen, setRailOpen] = useState(false);
+  const [panelWide, setPanelWide] = useState(false);
+  useEffect(() => {
+    const el = panelRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      const wide = entry.contentRect.width >= RAIL_THRESHOLD;
+      setPanelWide(wide);
+      setRailOpen(r => wide ? true : r);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const [actionFocused, setHealthFocused] = useState(false);
+  const [actionBackTrigger, setHealthBackTrigger] = useState(0);
   // Recommended action applied rows — lifted here so form field edits can auto-apply matching actions
   const [appliedRowsMap, setAppliedRowsMap] = useState<Map<string, Set<string>>>(new Map());
+  const [initialLoading, setInitialLoading] = useState(!!embedded);
+  React.useEffect(() => {
+    if (!embedded) return;
+    const t = setTimeout(() => setInitialLoading(false), 600);
+    return () => clearTimeout(t);
+  }, []);
 
   function autoApplyForField(fieldId: string) {
     if (!existingConnector) return;
@@ -1782,7 +1854,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
   const handleNavigateToField = React.useCallback((tab: string, fieldId: string) => {
     setActiveTab(tab as SetupTab);
     setFieldHighlight(fieldId);
-    setRightRailTab('health');
+    setRightRailTab('actions');
     setTimeout(() => {
       const el = fieldRefs.current[fieldId];
       if (el && formScrollRef.current) {
@@ -1843,6 +1915,8 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
   const [selectedPeople, setSelectedPeople] = useState<string[]>(isEdit ? ['alex-johnson', 'maria-garcia', 'it-pilot-group'] : []);
   const [rolloutLimited, setRolloutLimited] = useState(isEdit);
   const [hasChanges, setHasChanges] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [created, setCreated] = useState(false);
   const [validating, setValidating] = useState(false);
   const [validateProgress, setValidateProgress] = useState(0);
   const [validateDone, setValidateDone] = useState(false);
@@ -1872,20 +1946,57 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
   const canCreate = sourceName.trim().length > 0 && displayName.trim().length > 0 &&
     instanceUrl.trim().length > 0 && authMethod !== 'none' && privacyAccepted;
 
-  return (
-    <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/50 z-[60]"
-        onClick={onClose}
-      />
+  const isDarkMode = typeof window !== 'undefined' && document.documentElement.classList.contains('dark');
 
-      {/* Panel */}
-      <div className="fixed top-[48px] right-0 bottom-0 z-[70] flex flex-col overflow-hidden" style={{ width: '80%' }}>
-        {/* Content row: form + right rail */}
-        <div className="flex flex-1 overflow-hidden">
+  const content = (
+      <DrawerBody style={{ padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
+        {creating ? (
+          <>
+            <div className={`flex-1 overflow-y-auto bg-white dark:bg-[#212121] ${slideInClass}`} style={{ padding: '16px 32px 24px' }}>
+              {/* Heading */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24 }}>
+                <CompletedSolidIcon style={{ fontSize: 20, color: created ? '#107c10' : '#c8c6c4' }} />
+                <span style={{ fontSize: 20, fontWeight: 600, color: isDarkMode ? '#f5f5f5' : '#323130' }}>
+                  {created ? 'Success' : 'Creating connection...'}
+                </span>
+              </div>
+              {/* Rows — no outer border, just dividers */}
+              <div style={{ maxWidth: 640 }}>
+                {/* Row 1 */}
+                <div style={{ display: 'flex', alignItems: 'center', padding: '10px 0', borderBottom: `1px solid ${isDarkMode ? '#3d3d3d' : '#e1e1e1'}` }}>
+                  <div style={{ width: 200, display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                    <CompletedSolidIcon style={{ fontSize: 20, color: created ? '#107c10' : '#c8c6c4', flexShrink: 0 }} />
+                    <span style={{ fontSize: 14, color: isDarkMode ? '#f5f5f5' : '#323130' }}>Created connection</span>
+                  </div>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <ConnectorIcon src={resolvedLogoUrl} name={typeName} size={20} />
+                    <span style={{ fontSize: 14, color: isDarkMode ? '#f5f5f5' : '#323130' }}>{displayName}</span>
+                  </div>
+                </div>
+                {/* Row 2 */}
+                <div style={{ display: 'flex', alignItems: 'center', padding: '10px 0', borderBottom: `1px solid ${isDarkMode ? '#3d3d3d' : '#e1e1e1'}` }}>
+                  <div style={{ width: 200, display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                    <StatusCircleSyncIcon style={{ fontSize: 20, color: created ? '#0078d4' : '#c8c6c4', animation: created ? 'spin 1.2s linear infinite' : 'none', flexShrink: 0 }} />
+                    <span style={{ fontSize: 14, color: isDarkMode ? (created ? '#f5f5f5' : '#707070') : (created ? '#323130' : '#a19f9d') }}>Indexing data</span>
+                  </div>
+                  <span style={{ fontSize: 14, color: isDarkMode ? '#adadad' : '#484644' }}>This may take a while and will continue to run in the background</span>
+                </div>
+              </div>
+            </div>
+            {/* Footer */}
+            <div style={{ borderTop: `1px solid ${isDarkMode ? '#3d3d3d' : '#e1e1e1'}`, padding: '0 32px', height: 64, flexShrink: 0, background: isDarkMode ? '#212121' : '#fff', display: 'flex', alignItems: 'center' }}>
+              <DefaultButton onClick={onClose}>Done</DefaultButton>
+            </div>
+            <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+          </>
+        ) : (
+        <>
+        {/* Content row: form (right rail is overlay) */}
+        <div ref={panelRef} className="flex flex-row flex-1 overflow-hidden relative" style={{ minHeight: 0 }}>
+        {/* Left column: form + footer */}
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden" style={{ minHeight: 0, minWidth: 0 }}>
         {/* Form side */}
-        <div className="flex-1 bg-white dark:bg-[#212121] flex flex-col min-w-0 shadow-2xl">
+        <div className="flex-1 bg-white dark:bg-[#212121] flex flex-col min-w-0 shadow-2xl overflow-hidden" style={{ minHeight: 0 }}>
 
           {/* Header */}
           <div className="px-8 pt-8">
@@ -1990,27 +2101,50 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
 
             {/* Tabs */}
             <div className="flex items-center justify-between mt-2">
-              <div className="flex">
-                {SETUP_TABS.map((tab) => (
-                  <button key={tab}
-                    onClick={() => { setActiveTab(tab); setGuidanceHighlight(undefined); setFieldHighlight(undefined); }}
-                    className={`pb-2 mr-6 text-[14px] border-b-2 -mb-px transition-colors ${
-                      activeTab === tab
-                        ? 'font-semibold text-[#0078d4] border-[#0078d4]'
-                        : 'text-[#323130] border-transparent hover:text-[#0078d4]'
-                    }`}>
-                    {tab}
-                  </button>
-                ))}
-              </div>
+              {initialLoading ? (
+                <FluentProvider theme={isDarkMode ? webDarkTheme : webLightTheme} style={{ background: 'transparent', display: 'flex', gap: 8, alignItems: 'center', height: 44, marginLeft: 0 }}>
+                  {SETUP_TABS.map((tab) => (
+                    <Skeleton key={tab}><SkeletonItem size={16} style={{ width: tab.length * 8 + 16, borderRadius: 2 }} /></Skeleton>
+                  ))}
+                </FluentProvider>
+              ) : (
+                <Pivot
+                  selectedKey={activeTab}
+                  onLinkClick={(item) => {
+                    if (item?.props.itemKey) {
+                      setActiveTab(item.props.itemKey as SetupTab);
+                      setGuidanceHighlight(undefined);
+                      setFieldHighlight(undefined);
+                    }
+                  }}
+                  styles={{ root: { marginLeft: -12 }, link: { height: 44, padding: '12px', lineHeight: '20px' } }}
+                >
+                  {SETUP_TABS.map((tab) => (
+                    <PivotItem key={tab} itemKey={tab} headerText={tab} />
+                  ))}
+                </Pivot>
+              )}
             </div>
           </div>
 
           {/* Form body */}
           <div ref={formScrollRef} className="flex-1 overflow-y-auto px-8 pt-8 pb-6" onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setGuidanceHighlight(undefined); }}>
-            {activeTab === 'Users' && <UsersTabContent fieldHighlight={fieldHighlight} fieldRefs={fieldRefs} />}
-            {activeTab === 'Content' && <ContentTabContent fieldHighlight={fieldHighlight} fieldRefs={fieldRefs} />}
-            {activeTab === 'Sync' && <SyncTabContent fieldHighlight={fieldHighlight} fieldRefs={fieldRefs} />}
+            {initialLoading ? (
+              <FluentProvider theme={isDarkMode ? webDarkTheme : webLightTheme} style={{ background: 'transparent' }}>
+                <div style={{ maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 28 }}>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <Skeleton><SkeletonItem size={12} style={{ width: '30%' }} /></Skeleton>
+                      <Skeleton><SkeletonItem size={32} style={{ width: '100%', borderRadius: 2 }} /></Skeleton>
+                    </div>
+                  ))}
+                </div>
+              </FluentProvider>
+            ) : null}
+            <div key={activeTab} className={slideInClass} style={initialLoading ? { display: 'none' } : {}}>
+            {activeTab === 'Users' && <UsersTabContent fieldHighlight={fieldHighlight} fieldRefs={fieldRefs} onFocusSection={(id) => { setGuidanceHighlight(id); if (!suppressGuidanceSwitch.current) setRightRailTab('guide'); }} />}
+            {activeTab === 'Content' && <ContentTabContent fieldHighlight={fieldHighlight} fieldRefs={fieldRefs} onFocusSection={(id) => { setGuidanceHighlight(id); if (!suppressGuidanceSwitch.current) setRightRailTab('guide'); }} />}
+            {activeTab === 'Sync' && <SyncTabContent fieldHighlight={fieldHighlight} fieldRefs={fieldRefs} onFocusSection={(id) => { setGuidanceHighlight(id); if (!suppressGuidanceSwitch.current) setRightRailTab('guide'); }} />}
             {activeTab !== 'Users' && activeTab !== 'Content' && activeTab !== 'Sync' && <div className="max-w-[528px] flex flex-col gap-6">
 
               {/* Connection name */}
@@ -2158,57 +2292,141 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
               )}
 
             </div>}
+            </div>{/* end keyed slide-in wrapper */}
           </div>
 
-        </div>
+        </div>{/* end form side */}
 
-        {/* Right rail */}
-        <div className="w-[360px] flex-shrink-0 bg-[#faf9f8] dark:bg-[#1f1f1f] border-l border-[#e1e1e1] dark:border-[#3d3d3d] flex flex-col overflow-hidden">
-          {/* Tabs — only show Connector health tab in edit mode, hide when focused */}
-          {isEdit && existingConnector && !healthFocused ? (
+        </div>{/* end left column */}
+
+        {/* Rail expand button — narrow panel only, hidden when rail is open */}
+        {!railOpen && !panelWide && <button
+          onClick={() => setRailOpen(true)}
+          style={{
+            position: 'absolute', top: 12, right: 16, zIndex: 50,
+            padding: '4px 10px', borderRadius: 4, fontSize: 13,
+            display: 'flex', alignItems: 'center', gap: 6,
+            background: 'transparent', border: 'none',
+            color: '#0078d4', cursor: 'pointer',
+          }}
+        >
+          <OpenPaneMirroredIcon style={{ fontSize: 14 }} />
+          {isEdit ? 'Actions & Guide' : 'Setup Guide'}
+        </button>}
+
+        {/* Right rail overlay — narrow panel only */}
+        {railOpen && !panelWide && (
+          <div
+            style={{
+              display: 'flex', flexDirection: 'column',
+              position: 'absolute', top: 0, right: 0, bottom: 0,
+              width: 400, zIndex: 40,
+              background: isDarkMode ? '#1f1f1f' : '#faf9f8',
+              borderLeft: `1px solid ${isDarkMode ? '#3d3d3d' : '#e1e1e1'}`,
+              boxShadow: '-4px 0 16px rgba(0,0,0,0.12)',
+            }}
+          >
+            {/* Rail header */}
+            {isEdit && existingConnector && !actionFocused ? (
+              <div style={{ position: 'relative', flexShrink: 0 }}>
+                <button onClick={() => setRailOpen(false)} style={{ position: 'absolute', top: 12, right: 16, background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', color: isDarkMode ? '#adadad' : '#605e5c' }}>
+                  <ChromeCloseIcon style={{ fontSize: 12 }} />
+                </button>
+                <div style={{ display: 'flex', padding: '48px 24px 0' }}>
+                  {(['actions', 'guide'] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => { setRightRailTab(tab); if (tab === 'guide') { setHealthFocused(false); setHealthBackTrigger(n => n + 1); } }}
+                      style={{
+                        paddingBottom: 8, marginRight: 24, fontSize: 14, background: 'none', border: 'none', cursor: 'pointer',
+                        borderBottom: `2px solid ${rightRailTab === tab ? '#0078d4' : 'transparent'}`,
+                        fontWeight: rightRailTab === tab ? 600 : 400,
+                        color: rightRailTab === tab ? '#0078d4' : (isDarkMode ? '#f5f5f5' : '#323130'),
+                      }}
+                    >
+                      {tab === 'actions' ? 'Actions' : 'Guide'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div style={{ position: 'relative', flexShrink: 0 }}>
+                <button onClick={() => setRailOpen(false)} style={{ position: 'absolute', top: 12, right: 16, background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', color: isDarkMode ? '#adadad' : '#605e5c' }}>
+                  <ChromeCloseIcon style={{ fontSize: 12 }} />
+                </button>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '48px 24px 16px' }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: isDarkMode ? '#f5f5f5' : '#323130' }}>Guide</span>
+                  <a href="https://learn.microsoft.com/en-us/microsoft-365/copilot/connectors/servicenow-knowledge-deployment" target="_blank" rel="noreferrer"
+                    style={{ fontSize: 13, color: '#0078d4', textDecoration: 'none' }}>
+                    Read documentation
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {/* Rail body */}
+            <div ref={railScrollRef} style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
+              <div key={rightRailTab} className={slideInClass}>
+                {isEdit && existingConnector && rightRailTab === 'actions'
+                  ? <ActionRail connector={existingConnector} onNavigateToField={handleNavigateToField} onFocusedChange={setHealthFocused} backTrigger={actionBackTrigger} appliedRowsMap={appliedRowsMap} setAppliedRowsMap={setAppliedRowsMap} />
+                  : <GuidanceRail
+                      highlightSection={guidanceHighlight}
+                      accordionRefsCallback={(refs) => { accordionRefsCache.current = refs; }}
+                      sections={TAB_GUIDANCE[activeTab] ?? GUIDANCE_SECTIONS}
+                    />
+                }
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Right rail — static side column when panel is wide enough */}
+        {panelWide && <div style={{ display: 'flex', flexDirection: 'column', width: 360, flexShrink: 0, background: isDarkMode ? '#1f1f1f' : '#faf9f8', borderLeft: `1px solid ${isDarkMode ? '#3d3d3d' : '#e1e1e1'}`, overflow: 'hidden' }}>
+          {isEdit && existingConnector && !actionFocused ? (
             <div className="flex px-6 flex-shrink-0 pt-12">
-              {(['health', 'guide'] as const).map((tab) => (
+              {(['actions', 'guide'] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => { setRightRailTab(tab); if (tab === 'guide') { setHealthFocused(false); setHealthBackTrigger(n => n + 1); } }}
-                  className={`pb-2 mr-6 text-[14px] border-b-2 -mb-px transition-colors ${
-                    rightRailTab === tab
-                      ? 'font-semibold text-[#0078d4] border-[#0078d4]'
-                      : 'text-[#323130] border-transparent hover:text-[#0078d4]'
-                  }`}
+                  className={`pb-2 mr-6 text-[14px] border-b-2 -mb-px transition-colors ${rightRailTab === tab ? 'font-semibold text-[#0078d4] border-[#0078d4]' : 'text-[#323130] border-transparent hover:text-[#0078d4]'}`}
                 >
-                  {tab === 'health' ? 'Actions' : 'Guide'}
+                  {tab === 'actions' ? 'Actions' : 'Guide'}
                 </button>
               ))}
             </div>
-          ) : !healthFocused ? (
+          ) : !actionFocused ? (
             <div className="flex items-center justify-between px-6 pt-12 pb-4 flex-shrink-0">
-              <span className="text-[14px] font-bold text-[#323130] dark:text-[#f5f5f5]">Setup guide</span>
+              <span className="text-[14px] font-bold text-[#323130] dark:text-[#f5f5f5]">Guide</span>
               <a href="https://learn.microsoft.com/en-us/microsoft-365/copilot/connectors/servicenow-knowledge-deployment" target="_blank" rel="noreferrer"
                 className="text-[13px] text-[#0078d4] dark:text-[#479ef5] whitespace-nowrap hover:underline">
-                Read detailed documentation
+                Read documentation
               </a>
             </div>
           ) : null}
-          <div ref={railScrollRef} className="flex-1 overflow-y-auto" style={(healthFocused && rightRailTab === 'health') ? { padding: 0, background: 'white' } : { padding: '24px' }}>
-            {isEdit && existingConnector && rightRailTab === 'health'
-              ? <HealthRail connector={existingConnector} onNavigateToField={handleNavigateToField} onFocusedChange={setHealthFocused} backTrigger={healthBackTrigger} appliedRowsMap={appliedRowsMap} setAppliedRowsMap={setAppliedRowsMap} />
-              : <GuidanceRail
-                  highlightSection={guidanceHighlight}
-                  accordionRefsCallback={(refs) => { accordionRefsCache.current = refs; }}
-                  sections={TAB_GUIDANCE[activeTab] ?? GUIDANCE_SECTIONS}
-                />
-            }
+          <div ref={railScrollRef} className="flex-1 overflow-y-auto" style={{ padding: '24px' }}>
+            <div key={rightRailTab} className={slideInClass}>
+              {isEdit && existingConnector && rightRailTab === 'actions'
+                ? <ActionRail connector={existingConnector} onNavigateToField={handleNavigateToField} onFocusedChange={setHealthFocused} backTrigger={actionBackTrigger} appliedRowsMap={appliedRowsMap} setAppliedRowsMap={setAppliedRowsMap} />
+                : <GuidanceRail
+                    highlightSection={guidanceHighlight}
+                    accordionRefsCallback={(refs) => { accordionRefsCache.current = refs; }}
+                    sections={TAB_GUIDANCE[activeTab] ?? GUIDANCE_SECTIONS}
+                  />
+              }
+            </div>
           </div>
-        </div>
+        </div>}
         </div>{/* end content row */}
 
-        {/* Footer — full width, above right rail */}
+        {/* Footer — full width across panel */}
         <div className="border-t border-[#e1e1e1] dark:border-[#3d3d3d] px-8 py-4 flex items-center justify-between flex-shrink-0 bg-white dark:bg-[#212121] z-10">
           <div className="flex items-center gap-3">
             <PrimaryButton
-              disabled={isEdit ? !hasChanges : !canCreate}
-              onClick={() => { if (isEdit && hasChanges) { setHasChanges(false); setValidateDone(false); } }}
+              disabled={!hasChanges}
+              onClick={() => {
+                if (isEdit && hasChanges) { setHasChanges(false); setValidateDone(false); }
+                else if (!isEdit) { setCreating(true); setTimeout(() => setCreated(true), 2500); }
+              }}
             >
               {isEdit ? 'Save' : 'Create'}
             </PrimaryButton>
@@ -2217,7 +2435,22 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
             <DefaultButton onClick={onClose}>Cancel</DefaultButton>
           </div>
         </div>
-      </div>
-    </>
+        </>
+        )}
+      </DrawerBody>
+  );
+
+  if (embedded) return content;
+
+  return (
+    <OverlayDrawer
+      open
+      onOpenChange={(_, { open }) => { if (!open) onClose(); }}
+      position="end"
+      className="connector-panel-drawer"
+      style={{ top: 48, height: 'calc(100% - 48px)', padding: 0, display: 'flex', flexDirection: 'column' }}
+    >
+      {content}
+    </OverlayDrawer>
   );
 }

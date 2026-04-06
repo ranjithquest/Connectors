@@ -55,7 +55,16 @@ Compute the preview URL:
 - Branch `ranjith/connector-health-dashboard` → slug `ranjith-connector-health-dashboard`
 - URL: `https://studious-adventure-j17vp6o.pages.github.io/<slug>/connectors`
 
-Give the user this ready-to-send message:
+Give the user both links:
+
+- **Prototype link** (clean, no tour): `<URL>`
+- **Guided walkthrough link** (with annotations): `<URL>?tour=true`
+
+Then say:
+> Share the **prototype link** when you want stakeholders to explore freely — it looks exactly like the real product.
+> Share the **guided walkthrough link** when you're presenting to LTs or want to walk them through a specific flow step-by-step.
+
+Then give the user this ready-to-send message (using the prototype link by default):
 
 ---
 **Stakeholder message template:**
@@ -63,9 +72,6 @@ Give the user this ready-to-send message:
 >
 > **Concept:** <CONCEPT_NAME>
 > 🔗 **Preview:** <URL>
->
-> You can click through the UI as you normally would.
-> For a guided walkthrough, open: <URL>?tour=true
 >
 > Please share any feedback directly or reply to this message.
 ---

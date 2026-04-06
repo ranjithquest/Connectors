@@ -3,10 +3,12 @@
 import { useState, useEffect } from 'react';
 import type { Connector, DiagnosticIssue } from '@/lib/types';
 import {
-  ActionButton, CommandBarButton, Panel, PanelType, Pivot, PivotItem, PrimaryButton, DefaultButton,
-  Stack, Text, Link, Separator, IconButton,
+  ActionButton, CommandBarButton, Pivot, PivotItem, PrimaryButton, DefaultButton,
+  Stack, Text, Link, Separator, IconButton, AnimationStyles,
 } from '@fluentui/react';
-import type { IPanelStyles } from '@fluentui/react';
+import { mergeStyles } from '@fluentui/merge-styles';
+
+const slideInClass = mergeStyles(AnimationStyles.slideDownIn10);
 import { InfoIcon, SyncIcon, ChevronDownIcon, StatusCircleCheckmarkIcon, StatusCircleInnerIcon } from '@fluentui/react-icons-mdl2';
 import { DismissRegular } from '@fluentui/react-icons';
 import {
@@ -14,7 +16,13 @@ import {
   Text as FText, Button, tokens, Badge,
   MessageBar, MessageBarBody, MessageBarTitle, MessageBarActions,
   Card, CardHeader, Divider,
+  Skeleton, SkeletonItem,
 } from '@fluentui/react-components';
+import {
+  OverlayDrawer,
+  DrawerBody,
+  DrawerFooter,
+} from '@fluentui/react-drawer';
 import { ConnectorStatusCard, IssueCard, getSyncCycleLabel } from './AdvancedSetupPanel';
 
 interface ConnectorDetailPanelProps {
@@ -314,6 +322,12 @@ export default function ConnectorDetailPanel({ connector, onClose, onEdit }: Con
   const [isDark, setIsDark] = useState(false);
   const [lastSyncOpen, setLastSyncOpen] = useState(false);
   const [authBannerDismissed, setAuthBannerDismissed] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const t = setTimeout(() => setLoading(false), 500);
+    return () => clearTimeout(t);
+  }, []);
 
   useEffect(() => {
     const update = () => setIsDark(document.documentElement.classList.contains('dark'));
@@ -346,123 +360,157 @@ export default function ConnectorDetailPanel({ connector, onClose, onEdit }: Con
 
   const panelBg = isDark ? '#212121' : '#ffffff';
 
-  const panelStyles: Partial<IPanelStyles> = {
-    root: { top: 48 },
-    overlay: { backgroundColor: 'rgba(0,0,0,0.2)' },
-    main: {
-      width: 474,
-      backgroundColor: panelBg,
-      boxShadow: '0px 3.84px 11.52px 0px rgba(0,0,0,0.18), 0px 20.48px 46.08px 0px rgba(0,0,0,0.22)',
-    },
-    commands: { padding: 0 },
-    navigation: { display: 'block', width: '100%' },
-    contentInner: { display: 'flex', flexDirection: 'column', height: '100%' },
-    scrollableContent: { flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' },
-    content: { padding: 0, flex: 1, overflowY: 'auto' },
-    footer: { flexShrink: 0 },
-  };
-
   const labelStyle = { root: { fontWeight: '600', fontSize: 14, color: isDark ? '#f5f5f5' : '#323130' } };
   const valueStyle = { root: { fontSize: 14, color: isDark ? '#adadad' : '#484644' } };
 
-  const renderHeader = () => (
-    <Stack styles={{ root: { flexShrink: 0 } }} tokens={{ childrenGap: 0 }}>
-      {/* CommandBar — h=48px, close button at right per Figma */}
-      <Stack horizontal horizontalAlign="end" verticalAlign="center" styles={{ root: { height: 48, padding: '0 8px', flexShrink: 0, backgroundColor: panelBg } }}>
-        <IconButton
-          iconProps={{ iconName: 'Cancel' }}
-          onClick={onClose}
-          styles={{ root: { color: isDark ? '#ffffff' : '#000000', backgroundColor: 'transparent' }, rootHovered: { backgroundColor: isDark ? '#3d3d3d' : '#f3f2f1' } }}
-        />
-      </Stack>
-      {/* Header body — pt=16px px=32px */}
-    <Stack styles={{ root: { padding: '16px 32px 0' } }} tokens={{ childrenGap: 0 }}>
-      {/* Persona header — pb-[48px] per spec */}
-      <Stack horizontal tokens={{ childrenGap: 16 }} verticalAlign="start" styles={{ root: { paddingBottom: 48 } }}>
-        <ConnectorLogo connectorType={connector.connectorType} logoUrl={connector.logoUrl} />
-        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
-          {/* Name — h=34px container, text offset -4px for line-height optical alignment */}
-          <div style={{ height: 34, position: 'relative', width: '100%' }}>
-            <Text styles={{ root: { position: 'absolute', top: -4, left: 0, right: 0, fontWeight: 700, fontSize: 20, lineHeight: '28px', color: isDark ? '#f5f5f5' : '#000000', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }}>
-              {connector.connectorType}
-            </Text>
-          </div>
-          {/* Status — h=30px container, text offset -6px */}
-          <div style={{ height: 30, position: 'relative', width: '100%' }}>
-            <Text styles={{ root: { position: 'absolute', top: -6, left: 0, right: 0, fontSize: 14, lineHeight: '20px', color: isDark ? '#adadad' : '#323130', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }}>
-              {connector.displayName}
-            </Text>
-          </div>
-          {/* ActionButtons — h=16px container, buttons at top=-8px left=-8px (overflow within container) */}
-          <div style={{ height: 16, position: 'relative', width: '100%', overflow: 'visible' }}>
-            <div style={{ position: 'absolute', top: -8, left: -8, display: 'flex' }}>
-              <CommandBarButton
-                split
-                text="Start full sync"
-                iconProps={{ iconName: 'Sync' }}
-                menuProps={{ items: [{ key: 'incremental', text: 'Incremental sync' }] }}
-                styles={{
-                  root: { height: 32, padding: '0 8px', ...(isDark ? { background: 'transparent' } : {}) },
-                  label: { fontSize: 14, ...(isDark ? { color: '#ffffff' } : {}) },
-                  icon: isDark ? { color: '#ffffff' } : {},
-                  menuIcon: isDark ? { color: '#ffffff' } : {},
-                  rootHovered: isDark ? { background: '#3d3d3d' } : {},
-                  splitButtonMenuButton: isDark ? { background: 'transparent' } : {},
-                  splitButtonMenuButtonExpanded: isDark ? { background: '#3d3d3d' } : {},
-                }}
-              />
-              <CommandBarButton
-                text="Delete"
-                iconProps={{ iconName: 'Delete' }}
-                styles={{
-                  root: { height: 32, padding: '0 8px', ...(isDark ? { background: 'transparent' } : {}) },
-                  label: { fontSize: 14, ...(isDark ? { color: '#ffffff' } : {}) },
-                  icon: isDark ? { color: '#ffffff' } : {},
-                  rootHovered: isDark ? { background: '#3d3d3d' } : {},
-                }}
-              />
-            </div>
-          </div>
-        </div>
-      </Stack>
-      {/* Pivot — marginTop=-18 pulls tabs 18px into the pb-48 space above (net 30px gap from profile bottom), marginLeft=-9 aligns first tab text */}
-      <div style={{ marginTop: -18, marginLeft: -9 }}>
-        <Pivot
-          selectedKey={activeTab}
-          onLinkClick={(item) => item?.props.itemKey && setActiveTab(item.props.itemKey as TabId)}
-          styles={{ root: { display: 'flex' }, link: { fontSize: 14, height: 40, padding: '0 8px' }, linkIsSelected: { fontSize: 14, height: 40, padding: '0 8px' } }}
-        >
-          {TABS.map((tab) => (
-            <PivotItem key={tab.id} itemKey={tab.id} headerText={tab.label} />
-          ))}
-        </Pivot>
-      </div>
-    </Stack>
-    </Stack>
-  );
-
-  const renderFooter = () => (
-    <Stack horizontal verticalAlign="center" tokens={{ childrenGap: 8 }} styles={{ root: { height: 64, padding: '0 32px' } }}>
-      <PrimaryButton onClick={onEdit}>Edit</PrimaryButton>
-    </Stack>
-  );
-
   return (
-    <Panel
-      isOpen
-      onDismiss={onClose}
-      type={PanelType.custom}
-      customWidth="474px"
-      isLightDismiss
-      isFooterAtBottom
-      hasCloseButton={false}
-      styles={panelStyles}
-      onRenderHeader={renderHeader}
-      onRenderFooter={renderFooter}
-    >
+    <FluentProvider theme={isDark ? webDarkTheme : webLightTheme}>
+      <OverlayDrawer
+        open
+        onOpenChange={(_, { open }) => { if (!open) onClose(); }}
+        position="end"
+        size="medium"
+        style={{ width: 474, top: 48, height: 'calc(100% - 48px)', backgroundColor: panelBg, padding: 0, display: 'flex', flexDirection: 'column' }}
+      >
+        {/* ── Custom header (close + persona + pivot) ── */}
+        <div style={{ flexShrink: 0, backgroundColor: panelBg, width: '100%', boxSizing: 'border-box' }}>
+          {/* Close button row */}
+          <Stack horizontal horizontalAlign="end" verticalAlign="center" styles={{ root: { height: 48, padding: '0 8px' } }}>
+            <IconButton
+              iconProps={{ iconName: 'Cancel' }}
+              onClick={onClose}
+              styles={{ root: { color: isDark ? '#ffffff' : '#000000', backgroundColor: 'transparent' }, rootHovered: { backgroundColor: isDark ? '#3d3d3d' : '#f3f2f1' } }}
+            />
+          </Stack>
+          {/* Persona + actions */}
+          <Stack styles={{ root: { padding: '16px 32px 0' } }} tokens={{ childrenGap: 0 }}>
+            {loading ? (
+              <FluentProvider theme={isDark ? webDarkTheme : webLightTheme} style={{ background: 'transparent' }}>
+                <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', paddingBottom: 48 }}>
+                  <Skeleton><SkeletonItem shape="circle" size={72} style={{ flexShrink: 0 }} /></Skeleton>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 4 }}>
+                    <Skeleton><SkeletonItem size={20} style={{ width: '60%' }} /></Skeleton>
+                    <Skeleton><SkeletonItem size={16} style={{ width: '40%' }} /></Skeleton>
+                    <div style={{ display: 'flex', gap: 8, paddingTop: 4 }}>
+                      <Skeleton><SkeletonItem size={32} style={{ width: 120, borderRadius: 2 }} /></Skeleton>
+                      <Skeleton><SkeletonItem size={32} style={{ width: 80, borderRadius: 2 }} /></Skeleton>
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 4, marginLeft: -9 }}>
+                  {TABS.map((t) => (
+                    <Skeleton key={t.id}><SkeletonItem size={16} style={{ width: 60, borderRadius: 2 }} /></Skeleton>
+                  ))}
+                </div>
+              </FluentProvider>
+            ) : (
+              <div className={slideInClass}>
+                <Stack horizontal tokens={{ childrenGap: 16 }} verticalAlign="start" styles={{ root: { paddingBottom: 48 } }}>
+                  <ConnectorLogo connectorType={connector.connectorType} logoUrl={connector.logoUrl} />
+                  <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
+                    <div style={{ height: 34, position: 'relative', width: '100%' }}>
+                      <Text styles={{ root: { position: 'absolute', top: -4, left: 0, right: 0, fontWeight: 700, fontSize: 20, lineHeight: '28px', color: isDark ? '#f5f5f5' : '#000000', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }}>
+                        {connector.connectorType}
+                      </Text>
+                    </div>
+                    <div style={{ height: 30, position: 'relative', width: '100%' }}>
+                      <Text styles={{ root: { position: 'absolute', top: -6, left: 0, right: 0, fontSize: 14, lineHeight: '20px', color: isDark ? '#adadad' : '#323130', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }}>
+                        {connector.displayName}
+                      </Text>
+                    </div>
+                    <div style={{ height: 16, position: 'relative', width: '100%', overflow: 'visible' }}>
+                      <div style={{ position: 'absolute', top: -8, left: -8, display: 'flex' }}>
+                        <CommandBarButton
+                          split
+                          text="Start full sync"
+                          iconProps={{ iconName: 'Sync' }}
+                          menuProps={{ items: [{ key: 'incremental', text: 'Incremental sync' }] }}
+                          styles={{
+                            root: { height: 32, padding: '0 8px', ...(isDark ? { background: 'transparent' } : {}) },
+                            label: { fontSize: 14, ...(isDark ? { color: '#ffffff' } : {}) },
+                            icon: isDark ? { color: '#ffffff' } : {},
+                            menuIcon: isDark ? { color: '#ffffff' } : {},
+                            rootHovered: isDark ? { background: '#3d3d3d' } : {},
+                            splitButtonMenuButton: isDark ? { background: 'transparent' } : {},
+                            splitButtonMenuButtonExpanded: isDark ? { background: '#3d3d3d' } : {},
+                          }}
+                        />
+                        <CommandBarButton
+                          text="Delete"
+                          iconProps={{ iconName: 'Delete' }}
+                          styles={{
+                            root: { height: 32, padding: '0 8px', ...(isDark ? { background: 'transparent' } : {}) },
+                            label: { fontSize: 14, ...(isDark ? { color: '#ffffff' } : {}) },
+                            icon: isDark ? { color: '#ffffff' } : {},
+                            rootHovered: isDark ? { background: '#3d3d3d' } : {},
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </Stack>
+                <div style={{ marginTop: -18, marginLeft: -9 }}>
+                  <Pivot
+                    selectedKey={activeTab}
+                    onLinkClick={(item) => item?.props.itemKey && setActiveTab(item.props.itemKey as TabId)}
+                    styles={{ root: { display: 'flex' }, link: { fontSize: 14, height: 40, padding: '0 8px' }, linkIsSelected: { fontSize: 14, height: 40, padding: '0 8px' } }}
+                  >
+                    {TABS.map((tab) => (
+                      <PivotItem key={tab.id} itemKey={tab.id} headerText={tab.label} />
+                    ))}
+                  </Pivot>
+                </div>
+              </div>
+            )}
+          </Stack>
+        </div>
+
+        {/* ── Scrollable body ── */}
+        <DrawerBody style={{ padding: 0 }}>
+        {loading ? (
+          <FluentProvider theme={isDark ? webDarkTheme : webLightTheme} style={{ background: 'transparent' }}>
+            <div style={{ padding: '16px 32px 32px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+              {/* Meta rows */}
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <Skeleton><SkeletonItem size={12} style={{ width: '30%' }} /></Skeleton>
+                  <Skeleton><SkeletonItem size={16} style={{ width: i % 2 === 0 ? '55%' : '75%' }} /></Skeleton>
+                </div>
+              ))}
+              {/* Stat bars */}
+              {[0, 1].map((row) => (
+                <div key={row} style={{ display: 'flex', gap: 8 }}>
+                  {[0, 1].map((col) => (
+                    <div key={col} style={{ flex: 1, display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+                      <Skeleton><SkeletonItem style={{ width: 3, height: 48, borderRadius: 2 }} /></Skeleton>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <Skeleton><SkeletonItem size={12} style={{ width: 80 }} /></Skeleton>
+                        <Skeleton><SkeletonItem size={24} style={{ width: 60 }} /></Skeleton>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+              {/* More meta rows */}
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} style={{ display: 'flex', gap: 24 }}>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <Skeleton><SkeletonItem size={12} style={{ width: '50%' }} /></Skeleton>
+                    <Skeleton><SkeletonItem size={16} style={{ width: '70%' }} /></Skeleton>
+                  </div>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <Skeleton><SkeletonItem size={12} style={{ width: '50%' }} /></Skeleton>
+                    <Skeleton><SkeletonItem size={16} style={{ width: '60%' }} /></Skeleton>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </FluentProvider>
+        ) : (
       <Stack
         tokens={{ childrenGap: 20 }}
         styles={{ root: { padding: '16px 32px 32px', display: activeTab === 'details' ? 'flex' : 'none' } }}
+        className={slideInClass}
       >
 
 {/* Health section — ADO only */}
@@ -554,6 +602,14 @@ export default function ConnectorDetailPanel({ connector, onClose, onEdit }: Con
           col2Value={lastModified}
         />
       </Stack>
-    </Panel>
+        )}
+        </DrawerBody>
+
+        {/* ── Footer ── */}
+        <DrawerFooter style={{ padding: '0 32px', height: 64, display: 'flex', alignItems: 'center' }}>
+          <PrimaryButton onClick={onEdit}>Edit</PrimaryButton>
+        </DrawerFooter>
+      </OverlayDrawer>
+    </FluentProvider>
   );
 }

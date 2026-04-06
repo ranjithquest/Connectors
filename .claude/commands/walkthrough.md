@@ -1,65 +1,62 @@
 # /walkthrough — Add a Guided Tour to a Prototype
 
-This skill adds an interactive step-by-step walkthrough to the current feature branch for stakeholder presentations and LT reviews.
+This skill adds an interactive step-by-step walkthrough to the current concept for stakeholder presentations and LT reviews. Claude handles everything — you just describe the flow.
 
 ## What it does
-- Adds a `WalkthroughTour` component with numbered hotspot annotations on specific UI elements
-- Activated via `?tour=true` URL param — clean URL shows no annotations
-- Steps can include: tooltip text, a highlighted element, and an optional "click here" pointer
-- Forward/back navigation with step counter
-- Fluent UI styled — matches the admin center look
+- Adds numbered hotspot annotations anchored to specific UI elements
+- Fluent UI styled tooltip cards with prev/next navigation and step counter
+- Claude opens the browser with the tour already active — no URL changes needed
 
 ## Step 1 — Ask what flow to document
-Ask the user: "Which user flow do you want to walk through? Describe the screens and the key interactions."
+Ask the user: "Walk me through the flow you want to present. Which screens and which interactions should I highlight?"
 
-Example answer: "Start on the connectors list, click ADO connector, show the health section, then click Edit."
+Example: "Start on the connectors list, click the ADO connector, show the health section, then click Edit."
 
 ## Step 2 — Identify the elements to annotate
 For each step in the flow, identify:
 - Which page/component contains the element
-- A CSS selector or React ref to anchor the tooltip to
+- A CSS selector to anchor the tooltip to
 - The annotation text (what to tell the viewer)
-- Whether it needs a "click here" pointer
+- Optional: "click here" pointer for interactive steps
 
 ## Step 3 — Create the walkthrough config
-Create `lib/walkthrough-config.ts` with the step definitions:
+Create or update `lib/walkthrough-config.ts`:
 
 ```ts
-export type WalkthroughStep = {
-  id: string;
-  target: string;        // CSS selector of element to highlight
-  title: string;         // Short heading shown in tooltip
-  body: string;          // Explanation text
-  placement?: 'top' | 'bottom' | 'left' | 'right';
-  action?: 'click';      // Show "click here" pointer
-};
+import type { WalkthroughStep } from '@/components/walkthrough/WalkthroughTour';
 
 export const WALKTHROUGH_STEPS: WalkthroughStep[] = [
-  // steps defined per feature
+  {
+    id: 'step-1',
+    target: '[data-tour="connector-list"]',
+    title: 'Your connections',
+    body: 'All your active connectors are listed here. Each row shows status, last sync, and any issues.',
+    placement: 'bottom',
+  },
+  // ... more steps
 ];
 ```
 
-## Step 4 — Add the WalkthroughTour component
-Create `components/walkthrough/WalkthroughTour.tsx`:
-- Reads `?tour=true` from URL params
-- Renders numbered circle hotspots anchored to target elements using `getBoundingClientRect`
-- Shows a Fluent-styled tooltip card on the active step
-- Prev/Next/Done buttons
-- Shows step X of Y counter
-- Dismiss button to exit tour
+## Step 4 — Add data-tour attributes to target elements
+Add `data-tour="<id>"` attributes to the elements that need to be highlighted. This is more reliable than CSS class selectors.
 
-## Step 5 — Mount it in the layout
-Add `<WalkthroughTour />` to `app/layout.tsx` — it only renders when `?tour=true` is present.
+## Step 5 — Mount WalkthroughTour in the layout
+Import and add `<WalkthroughTour steps={WALKTHROUGH_STEPS} />` to `app/layout.tsx`. It reads the `?tour=true` URL param to activate.
 
-## Step 6 — Share the URL
-The annotated walkthrough URL is:
+## Step 6 — Open the browser automatically
+Use the Playwright MCP plugin to open the prototype with the tour active:
+
 ```
-https://<preview-url>/connectors?tour=true
+Open http://localhost:3000/connectors?tour=true
 ```
-The clean URL (without `?tour=true`) shows the prototype with no annotations — safe for engineering handoff.
+
+The tour starts immediately — no manual URL editing needed. Claude will narrate each step and confirm the annotations look right before you share.
+
+## Step 7 — Share
+When ready, run /publish. The shareable URL will automatically include `?tour=true` in the stakeholder message alongside the clean URL.
 
 ## Rules:
-- Walkthrough annotations are for PRESENTATION only — never ship to production
+- Walkthrough annotations are for presentation only — never ship to production
 - Keep annotation text concise — max 2 sentences per step
-- Hotspots use numbered circles styled with Fluent colors — no custom design systems
-- The tour must work on desktop viewport (1280px+) — LT reviews are on laptops
+- Always use `data-tour` attributes as targets — not fragile CSS class selectors
+- The tour must work at 1280px+ viewport — LT reviews are on laptops

@@ -2,6 +2,10 @@
 
 import React, { useState, useRef } from 'react';
 import { ChevronDownIcon } from '@fluentui/react-icons-mdl2';
+import { AnimationStyles } from '@fluentui/react';
+import { mergeStyles } from '@fluentui/merge-styles';
+
+const slideInClass = mergeStyles(AnimationStyles.slideDownIn10);
 
 export interface GuideSection {
   id: string;
@@ -93,7 +97,7 @@ export default function SetupGuideRail({ sections, activeSection, accordionRefsC
             </div>
 
             {isOpen && s.content && (
-              <div>{s.content}</div>
+              <div key={openId} className={slideInClass}>{s.content}</div>
             )}
           </React.Fragment>
         );

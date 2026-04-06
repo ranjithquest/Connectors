@@ -2,6 +2,27 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Connector panel drawers — full width on small, 90vw on medium, 80vw on large */
+.connector-panel-drawer {
+  width: 100vw !important;
+  max-width: 100vw !important;
+  min-width: unset !important;
+}
+
+@media (min-width: 1025px) {
+  .connector-panel-drawer {
+    width: 90vw !important;
+    max-width: 90vw !important;
+  }
+}
+
+@media (min-width: 1280px) {
+  .connector-panel-drawer {
+    width: 80vw !important;
+    max-width: 80vw !important;
+  }
+}
+
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }

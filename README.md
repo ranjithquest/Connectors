@@ -67,30 +67,34 @@ Share your Figma URL with Claude and it will extract layout, components, and tok
 
 ```
 app/
-  connectors/
-    page.tsx                    # Connectors list (table view)
-    gallery/page.tsx            # Add connector gallery
-    new/page.tsx                # New connector setup
-    [id]/page.tsx               # Connector health detail
-    [id]/diagnostics/page.tsx   # Connector diagnostics
+  (app)/connectors/
+    page.tsx                    # Gallery + Your connections (single-page with tabs)
+
+  get-started/
+    page.tsx                    # Onboarding / get started page
+
+  layout.tsx                    # Root layout with dark mode + Fluent provider
+  globals.css                   # CSS variables, dark mode overrides, drawer sizing
 
 components/
   connectors/
-    ConnectorDetailPanel.tsx    # Detail panel (right drawer)
-    AdvancedSetupPanel.tsx      # Full setup / edit panel
-    SetupPanel.tsx              # Simple setup panel
-    EditPanel.tsx               # Edit wrapper
+    SetupPanel.tsx              # New connector setup wizard (simple mode)
+    AdvancedSetupPanel.tsx      # Full edit panel: Setup/Users/Content/Sync pivot tabs
+    ConnectorDetailPanel.tsx    # Read-only connector detail panel
+    ISVPanel.tsx                # ISV connector detail panel
+    SetupGuideRail.tsx          # Accordion guide rail used in setup panels
+    EditPanel.tsx               # Edit wrapper that opens AdvancedSetupPanel
   layout/
-    TopNav.tsx                  # Top navigation bar
-    LeftNav.tsx                 # Collapsible left nav
+    LeftNav.tsx                 # Collapsible left navigation
 
 lib/
-  mock-data.ts                  # Connector mock data
-  gallery-data.ts               # Connector catalog
+  mock-data.ts                  # Connector mock instances + diagnostic issues
+  gallery-data.ts               # Connector catalog (type, logo, config schema)
   types.ts                      # Shared TypeScript types
 
+.claude/commands/               # Claude skills: /onboard, /publish, /walkthrough
 public/
-  logos/                        # Connector logo assets
+  logos/                        # Connector logo PNGs/SVGs
 ```
 
 ### Stack
@@ -111,13 +115,50 @@ Edit `lib/mock-data.ts` to add connectors, sync history, issues, or change healt
 
 ---
 
+## Key UI behaviours
+
+### Gallery page
+- Hero banner + connector cards with slide-down animation
+- Left sidebar (search + category filter) visible at ≥1280px; collapses to scrollable chips below
+- "Add" opens the setup wizard
+
+### Your connections tab
+- DataGrid with status, health badges, last sync time
+- User-created connectors float to top; show "Now" for last sync until first real sync
+- Delete only available on user-created connectors
+
+### Setup panel
+- Fluent Drawer sizing: 100vw <1024px · 90vw 1024–1279px · 80vw ≥1280px
+- Right guide rail: **static side column** when panel width ≥800px, **overlay** when narrower
+- Rail collapses automatically via `ResizeObserver` — no hardcoded viewport breakpoints
+- Confirmation screen shown on successful connector creation
+
+### Advanced setup / edit panel
+- Pivot tabs: Setup · Users · Content · Sync
+- Right rail: **Actions** tab (issue cards, inline fix actions) + **Guide** tab
+- Same ResizeObserver-driven rail collapse as setup panel (threshold: 800px)
+- Shimmer skeleton shown when switching from Simple → Advanced mode
+- Manage Properties: v8 CommandBar toolbar, Content Property dropdown, Badge tags for content type
+
+### Right rail behaviour summary
+
+| Panel content-row width | Behaviour |
+|---|---|
+| ≥800px | Static side column, always visible |
+| <800px (collapsed by user or auto) | Hidden; "Guide" / "Actions & Guide" button opens as overlay |
+
+### Dark mode
+Full dark mode via `.dark` class on `<html>`, mapped to Fluent `webDarkTheme` tokens. Covers nav, surfaces, inputs, dropdowns, Fluent v8 components, and all status/health pill colours.
+
+---
+
 ## Branch and Deployment Model
 
 | Branch | Purpose | Preview URL |
 |---|---|---|
 | `main` | Source of truth — protected | — |
 | `Boilerplate` | Stable shareable baseline | `<pages-url>/` |
-| `your-name/feature` | Your concept in progress | `<pages-url>/<branch-slug>/connectors` |
+| `your-name/feature` | Concept in progress | `<pages-url>/<branch-slug>/connectors` |
 
 Every push to a non-`main` branch triggers an automatic deployment. The preview URL is posted as a comment on your commit.
 

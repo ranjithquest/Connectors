@@ -10,9 +10,13 @@
   },
   "dependencies": {
     "@fluentui/react": "^8.125.5",
+    "@fluentui/react-charts": "^9.3.17",
     "@fluentui/react-components": "^9.73.5",
+    "@fluentui/react-drawer": "^9.11.6",
     "@fluentui/react-icons": "^2.0.323",
     "@fluentui/react-icons-mdl2": "^1.4.5",
+    "@fluentui/react-motion": "^9.14.0",
+    "@fluentui/react-search": "^9.4.1",
     "@fluentui/tokens": "^1.0.0-alpha.23",
     "lucide-react": "^0.577.0",
     "next": "14.2.35",

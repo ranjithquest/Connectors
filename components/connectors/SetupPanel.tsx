@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 function useDarkMode(): boolean {
   const [dark, setDark] = React.useState(false);
   React.useEffect(() => {
@@ -14,12 +14,17 @@ function useDarkMode(): boolean {
   }, []);
   return dark;
 }
-import { PrimaryButton, DefaultButton, TextField, Dropdown, Toggle, Link, Text } from '@fluentui/react';
+import { PrimaryButton, DefaultButton, TextField, Dropdown, Toggle, Link, Text, AnimationStyles } from '@fluentui/react';
+import { mergeStyles } from '@fluentui/merge-styles';
+import { FluentProvider, webLightTheme, webDarkTheme, Skeleton, SkeletonItem } from '@fluentui/react-components';
+
+const slideInClass = mergeStyles(AnimationStyles.slideDownIn10);
 import type { IDropdownOption } from '@fluentui/react';
-import { EditIcon, SettingsIcon } from '@fluentui/react-icons-mdl2';
+import { EditIcon, SettingsIcon, CompletedSolidIcon, InfoIcon, ChromeCloseIcon, OpenPaneMirroredIcon } from '@fluentui/react-icons-mdl2';
 import { CONNECTOR_CATALOG } from '@/lib/gallery-data';
 import AdvancedSetupPanel from './AdvancedSetupPanel';
 import SetupGuideRail, { type GuideSection } from './SetupGuideRail';
+import { OverlayDrawer, DrawerBody } from '@fluentui/react-drawer';
 
 // ─── ConnectorIcon ─────────────────────────────────────────────────────────────
 
@@ -151,15 +156,16 @@ const GUIDE_SECTIONS: GuideSection[] = [
   },
 ];
 
-function GuideRail({ activeSection }: { activeSection?: string }) {
+function GuideRail({ activeSection, open, onToggle }: { activeSection?: string; open: boolean; onToggle: () => void }) {
+  if (!open) return null;
   return (
-    <div className="h-full flex flex-col bg-white dark:bg-[#1f1f1f]" style={{ minWidth: 320, maxWidth: 360, width: '30%' }}>
-      <div style={{ padding: '54px 24px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+    <div className="flex h-full flex-col bg-white dark:bg-[#1f1f1f]" style={{ minWidth: 280, maxWidth: 360, width: '30%', borderLeft: '1px solid #e1e1e1' }}>
+      <div style={{ padding: '54px 24px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <Text variant="medium" styles={{ root: { fontWeight: 700, color: '#323130' } }}>
           Setup guide
         </Text>
         <Link href="#" styles={{ root: { fontSize: 12, whiteSpace: 'nowrap' } }}>
-          Read detailed documentation
+          Read documentation
         </Link>
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '0 24px 24px' }}>
@@ -583,9 +589,10 @@ const SETUP_CONFIGS: Record<string, ConnectorSetupConfig> = {
 interface SetupPanelProps {
   connectorType: string;
   onClose: () => void;
+  onCreated?: (connector: import('@/lib/types').Connector) => void;
 }
 
-export default function SetupPanel({ connectorType, onClose }: SetupPanelProps) {
+export default function SetupPanel({ connectorType, onClose, onCreated }: SetupPanelProps) {
   const catalogItem = CONNECTOR_CATALOG.find(
     (c) => c.name.toLowerCase() === connectorType.toLowerCase()
   ) ?? CONNECTOR_CATALOG[0];
@@ -599,13 +606,45 @@ export default function SetupPanel({ connectorType, onClose }: SetupPanelProps) 
 
   const isDark = useDarkMode();
 
+  const [hasChanges, setHasChanges] = useState(false);
+  function markChanged() { setHasChanges(true); }
   const [displayName, setDisplayName] = useState(catalogItem.name);
   const [authMethod, setAuthMethod] = useState<string | null>(null);
+  const [basicUsername, setBasicUsername] = useState('');
+  const [basicPassword, setBasicPassword] = useState('');
   const [instanceUrl, setInstanceUrl] = useState('');
   const [rolloutLimited, setRolloutLimited] = useState(false);
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [activeSection, setActiveSection] = useState<string | undefined>(undefined);
+  // Rail collapses only when panel width can no longer fit both
+  // MIN_CONTENT: form fields min width + horizontal padding (~480px fields + 64px padding)
+  // MIN_RAIL: minimum rail width before it overlaps content
+  const MIN_CONTENT = 520;
+  const MIN_RAIL = 280;
+  const RAIL_THRESHOLD = MIN_CONTENT + MIN_RAIL; // 800px
+  const panelRef = React.useRef<HTMLDivElement>(null);
+  const [railOpen, setRailOpen] = useState(false);
+  const [panelWide, setPanelWide] = useState(false);
+  useEffect(() => {
+    const el = panelRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      const wide = entry.contentRect.width >= RAIL_THRESHOLD;
+      setPanelWide(wide);
+      setRailOpen(r => wide ? true : r); // auto-open when panel grows wide enough
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [created, setCreated] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setLoading(false), 500);
+    return () => clearTimeout(t);
+  }, []);
   const blurTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleFieldFocus = (section: string) => {
@@ -625,22 +664,64 @@ export default function SetupPanel({ connectorType, onClose }: SetupPanelProps) 
   } : {};
 
   const needsInstance = config.instanceSection !== null;
-  const canCreate = displayName.trim().length > 0 && authMethod !== null && (!needsInstance || instanceUrl.trim().length > 0) && privacyAccepted;
-
-  if (showAdvanced) {
-    return <AdvancedSetupPanel connectorType={connectorType} onClose={onClose} />;
-  }
+  const hasCredentials = authMethod !== 'basic' || (basicUsername.trim().length > 0 && basicPassword.trim().length > 0);
+  const canCreate = displayName.trim().length > 0 && authMethod !== null && hasCredentials && (!needsInstance || instanceUrl.trim().length > 0) && privacyAccepted;
 
   return (
-    <>
-      {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/50 z-[60]" onClick={onClose} />
-
-      {/* Panel */}
-      <div className="fixed top-[48px] right-0 bottom-0 z-[70] flex flex-col overflow-hidden bg-white dark:bg-[#212121] shadow-2xl" style={{ width: '80%' }}>
+      <OverlayDrawer
+        open
+        onOpenChange={(_, { open }) => { if (!open) onClose(); }}
+        position="end"
+        className="connector-panel-drawer"
+        style={{ top: 48, height: 'calc(100% - 48px)', padding: 0, display: 'flex', flexDirection: 'column' }}
+      >
+      {creating ? (
+        <DrawerBody style={{ padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
+          <div className={`flex-1 overflow-y-auto bg-white dark:bg-[#212121] ${slideInClass}`} style={{ padding: '48px 48px 24px' }}>
+            {/* Heading */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
+              <CompletedSolidIcon style={{ fontSize: 20, color: created ? '#107c10' : '#c8c6c4' }} />
+              <span style={{ fontSize: 28, fontWeight: 700, lineHeight: '36px', color: isDark ? '#f5f5f5' : '#000000' }}>
+                {created ? 'Success' : 'Creating connection...'}
+              </span>
+            </div>
+            {/* Rows — no outer border, just dividers */}
+            <div style={{ maxWidth: 640, display: 'flex', flexDirection: 'column', gap: 0 }}>
+              {/* Row 1: Created connection */}
+              <div style={{ display: 'flex', alignItems: 'center', height: 48, gap: 16, borderBottom: `1px solid ${isDark ? '#3d3d3d' : '#e1e1e1'}` }}>
+                <div style={{ width: 219, display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                  <CompletedSolidIcon style={{ fontSize: 16, color: created ? '#107c10' : '#c8c6c4', flexShrink: 0 }} />
+                  <span style={{ fontSize: 14, lineHeight: '20px', color: isDark ? '#f5f5f5' : '#000000' }}>Created connection</span>
+                </div>
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <ConnectorIcon src={catalogItem?.logoUrl} name={catalogItem?.name ?? displayName} size={24} />
+                  <span style={{ fontSize: 14, fontWeight: 600, lineHeight: '20px', color: isDark ? '#f5f5f5' : '#323130' }}>{displayName}</span>
+                </div>
+              </div>
+              {/* Row 2: Indexing data */}
+              <div style={{ display: 'flex', alignItems: 'center', padding: '0', minHeight: 48, gap: 16, borderBottom: `1px solid ${isDark ? '#3d3d3d' : '#e1e1e1'}` }}>
+                <div style={{ width: 219, display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                  <div style={{ width: 16, height: 16, flexShrink: 0, borderRadius: '50%', border: `2px solid ${isDark ? '#3d3d3d' : '#e1e1e1'}`, borderTopColor: '#0078d4', animation: 'spin 0.8s linear infinite' }} />
+                  <span style={{ fontSize: 14, lineHeight: '20px', color: isDark ? (created ? '#f5f5f5' : '#707070') : (created ? '#000000' : '#a19f9d') }}>Indexing data</span>
+                </div>
+                <span style={{ fontSize: 14, lineHeight: '20px', color: isDark ? '#adadad' : '#000000' }}>This may take a while and will continue to run in the background</span>
+              </div>
+            </div>
+          </div>
+          {/* Footer */}
+          <div style={{ borderTop: `1px solid ${isDark ? '#3d3d3d' : '#e1e1e1'}`, padding: '0 32px', height: 64, flexShrink: 0, background: isDark ? '#212121' : '#fff', display: 'flex', alignItems: 'center' }}>
+            <DefaultButton
+              onClick={onClose}
+              styles={isDark ? { root: { background: '#292929', color: '#f5f5f5', borderColor: '#616161', selectors: { ':hover': { background: '#383838' } } } } : {}}
+            >Done</DefaultButton>
+          </div>
+          <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+        </DrawerBody>
+      ) : showAdvanced ? <AdvancedSetupPanel connectorType={connectorType} onClose={onClose} embedded /> : (
+      <DrawerBody style={{ padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
 
         {/* Content row */}
-        <div className="flex flex-1 overflow-hidden">
+        <div ref={panelRef} className="flex flex-1 overflow-hidden relative">
 
           {/* Form side */}
           <div className="flex-1 bg-white dark:bg-[#212121] flex flex-col min-w-0 overflow-hidden">
@@ -648,34 +729,67 @@ export default function SetupPanel({ connectorType, onClose }: SetupPanelProps) 
             {/* Header */}
             <div className="px-8 pt-8 pb-0 flex-shrink-0">
               <div className="relative pb-5 border-b border-[#e1e1e1] dark:border-[#3d3d3d]">
-                <div className="flex items-center gap-5">
-                  <ConnectorIcon src={catalogItem.logoUrl} name={catalogItem.name} size={72} />
-                  <div className="flex flex-col gap-1 flex-1 min-w-0">
-                    <h1 className="text-[22px] font-bold text-[#323130] dark:text-[#f5f5f5] leading-7">{catalogItem.name}</h1>
+                {loading ? (
+                  <FluentProvider theme={isDark ? webDarkTheme : webLightTheme} style={{ background: 'transparent' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+                      <Skeleton><SkeletonItem shape="square" size={72} style={{ borderRadius: 8, flexShrink: 0 }} /></Skeleton>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
+                        <Skeleton><SkeletonItem size={20} style={{ width: '40%' }} /></Skeleton>
+                        <Skeleton><SkeletonItem size={16} style={{ width: '30%' }} /></Skeleton>
+                      </div>
+                    </div>
+                  </FluentProvider>
+                ) : (
+                  <div className={slideInClass}>
+                    <div className="flex items-center gap-5">
+                      <ConnectorIcon src={catalogItem.logoUrl} name={catalogItem.name} size={72} />
+                      <div className="flex flex-col gap-1 flex-1 min-w-0">
+                        <h1 className="text-[22px] font-bold text-[#323130] dark:text-[#f5f5f5] leading-7">{catalogItem.name}</h1>
+                        <button
+                          onClick={() => {}}
+                          className="flex items-center gap-1.5 text-[13px] mt-0.5 w-fit hover:opacity-80"
+                        >
+                          <EditIcon style={{ fontSize: 13 }} className="text-[#0078d4] dark:text-[#479ef5]" />
+                          <span className="text-[#0078d4] dark:text-[#479ef5]">Edit source name &amp; icon</span>
+                        </button>
+                        {/* Advanced setup — below edit link on small screens only */}
+                        <button
+                          onClick={() => { setShowAdvanced(true); }}
+                          className="flex lg:hidden items-center gap-1.5 text-[13px] mt-0.5 w-fit text-[#424242] dark:text-[#adadad] hover:opacity-80"
+                        >
+                          <SettingsIcon style={{ fontSize: 13 }} className="text-[#424242] dark:text-[#adadad]" />
+                          Advanced setup
+                        </button>
+                      </div>
+                    </div>
+                    {/* Advanced setup — absolute bottom-right on large screens */}
                     <button
-                      onClick={() => {}}
-                      className="flex items-center gap-1.5 text-[13px] mt-0.5 w-fit hover:opacity-80"
+                      onClick={() => { setShowAdvanced(true); }}
+                      className="hidden lg:flex absolute bottom-0 right-0 items-center gap-1.5 px-3 py-1 text-[13px] text-[#424242] dark:text-[#adadad] rounded hover:bg-[#f3f2f1] dark:hover:bg-[#292929] transition-colors"
                     >
-                      <EditIcon style={{ fontSize: 13 }} className="text-[#0078d4] dark:text-[#479ef5]" />
-                      <span className="text-[#0078d4] dark:text-[#479ef5]">Edit source name &amp; icon</span>
+                      <SettingsIcon style={{ fontSize: 14 }} className="text-[#424242] dark:text-[#adadad]" />
+                      Advanced setup
                     </button>
                   </div>
-                </div>
-
-                {/* Advanced setup button — near divider */}
-                <button
-                  onClick={() => setShowAdvanced(true)}
-                  className="absolute bottom-[10px] right-0 flex items-center gap-1.5 px-3 py-1 text-[13px] text-[#424242] dark:text-[#adadad] rounded hover:bg-[#f3f2f1] dark:hover:bg-[#292929] transition-colors"
-                >
-                  <SettingsIcon style={{ fontSize: 14 }} className="text-[#424242] dark:text-[#adadad]" />
-                  Advanced setup
-                </button>
+                )}
               </div>
             </div>
 
             {/* Scrollable form */}
             <div className="flex-1 overflow-y-auto px-8 pt-12 pb-6">
-              <div className="max-w-[480px] flex flex-col gap-6">
+              {loading ? (
+                <FluentProvider theme={isDark ? webDarkTheme : webLightTheme} style={{ background: 'transparent' }}>
+                  <div style={{ maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 28 }}>
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <Skeleton><SkeletonItem size={12} style={{ width: '30%' }} /></Skeleton>
+                        <Skeleton><SkeletonItem size={32} style={{ width: '100%', borderRadius: 2 }} /></Skeleton>
+                      </div>
+                    ))}
+                  </div>
+                </FluentProvider>
+              ) : (
+              <div className={`max-w-[480px] flex flex-col gap-6 ${slideInClass}`}>
 
                 {/* 1. Connector name — always present */}
                 <div className="flex flex-col gap-1">
@@ -684,7 +798,7 @@ export default function SetupPanel({ connectorType, onClose }: SetupPanelProps) 
                     label="Connector name"
                     required
                     value={displayName}
-                    onChange={(_, v) => setDisplayName(v ?? '')}
+                    onChange={(_, v) => { setDisplayName(v ?? ''); markChanged(); }}
                     onFocus={() => handleFieldFocus('display-name')}
                     onBlur={handleFieldBlur}
                     styles={{ root: { width: '100%' }, label: { fontWeight: 400, selectors: { '&': { fontWeight: 400 } } }, ...darkFieldStyles }}
@@ -700,7 +814,7 @@ export default function SetupPanel({ connectorType, onClose }: SetupPanelProps) 
                       required
                       placeholder={config.instanceSection.placeholder}
                       value={instanceUrl}
-                      onChange={(_, v) => setInstanceUrl(v ?? '')}
+                      onChange={(_, v) => { setInstanceUrl(v ?? ''); markChanged(); }}
                       onFocus={() => handleFieldFocus('instance-url')}
                       onBlur={handleFieldBlur}
                       styles={{ root: { width: '100%' }, label: { fontWeight: 400, selectors: { '&': { fontWeight: 400 } } }, ...darkFieldStyles }}
@@ -717,7 +831,7 @@ export default function SetupPanel({ connectorType, onClose }: SetupPanelProps) 
                     placeholder="Select a method"
                     selectedKey={authMethod}
                     options={config.authOptions}
-                    onChange={(_, opt) => { if (opt) setAuthMethod(opt.key as string); }}
+                    onChange={(_, opt) => { if (opt) { setAuthMethod(opt.key as string); markChanged(); } }}
                     onFocus={() => handleFieldFocus('auth')}
                     onBlur={handleFieldBlur}
                     styles={{
@@ -732,6 +846,33 @@ export default function SetupPanel({ connectorType, onClose }: SetupPanelProps) 
                       label: isDark ? { color: '#f5f5f5' } : {},
                     }}
                   />
+
+                  {/* Basic Auth credential inputs */}
+                  {authMethod === 'basic' && (
+                    <div className={`flex flex-col gap-3 mt-3 ${slideInClass}`}>
+                      <TextField
+                        label="Username"
+                        required
+                        value={basicUsername}
+                        onChange={(_, v) => { setBasicUsername(v ?? ''); markChanged(); }}
+                        onFocus={() => handleFieldFocus('auth')}
+                        onBlur={handleFieldBlur}
+                        placeholder="e.g. svc-copilot@contoso.com"
+                        styles={{ root: { width: '100%' }, ...darkFieldStyles }}
+                      />
+                      <TextField
+                        label="Password"
+                        required
+                        type="password"
+                        canRevealPassword
+                        value={basicPassword}
+                        onChange={(_, v) => { setBasicPassword(v ?? ''); markChanged(); }}
+                        onFocus={() => handleFieldFocus('auth')}
+                        onBlur={handleFieldBlur}
+                        styles={{ root: { width: '100%' }, ...darkFieldStyles }}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Install-app note — connector-specific */}
@@ -748,7 +889,7 @@ export default function SetupPanel({ connectorType, onClose }: SetupPanelProps) 
                 {/* Privacy notice */}
                 <div className="flex items-start gap-2 pt-6">
                   <div
-                    onClick={() => setPrivacyAccepted(v => !v)}
+                    onClick={() => { setPrivacyAccepted(v => !v); markChanged(); }}
                     className={`mt-0.5 w-5 h-5 rounded-[2px] border flex-shrink-0 cursor-pointer flex items-center justify-center ${
                       privacyAccepted ? 'bg-[#0078d4] border-[#0078d4]' : 'border-[#323130] dark:border-[#adadad] bg-white dark:bg-[#212121]'
                     }`}
@@ -775,29 +916,139 @@ export default function SetupPanel({ connectorType, onClose }: SetupPanelProps) 
                   </div>
                 </div>
               </div>
+              )}
             </div>
           </div>
 
-          {/* Vertical divider */}
-          <div className="w-px bg-[#e1e1e1] dark:bg-[#3d3d3d] flex-shrink-0" />
+          {/* Expand button — narrow panel only, hidden when rail is open */}
+          {!railOpen && !panelWide && <button
+            onClick={() => setRailOpen(true)}
+            style={{
+              position: 'absolute', top: 12, right: 16, zIndex: 50,
+              padding: '4px 10px', borderRadius: 4, fontSize: 13,
+              display: 'flex', alignItems: 'center', gap: 6,
+              background: 'transparent', border: 'none',
+              color: '#0078d4', cursor: 'pointer',
+            }}
+          >
+            <OpenPaneMirroredIcon style={{ fontSize: 14 }} />
+            Guide
+          </button>}
 
-          {/* Guide rail */}
-          <GuideRail activeSection={activeSection} />
+          {/* Guide rail overlay — narrow panel only */}
+          {railOpen && !panelWide && (
+            <div style={{
+              position: 'absolute', top: 0, right: 0, bottom: 0,
+              width: 360, zIndex: 40, display: 'flex', flexDirection: 'column',
+              background: isDark ? '#1f1f1f' : '#faf9f8',
+              borderLeft: `1px solid ${isDark ? '#3d3d3d' : '#e1e1e1'}`,
+              boxShadow: '-4px 0 16px rgba(0,0,0,0.12)',
+            }}>
+              <button onClick={() => setRailOpen(false)} style={{ position: 'absolute', top: 12, right: 12, background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', color: isDark ? '#adadad' : '#605e5c' }}>
+                <ChromeCloseIcon style={{ fontSize: 12 }} />
+              </button>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '54px 24px 16px', flexShrink: 0 }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: isDark ? '#f5f5f5' : '#323130' }}>Guide</span>
+                <a href="#" style={{ fontSize: 12, color: '#0078d4', textDecoration: 'none', whiteSpace: 'nowrap' }}>Read documentation</a>
+              </div>
+              <div style={{ flex: 1, overflowY: 'auto', padding: '0 24px 24px' }}>
+                <SetupGuideRail sections={GUIDE_SECTIONS} activeSection={activeSection} />
+              </div>
+            </div>
+          )}
+
+          {/* Guide rail — static side column when panel is wide enough */}
+          {loading && panelWide ? (
+            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 280, maxWidth: 360, width: '30%', borderLeft: '1px solid #e1e1e1' }}>
+              <div style={{ padding: '54px 24px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+                <FluentProvider theme={isDark ? webDarkTheme : webLightTheme} style={{ background: 'transparent', width: '70%' }}>
+                  <Skeleton><SkeletonItem size={16} style={{ width: '100%' }} /></Skeleton>
+                </FluentProvider>
+              </div>
+              <div style={{ flex: 1, overflowY: 'auto', padding: '0 24px 24px' }}>
+                <FluentProvider theme={isDark ? webDarkTheme : webLightTheme} style={{ background: 'transparent' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid #e1e1e1', paddingTop: 8 }}>
+                        <Skeleton><SkeletonItem size={16} style={{ width: i % 2 === 0 ? '60%' : '75%' }} /></Skeleton>
+                      </div>
+                    ))}
+                  </div>
+                </FluentProvider>
+              </div>
+            </div>
+          ) : panelWide ? (
+            <GuideRail activeSection={activeSection} open={railOpen} onToggle={() => setRailOpen(v => !v)} />
+          ) : null}
+          {/* Re-open button when rail is collapsed on wide panels */}
+          {!railOpen && panelWide && (
+            <button
+              onClick={() => setRailOpen(true)}
+              style={{ position: 'absolute', top: 12, right: 16, zIndex: 50, padding: '4px 10px', borderRadius: 4, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: '#0078d4', cursor: 'pointer' }}
+            >
+              <OpenPaneMirroredIcon style={{ fontSize: 14 }} />
+              Guide
+            </button>
+          )}
         </div>
 
         {/* Footer */}
         <div className="border-t border-[#e1e1e1] dark:border-[#3d3d3d] px-8 py-3 flex items-center justify-between flex-shrink-0 bg-white dark:bg-[#212121]">
-          <div className="flex items-center gap-3">
-            <PrimaryButton disabled={!canCreate} styles={isDark ? { root: { background: '#479ef5', color: '#000', border: 'none', selectors: { ':hover': { background: '#62abf5' }, ':disabled': { background: '#2a3a4a', color: '#555', border: 'none' } } } } : {}}>Create</PrimaryButton>
-          </div>
-          <div className="flex items-center gap-3">
-            <PrimaryButton disabled styles={{ root: isDark ? { background: '#2a3a4a', color: '#555', border: 'none' } : { background: '#ededed', color: '#a1a1a1', border: 'none' } }}>
-              Save and close
-            </PrimaryButton>
-            <DefaultButton onClick={onClose} styles={isDark ? { root: { background: '#292929', color: '#f5f5f5', borderColor: '#616161', selectors: { ':hover': { background: '#383838', color: '#f5f5f5' } } } } : {}}>Cancel</DefaultButton>
-          </div>
+          {loading ? (
+            <FluentProvider theme={isDark ? webDarkTheme : webLightTheme} style={{ background: 'transparent', width: '100%', display: 'flex', justifyContent: 'space-between' }}>
+              <Skeleton style={{ display: 'flex', gap: 8 }}>
+                <SkeletonItem size={32} style={{ width: 72, borderRadius: 4 }} />
+              </Skeleton>
+              <Skeleton style={{ display: 'flex', gap: 8 }}>
+                <SkeletonItem size={32} style={{ width: 110, borderRadius: 4 }} />
+                <SkeletonItem size={32} style={{ width: 72, borderRadius: 4 }} />
+              </Skeleton>
+            </FluentProvider>
+          ) : (
+            <>
+              <div className="flex items-center gap-3">
+                <PrimaryButton
+                  disabled={!hasChanges}
+                  onClick={() => {
+            setCreating(true);
+            setTimeout(() => {
+              setCreated(true);
+              onCreated?.({
+                id: `user-${Date.now()}`,
+                displayName,
+                connectorType,
+                logoUrl: catalogItem?.logoUrl,
+                userCriteriaType: 'simple',
+                instanceUrl,
+                authMethod: (authMethod ?? 'oauth2') as import('@/lib/types').AuthMethod,
+                basicUsername,
+                basicPassword,
+                healthStatus: 'pending',
+                blockerCount: 0,
+                warningCount: 0,
+                suggestionCount: 0,
+                issues: [],
+                guideSteps: [],
+                syncHistory: [],
+                createdAt: new Date().toISOString(),
+                userCreated: true,
+              });
+            }, 2500);
+          }}
+                  styles={isDark ? { root: { background: '#479ef5', color: '#000', border: 'none', selectors: { ':hover': { background: '#62abf5' }, ':disabled': { background: '#2a3a4a', color: '#555', border: 'none' } } } } : {}}
+                >Create</PrimaryButton>
+              </div>
+              <div className="flex items-center gap-3">
+                <PrimaryButton disabled styles={{ root: isDark ? { background: '#2a3a4a', color: '#555', border: 'none' } : { background: '#ededed', color: '#a1a1a1', border: 'none' } }}>
+                  Save and close
+                </PrimaryButton>
+                <DefaultButton onClick={onClose} styles={isDark ? { root: { background: '#292929', color: '#f5f5f5', borderColor: '#616161', selectors: { ':hover': { background: '#383838', color: '#f5f5f5' } } } } : {}}>Cancel</DefaultButton>
+              </div>
+            </>
+          )}
         </div>
-      </div>
-    </>
+      </DrawerBody>
+      )}
+      </OverlayDrawer>
   );
 }

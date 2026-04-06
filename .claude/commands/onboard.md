@@ -1,68 +1,117 @@
-# /onboard — Onboarding Assistant
+# /onboard — Automated Setup
 
-You are onboarding a new user to the Copilot Connectors Prototyping Boilerplate. Follow these steps:
+Run this flow fully automatically. Do not wait for confirmation between steps unless something fails. Narrate what you're doing at each step so the user can follow along.
 
-## Step 1 — Identify their role
-Ask: "Welcome! Are you joining as Product, Design, or Engineering?"
+---
 
-Tailor everything that follows to their answer.
+## Step 1 — Ask for install location (only question you ask)
 
-## Step 2 — Check their environment
+Say: "Welcome! I'll set everything up for you automatically. Where would you like to save the project? Press Enter to use your Desktop, or paste a folder path."
 
-### For all roles:
-- Ask if they have Git installed (`git --version`)
-- Ask if they have Node.js 20+ installed (`node --version`)
-- If not, provide install links: https://git-scm.com and https://nodejs.org
+- If they press Enter or say nothing specific → use `~/Desktop`
+- Store as `INSTALL_DIR`
 
-### For Design only:
-- Ask if they have the **Figma MCP plugin** installed in Claude Code
-- Ask if they have the **Playwright MCP plugin** installed in Claude Code
-- If not, guide them: Settings → MCP Plugins → search "Figma" and "Playwright"
+---
 
-## Step 3 — Get them running locally
-Run these commands for them or guide them:
+## Step 2 — Install Node.js 20+
+
+Run `node --version` to check.
+
+- If v20 or above → say "Node.js is already installed ✓" and skip
+- If missing or below v20:
+  - **macOS**: run `brew install node@20 && brew link node@20 --force`
+  - **Windows**: say "Please download Node.js LTS from https://nodejs.org, install it, then type 'done' to continue"
+  - After install → re-run `node --version` to confirm
+
+---
+
+## Step 3 — Install Git
+
+Run `git --version` to check.
+
+- If installed → say "Git is already installed ✓" and skip
+- If missing:
+  - **macOS**: run `xcode-select --install`, wait for completion
+  - **Windows**: say "Please download Git from https://git-scm.com, install it, then type 'done'"
+  - After install → re-run `git --version` to confirm
+
+---
+
+## Step 4 — Install Figma MCP plugin
+
+Run `claude mcp list` and check if Figma is listed.
+
+- If present → say "Figma MCP already installed ✓" and skip
+- If missing → run:
+  ```bash
+  claude mcp add --transport sse figma https://figma.com/api/mcp/sse
+  ```
+  Confirm it appears in `claude mcp list`.
+
+---
+
+## Step 5 — Install Playwright MCP plugin
+
+Run `claude mcp list` and check if Playwright is listed.
+
+- If present → say "Playwright MCP already installed ✓" and skip
+- If missing → run:
+  ```bash
+  claude mcp add playwright npx @playwright/mcp@latest
+  ```
+  Confirm it appears in `claude mcp list`.
+
+---
+
+## Step 6 — Clone the boilerplate
+
+```bash
+cd <INSTALL_DIR>
+git clone https://github.com/gim-home/Connectors.git
+cd Connectors
+```
+
+If the `Connectors` folder already exists at that location, `cd` into it and run `git pull origin Boilerplate` instead.
+
+---
+
+## Step 7 — Install dependencies and start the app
+
 ```bash
 npm install
-npm run dev
+npm run dev &
 ```
-Confirm the app is running at http://localhost:3000
 
-## Step 4 — Create their first feature branch
-```bash
-git checkout Boilerplate
-git pull origin Boilerplate
-git checkout -b their-name/first-concept
-```
-Ask them for their name to use in the branch name.
+Wait for the server to be ready (watch for "Local: http://localhost:3000" in output).
 
-## Step 5 — Explain the workflow based on role
+---
 
-### Product:
-- They give you a spec (written doc, bullet points, or Figma URL)
-- You build the concept on their feature branch
-- They push → get a preview URL automatically → share with stakeholders
-- When approved → ask you to promote specific components to Boilerplate
+## Step 8 — Open the get started page in the browser
 
-### Design:
-- They share a Figma URL
-- You read the design via the Figma MCP plugin
-- You implement it using Fluent UI components (not custom Tailwind)
-- Icons come from @fluentui/react-icons-mdl2 first, then @fluentui/react-icons
-- They push → preview URL → stakeholder review
+Once the server is running, open the browser:
 
-### Engineering:
-- They build on a feature branch following the component priority: Admin Controls → Fluent UI v9 → Fluent UI v8 → Tailwind (layout only)
-- They push → preview URL → design/product review
-- When approved → run /handoff to export production-ready components
+- **macOS**: `open http://localhost:3000/get-started`
+- **Windows**: `start http://localhost:3000/get-started`
 
-## Step 6 — Point them to resources
-- Onboarding page in the app: /onboarding
-- CONTRIBUTING.md for the full workflow
-- CLAUDE.md for all rules and guidelines
-- Quick links on the onboarding page for component and icon references
+---
 
-## Rules to always follow during onboarding:
-- Be conversational and encouraging — this may be their first time using a prototyping boilerplate
-- Never overwhelm with all steps at once — go one step at a time
-- If they get stuck, diagnose and fix before moving on
-- Always end with: "You're all set! Your preview URL will appear as a comment on your commit when you push."
+## Step 9 — Done
+
+Say:
+
+> "You're all set! The app is running at http://localhost:3000
+>
+> The **Get started** page is now open in your browser — it walks you through the workflow and links to the Connectors app.
+>
+> To start building, just describe what you want to prototype and I'll build it. When you're ready to share, run **/publish**."
+
+If any MCP plugins were newly installed, add:
+> "Restart Claude Code once to activate the Figma and Playwright plugins."
+
+---
+
+## Rules
+- Run everything automatically — do not ask for confirmation at each step
+- If a step fails, diagnose and fix before moving on — do not skip
+- Keep narration short: one line per step as you go
+- Never overwhelm with explanations — just do it and confirm when done

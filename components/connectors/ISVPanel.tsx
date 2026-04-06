@@ -1,9 +1,14 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { PrimaryButton, DefaultButton } from '@fluentui/react';
+import { useState, useRef, useEffect } from 'react';
+import { PrimaryButton, DefaultButton, Pivot, PivotItem, AnimationStyles } from '@fluentui/react';
+import { mergeStyles } from '@fluentui/merge-styles';
+
+const slideInClass = mergeStyles(AnimationStyles.slideDownIn10);
 import { ChromeCloseIcon } from '@fluentui/react-icons-mdl2';
 import type { ConnectorCatalogItem } from '@/lib/gallery-data';
+import { OverlayDrawer, DrawerBody } from '@fluentui/react-drawer';
+import { FluentProvider, webLightTheme, webDarkTheme, Skeleton, SkeletonItem } from '@fluentui/react-components';
 
 // ─── Detail data types ────────────────────────────────────────────────────────
 
@@ -75,8 +80,16 @@ interface ISVPanelProps {
 export default function ISVPanel({ connector, onAdd, onClose }: ISVPanelProps) {
   const detail = CONNECTOR_DETAILS[connector.id];
   const [imgFailed, setImgFailed] = useState(false);
+  const [loading, setLoading] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const learnRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const t = setTimeout(() => setLoading(false), 500);
+    return () => clearTimeout(t);
+  }, []);
+
+  const isDark = typeof window !== 'undefined' && document.documentElement.classList.contains('dark');
 
   if (!detail) return null;
 
@@ -87,12 +100,14 @@ export default function ISVPanel({ connector, onAdd, onClose }: ISVPanelProps) {
   }
 
   return (
-    <>
-      {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/50 z-[60]" onClick={onClose} />
-
-      {/* Panel */}
-      <div className="fixed top-[48px] right-0 bottom-0 z-[70] flex flex-col overflow-hidden bg-white dark:bg-[#212121] shadow-2xl" style={{ width: '80%' }}>
+      <OverlayDrawer
+        open
+        onOpenChange={(_, { open }) => { if (!open) onClose(); }}
+        position="end"
+        size="large"
+        style={{ width: '80%', top: 48, height: 'calc(100% - 48px)', padding: 0, display: 'flex', flexDirection: 'column' }}
+      >
+      <DrawerBody style={{ padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
 
         {/* Header */}
         <div className="px-8 pt-6 pb-0 flex-shrink-0">
@@ -104,94 +119,145 @@ export default function ISVPanel({ connector, onAdd, onClose }: ISVPanelProps) {
 
           {/* Logo + name */}
           <div className="flex items-center gap-4 mb-5">
-            {connector.logoUrl && !imgFailed ? (
-              <div className="w-[72px] h-[72px] rounded-[8px] overflow-hidden flex items-center justify-center shrink-0 border border-[#e1e1e1] dark:border-[#3d3d3d]" style={{ backgroundColor: connector.logoBg ?? '#ffffff' }}>
-                <img src={connector.logoUrl} alt={connector.name} className="w-full h-full object-contain" onError={() => setImgFailed(true)} />
-              </div>
+            {loading ? (
+              <FluentProvider theme={isDark ? webDarkTheme : webLightTheme} style={{ background: 'transparent', display: 'flex', alignItems: 'center', gap: 16, width: '100%' }}>
+                <Skeleton><SkeletonItem shape="square" size={72} style={{ borderRadius: 8, flexShrink: 0 }} /></Skeleton>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
+                  <Skeleton><SkeletonItem size={20} style={{ width: '40%' }} /></Skeleton>
+                  <Skeleton><SkeletonItem size={16} style={{ width: '25%' }} /></Skeleton>
+                </div>
+              </FluentProvider>
             ) : (
-              <div className="w-[72px] h-[72px] rounded-[8px] flex items-center justify-center text-white text-[18px] font-semibold shrink-0" style={{ backgroundColor: connector.logoColor }}>
-                {connector.logoInitials}
+              <div className={`flex items-center gap-4 w-full ${slideInClass}`}>
+                {connector.logoUrl && !imgFailed ? (
+                  <div className="w-[72px] h-[72px] rounded-[8px] overflow-hidden flex items-center justify-center shrink-0 border border-[#e1e1e1] dark:border-[#3d3d3d]" style={{ backgroundColor: connector.logoBg ?? '#ffffff' }}>
+                    <img src={connector.logoUrl} alt={connector.name} className="w-full h-full object-contain" onError={() => setImgFailed(true)} />
+                  </div>
+                ) : (
+                  <div className="w-[72px] h-[72px] rounded-[8px] flex items-center justify-center text-white text-[18px] font-semibold shrink-0" style={{ backgroundColor: connector.logoColor }}>
+                    {connector.logoInitials}
+                  </div>
+                )}
+                <div>
+                  <p className="text-[20px] font-semibold text-[#242424] dark:text-[#d6d6d6] leading-7">{connector.name}</p>
+                  <p className="text-[14px] text-[#616161] dark:text-[#adadad] mt-0.5">{connector.publisher}</p>
+                </div>
               </div>
             )}
-            <div>
-              <p className="text-[20px] font-semibold text-[#242424] dark:text-[#d6d6d6] leading-7">{connector.name}</p>
-              <p className="text-[14px] text-[#616161] dark:text-[#adadad] mt-0.5">{connector.publisher}</p>
-            </div>
           </div>
 
           {/* Tab bar */}
-          <div className="flex">
-            <span className="mr-6 pb-2 text-[14px] font-semibold text-[#0078d4] border-b-2 border-[#0078d4]">Overview</span>
-            <button
-              onClick={scrollToLearn}
-              className="mr-6 pb-2 text-[14px] text-[#424242] dark:text-[#adadad] hover:text-[#242424] dark:hover:text-[#d6d6d6] border-b-2 border-transparent transition-colors"
-            >
-              Learn
-            </button>
-          </div>
+          <Pivot
+            selectedKey="overview"
+            onLinkClick={(item) => { if (item?.props.itemKey === 'learn') scrollToLearn(); }}
+            styles={{ root: { marginLeft: -12 }, link: { height: 44, padding: '12px', lineHeight: '20px' } }}
+          >
+            <PivotItem itemKey="overview" headerText="Overview" />
+            <PivotItem itemKey="learn" headerText="Learn" />
+          </Pivot>
         </div>
 
         {/* Scrollable content */}
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-8 py-6 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
+          {loading ? (
+            <FluentProvider theme={isDark ? webDarkTheme : webLightTheme} style={{ background: 'transparent' }}>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 mb-10">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <Skeleton><SkeletonItem size={16} style={{ width: '30%' }} /></Skeleton>
+                  {[90, 100, 85, 95, 70].map((w, i) => <Skeleton key={i}><SkeletonItem size={12} style={{ width: `${w}%` }} /></Skeleton>)}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <Skeleton><SkeletonItem size={16} style={{ width: '25%' }} /></Skeleton>
+                  {[80, 95, 75, 90].map((w, i) => <Skeleton key={i}><SkeletonItem size={12} style={{ width: `${w}%` }} /></Skeleton>)}
+                </div>
+              </div>
+              <div style={{ borderTop: '1px solid #e1e1e1', marginBottom: 40 }} />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <Skeleton><SkeletonItem size={16} style={{ width: '20%' }} /></Skeleton>
+                  {[70, 85].map((w, i) => <Skeleton key={i}><SkeletonItem size={12} style={{ width: `${w}%` }} /></Skeleton>)}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <Skeleton><SkeletonItem size={16} style={{ width: '20%' }} /></Skeleton>
+                  <Skeleton><SkeletonItem size={12} style={{ width: '55%' }} /></Skeleton>
+                  <Skeleton><SkeletonItem size={32} style={{ width: 120, borderRadius: 4 }} /></Skeleton>
+                </div>
+              </div>
+            </FluentProvider>
+          ) : (
+            <div className={slideInClass}>
+              {/* Row 1: Overview + Features */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 mb-10">
+                <div>
+                  <p className="text-[14px] font-semibold text-[#242424] dark:text-[#d6d6d6] mb-3">Overview</p>
+                  {Array.isArray(detail.overview)
+                    ? detail.overview.map((p, i) => <p key={i} className="text-[14px] leading-5 text-[#424242] dark:text-[#adadad] mb-3 last:mb-0">{p}</p>)
+                    : <p className="text-[14px] leading-5 text-[#424242] dark:text-[#adadad]">{detail.overview}</p>}
+                </div>
+                <div>
+                  <p className="text-[14px] font-semibold text-[#242424] dark:text-[#d6d6d6] mb-3">Features</p>
+                  <ul className="flex flex-col gap-2">
+                    {detail.features.map((f, i) => (
+                      <li key={i} className="flex gap-2 text-[14px] leading-5 text-[#424242] dark:text-[#adadad]">
+                        <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-[#424242] dark:bg-[#adadad] shrink-0" />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
 
-          {/* Row 1: Overview + Features */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 mb-10">
-            <div>
-              <p className="text-[14px] font-semibold text-[#242424] dark:text-[#d6d6d6] mb-3">Overview</p>
-              {Array.isArray(detail.overview)
-                ? detail.overview.map((p, i) => <p key={i} className="text-[14px] leading-5 text-[#424242] dark:text-[#adadad] mb-3 last:mb-0">{p}</p>)
-                : <p className="text-[14px] leading-5 text-[#424242] dark:text-[#adadad]">{detail.overview}</p>}
-            </div>
-            <div>
-              <p className="text-[14px] font-semibold text-[#242424] dark:text-[#d6d6d6] mb-3">Features</p>
-              <ul className="flex flex-col gap-2">
-                {detail.features.map((f, i) => (
-                  <li key={i} className="flex gap-2 text-[14px] leading-5 text-[#424242] dark:text-[#adadad]">
-                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-[#424242] dark:bg-[#adadad] shrink-0" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
+              {/* Divider above Learn */}
+              <div className="border-t border-[#e1e1e1] dark:border-[#3d3d3d] mb-10" />
 
-          {/* Divider above Learn */}
-          <div className="border-t border-[#e1e1e1] dark:border-[#3d3d3d] mb-10" />
-
-          {/* Row 2: Learn + Support */}
-          <div ref={learnRef} className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-            <div>
-              <p className="text-[14px] font-semibold text-[#242424] dark:text-[#d6d6d6] mb-3">Learn</p>
-              <div className="flex flex-col gap-2">
-                {detail.learnLinks.map((l) => (
-                  <a key={l.url} href={l.url} target="_blank" rel="noreferrer"
-                    className="text-[14px] text-[#0078d4] hover:text-[#106ebe] hover:underline">
-                    {l.label}
-                  </a>
-                ))}
+              {/* Row 2: Learn + Support */}
+              <div ref={learnRef} className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+                <div>
+                  <p className="text-[14px] font-semibold text-[#242424] dark:text-[#d6d6d6] mb-3">Learn</p>
+                  <div className="flex flex-col gap-2">
+                    {detail.learnLinks.map((l) => (
+                      <a key={l.url} href={l.url} target="_blank" rel="noreferrer"
+                        className="text-[14px] text-[#0078d4] hover:text-[#106ebe] hover:underline">
+                        {l.label}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[14px] font-semibold text-[#242424] dark:text-[#d6d6d6] mb-3">Support</p>
+                  <p className="text-[14px] text-[#424242] dark:text-[#adadad] mb-3">Have more questions?</p>
+                  <div>
+                    <DefaultButton href={detail.supportUrl} target="_blank" rel="noreferrer">{detail.supportLabel ?? 'Go to support'}</DefaultButton>
+                  </div>
+                </div>
               </div>
             </div>
-            <div>
-              <p className="text-[14px] font-semibold text-[#242424] dark:text-[#d6d6d6] mb-3">Support</p>
-              <p className="text-[14px] text-[#424242] dark:text-[#adadad] mb-3">Have more questions?</p>
-              <div>
-                <DefaultButton href={detail.supportUrl} target="_blank" rel="noreferrer">{detail.supportLabel ?? 'Go to support'}</DefaultButton>
-              </div>
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Footer */}
         <div className="border-t border-[#e1e1e1] dark:border-[#3d3d3d] px-8 py-3 flex items-center gap-4 flex-shrink-0 bg-white dark:bg-[#212121]">
-          <PrimaryButton onClick={() => { onClose(); onAdd(connector.name); }}>Add</PrimaryButton>
-          <p className="text-[12px] text-[#616161] dark:text-[#adadad] leading-4">
-            By using this Copilot connector, you agree to the{' '}
-            <a href="https://www.microsoft.com/licensing/terms" target="_blank" rel="noreferrer" className="text-[#0078d4] hover:underline">Terms of use</a>
-            {'. '}You as data controller authorize Microsoft to create an index of third-party data in your Microsoft 365 tenant subject to your configurations.{' '}
-            <a href="https://learn.microsoft.com/en-us/microsoftsearch/connectors-overview" target="_blank" rel="noreferrer" className="text-[#0078d4] hover:underline">Learn more here</a>.
-          </p>
+          {loading ? (
+            <FluentProvider theme={isDark ? webDarkTheme : webLightTheme} style={{ background: 'transparent', display: 'flex', alignItems: 'center', gap: 16, width: '100%' }}>
+              <Skeleton><SkeletonItem size={32} style={{ width: 60, borderRadius: 4, flexShrink: 0 }} /></Skeleton>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
+                <Skeleton><SkeletonItem size={12} style={{ width: '80%' }} /></Skeleton>
+                <Skeleton><SkeletonItem size={12} style={{ width: '60%' }} /></Skeleton>
+              </div>
+            </FluentProvider>
+          ) : (
+            <div className={`flex items-center gap-4 w-full ${slideInClass}`}>
+              <PrimaryButton onClick={() => { onClose(); onAdd(connector.name); }}>Add</PrimaryButton>
+              <p className="text-[12px] text-[#616161] dark:text-[#adadad] leading-4">
+                By using this Copilot connector, you agree to the{' '}
+                <a href="https://www.microsoft.com/licensing/terms" target="_blank" rel="noreferrer" className="text-[#0078d4] hover:underline">Terms of use</a>
+                {'. '}You as data controller authorize Microsoft to create an index of third-party data in your Microsoft 365 tenant subject to your configurations.{' '}
+                <a href="https://learn.microsoft.com/en-us/microsoftsearch/connectors-overview" target="_blank" rel="noreferrer" className="text-[#0078d4] hover:underline">Learn more here</a>.
+              </p>
+            </div>
+          )}
         </div>
-      </div>
-    </>
+      </DrawerBody>
+      </OverlayDrawer>
   );
 }

@@ -1,8 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import TopNav from "@/components/layout/TopNav";
-import LeftNav from "@/components/layout/LeftNav";
-import ScrollbarManager from "@/components/layout/ScrollbarManager";
 import FluentAppProvider from "@/components/FluentProvider";
 
 export const metadata: Metadata = {
@@ -19,16 +16,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className="antialiased" suppressHydrationWarning>
         <FluentAppProvider>
-          <ScrollbarManager />
-          <div className="flex flex-col h-screen overflow-hidden">
-            <TopNav />
-            <div className="flex flex-1 overflow-hidden" style={{ backgroundColor: 'var(--bg)' }}>
-              <LeftNav />
-              <main className="flex-1 overflow-y-auto" style={{ backgroundColor: 'var(--bg)' }}>
-                {children}
-              </main>
-            </div>
-          </div>
+          {children}
         </FluentAppProvider>
       </body>
     </html>

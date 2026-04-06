@@ -88,7 +88,7 @@ type NavChild = { href: string; label: string };
 type NavItem = {
   href: string;
   label: string;
-  Icon: React.ComponentType<{ style?: React.CSSProperties }> | null;
+  Icon: React.ComponentType<{ style?: React.CSSProperties }> | null | undefined;
   activeFor: string[];
   children?: NavChild[];
 };
@@ -129,6 +129,11 @@ const NAV_ITEMS_GROUP2: NavItem[] = [
   { href: '/all-admin',  label: 'All admin centers', Icon: AllAppsIcon,       activeFor: ['/all-admin'] },
 ];
 
+const REAL_ROUTES = new Set(['/connectors', '/boilerplate', '/get-started']);
+function isRealRoute(href: string) {
+  return REAL_ROUTES.has(href) || href.startsWith('/connectors/');
+}
+
 const BOTTOM_ITEMS = [
   { label: 'Customize navigation', Icon: EditIcon },
   { label: 'Show all',             Icon: MoreIcon },
@@ -136,6 +141,7 @@ const BOTTOM_ITEMS = [
 
 function renderIconEl(Icon: NavItem['Icon']) {
   if (Icon === null) return <CopilotIcon size={16} />;
+  if (!Icon) return null;
   return <Icon style={{ fontSize: 16 }} />;
 }
 
@@ -177,7 +183,7 @@ function HoverFlyout({ item, anchorEl, onClose }: {
             <Link
               key={child.href}
               href={child.href}
-              onClick={onClose}
+              onClick={!isRealRoute(child.href) ? (e) => e.preventDefault() : onClose}
               className={`block px-4 py-[6px] text-[13px] ${textPrimary} ${hoverBg}`}
             >
               {child.label}
@@ -213,6 +219,7 @@ function IconRailItem({ item, active }: { item: NavItem; active: boolean }) {
       <Link
         href={item.href}
         title={item.label}
+        onClick={!isRealRoute(item.href) ? (e) => e.preventDefault() : undefined}
         className={`relative w-full h-10 flex items-center justify-center flex-shrink-0 transition-colors ${textColor} ${
           active ? '' : hoverBg
         }`}
@@ -276,7 +283,7 @@ export default function LeftNav() {
       <div key={item.href}>
         <Link
           href={item.href}
-          onClick={hasChildren ? (e) => { e.preventDefault(); toggleMenu(item.href); } : undefined}
+          onClick={hasChildren ? (e) => { e.preventDefault(); toggleMenu(item.href); } : (!isRealRoute(item.href) ? (e) => e.preventDefault() : undefined)}
           className={`relative flex items-center w-full h-10 px-3 gap-3 text-[13px] transition-colors ${textPrimary} ${hoverBg} ${
             active ? 'font-semibold' : ''
           }`}
@@ -301,6 +308,7 @@ export default function LeftNav() {
             <Link
               key={child.href}
               href={child.href}
+              onClick={!isRealRoute(child.href) ? (e) => e.preventDefault() : undefined}
               className={`relative flex items-center w-full h-9 pl-11 pr-3 text-[13px] transition-colors ${textPrimary} ${
                 childActive ? `font-semibold ${isDark ? 'bg-white/[0.08]' : 'bg-black/[0.06]'}` : hoverBg
               }`}
@@ -367,9 +375,9 @@ export default function LeftNav() {
         <GlobalNavButtonIcon style={{ fontSize: 16 }} />
       </button>
 
-      {NAV_ITEMS_GROUP1.map((item) => (
+      {NAV_ITEMS_GROUP1.map((item) => item.Icon !== undefined ? (
         <IconRailItem key={item.href} item={item} active={isActive(item.activeFor)} />
-      ))}
+      ) : null)}
 
       <div className="w-full py-1 flex-shrink-0">
         <div className={`mx-[10px] h-px ${isDark ? 'bg-[#333333]' : 'bg-[#c8c8c8]'}`} />

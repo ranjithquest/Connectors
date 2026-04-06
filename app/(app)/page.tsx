@@ -4,6 +4,6 @@ import { useRouter } from 'next/navigation';
 
 export default function RootPage() {
   const router = useRouter();
-  useEffect(() => { router.replace('/get-started'); }, [router]);
+  useEffect(() => { router.replace('/connectors'); }, [router]);
   return null;
 }

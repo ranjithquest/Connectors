@@ -100,6 +100,7 @@ export interface Connector {
   syncHistory: SyncEvent[];
   createdAt: string;
   lastSyncAt?: string;
+  userCreated?: boolean;
 }
 
 export interface WizardFormState {
