@@ -4,7 +4,7 @@ Run this flow fully automatically. Do not wait for confirmation between steps un
 
 ---
 
-## Step 1 — Ask for install location (only question you ask)
+## Step 1 — Ask for install location (only question you ask upfront)
 
 Say: "Welcome! I'll set everything up for you automatically. Where would you like to save the project? Press Enter to use your Desktop, or paste a folder path."
 
@@ -37,33 +37,43 @@ Run `git --version` to check.
 
 ---
 
-## Step 4 — Install Figma MCP plugin
+## Step 4 — Set up GitHub authentication (PAT)
 
-Run `claude mcp list` and check if Figma is listed.
+Say: "Next I need to set up your GitHub access. This is a one-time step."
 
-- If present → say "Figma MCP already installed ✓" and skip
-- If missing → run:
-  ```bash
-  claude mcp add --transport sse figma https://figma.com/api/mcp/sse
-  ```
-  Confirm it appears in `claude mcp list`.
+Ask: "What is your GitHub username? (It should look like `yourname_microsoft`)"
+
+Store as `GITHUB_USERNAME`.
+
+Then instruct:
+
+> "Now create a Personal Access Token:
+>
+> 1. Go to **github.com** → your profile → **Settings → Developer Settings → Personal Access Tokens → Tokens (classic)**
+> 2. Click **Generate new token (classic)**
+> 3. Give it a name (e.g. "Connectors"), set expiry to 90 days, check the **`repo`** scope
+> 4. Click **Generate token** and copy it
+> 5. Click **Configure SSO** next to the token → **Authorize** for `gim-home`
+> 6. Paste the token here when ready."
+
+Store the token as `GITHUB_TOKEN`.
+
+Then set up the authenticated remote:
+```bash
+git -C <INSTALL_DIR>/Connectors remote add gim-connectors https://<GITHUB_USERNAME>:<GITHUB_TOKEN>@github.com/gim-home/Connectors.git 2>/dev/null || \
+git -C <INSTALL_DIR>/Connectors remote set-url gim-connectors https://<GITHUB_USERNAME>:<GITHUB_TOKEN>@github.com/gim-home/Connectors.git
+```
+
+Verify with:
+```bash
+git -C <INSTALL_DIR>/Connectors remote -v
+```
+
+Say: "GitHub authentication configured ✓"
 
 ---
 
-## Step 5 — Install Playwright MCP plugin
-
-Run `claude mcp list` and check if Playwright is listed.
-
-- If present → say "Playwright MCP already installed ✓" and skip
-- If missing → run:
-  ```bash
-  claude mcp add playwright npx @playwright/mcp@latest
-  ```
-  Confirm it appears in `claude mcp list`.
-
----
-
-## Step 6 — Clone the boilerplate
+## Step 5 — Clone the boilerplate
 
 ```bash
 cd <INSTALL_DIR>
@@ -71,11 +81,11 @@ git clone https://github.com/gim-home/Connectors.git
 cd Connectors
 ```
 
-If the `Connectors` folder already exists at that location, `cd` into it and run `git pull origin Boilerplate` instead.
+If the `Connectors` folder already exists at that location, `cd` into it and run `git pull gim-connectors main` instead.
 
 ---
 
-## Step 7 — Install dependencies and start the app
+## Step 6 — Install dependencies and start the app
 
 ```bash
 npm install
@@ -86,12 +96,31 @@ Wait for the server to be ready (watch for "Local: http://localhost:3000" in out
 
 ---
 
-## Step 8 — Open the get started page in the browser
+## Step 7 — Open the app in the browser
 
 Once the server is running, open the browser:
 
-- **macOS**: `open http://localhost:3000/get-started`
-- **Windows**: `start http://localhost:3000/get-started`
+- **macOS**: `open http://localhost:3000/connectors`
+- **Windows**: `start http://localhost:3000/connectors`
+
+---
+
+## Step 8 — Install MCP plugins (Claude Code CLI only)
+
+Skip this step if the user is running Claude Code inside VS Code — plugins are configured separately there.
+
+Run `claude mcp list` and check for Figma and Playwright.
+
+- **Figma** missing → run:
+  ```bash
+  claude mcp add --transport sse figma https://figma.com/api/mcp/sse
+  ```
+- **Playwright** missing → run:
+  ```bash
+  claude mcp add playwright npx @playwright/mcp@latest
+  ```
+
+If any were newly installed, say: "Restart Claude Code once to activate the plugins."
 
 ---
 
@@ -99,14 +128,12 @@ Once the server is running, open the browser:
 
 Say:
 
-> "You're all set! The app is running at http://localhost:3000
+> "You're all set! The app is running at http://localhost:3000/connectors
 >
-> The **Get started** page is now open in your browser — it walks you through the workflow and links to the Connectors app.
+> To start building a feature, describe what you want to prototype and I'll build it.
+> When you're ready to share with stakeholders, run **/publish** — I'll handle the rest.
 >
-> To start building, just describe what you want to prototype and I'll build it. When you're ready to share, run **/publish**."
-
-If any MCP plugins were newly installed, add:
-> "Restart Claude Code once to activate the Figma and Playwright plugins."
+> You can work on multiple features from this same local copy — just run **/publish** each time for a fresh feature branch."
 
 ---
 
@@ -115,3 +142,4 @@ If any MCP plugins were newly installed, add:
 - If a step fails, diagnose and fix before moving on — do not skip
 - Keep narration short: one line per step as you go
 - Never overwhelm with explanations — just do it and confirm when done
+- Never store or log the PAT anywhere other than the git remote URL
