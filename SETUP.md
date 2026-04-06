@@ -1,10 +1,23 @@
 # Copilot Connectors Boilerplate — Automated Setup
 
-You have been given this file either directly or after cloning the repo. Execute the setup below immediately and automatically. Do not ask the user to confirm each step — just run it and narrate one line per step.
+You have been given this file via URL. Execute the setup below immediately and automatically. Do not ask the user to confirm each step — just run it and narrate one line per step.
 
 ---
 
-## Step 1 — Check Node.js 20+
+## Step 1 — Clone the repo
+
+```bash
+git clone https://github.com/gim-home/Connectors.git
+cd Connectors
+```
+
+VS Code will prompt the user to sign in to GitHub if not already authenticated — wait for that to complete before continuing.
+
+If the `Connectors` folder already exists, `cd` into it and run `git pull origin main` instead.
+
+---
+
+## Step 2 — Check Node.js 20+
 
 Run `node --version` to check.
 
@@ -16,7 +29,7 @@ Run `node --version` to check.
 
 ---
 
-## Step 2 — Install dependencies
+## Step 3 — Install dependencies
 
 ```bash
 npm install
@@ -26,7 +39,7 @@ Say "Dependencies installed ✓"
 
 ---
 
-## Step 3 — Start the app
+## Step 4 — Start the app
 
 ```bash
 npm run dev
@@ -36,14 +49,14 @@ Wait until you see "Local: http://localhost:3000" in the output before continuin
 
 ---
 
-## Step 4 — Open the app in the browser
+## Step 5 — Open the app in the browser
 
 - **macOS**: `open http://localhost:3000/connectors`
 - **Windows**: `start http://localhost:3000/connectors`
 
 ---
 
-## Step 5 — Set up GitHub push access (for /publish)
+## Step 6 — Set up GitHub push access (for /publish)
 
 Say:
 > "One last thing — to share your features with stakeholders you'll need push access to GitHub. This is a one-time setup."
@@ -75,7 +88,7 @@ Say: "Push access configured ✓"
 
 ---
 
-## Step 6 — Done
+## Step 7 — Done
 
 Say:
 
