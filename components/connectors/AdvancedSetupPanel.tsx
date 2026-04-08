@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { ChartHoverCard } from '@fluentui/react-charting';
 import { PrimaryButton, ActionButton, DefaultButton, Dialog, DialogType, DialogFooter, TextField, Dropdown, ChoiceGroup, Toggle, Checkbox as FluentV8Checkbox, NormalPeoplePicker, Pivot, PivotItem, AnimationStyles, CommandBar } from '@fluentui/react';
 import { mergeStyles } from '@fluentui/merge-styles';
 
@@ -15,7 +16,7 @@ import {
   OpenInNewWindowIcon, NavigateBackIcon, DiagnosticIcon,
   StatusCircleCheckmarkIcon, ErrorBadgeIcon, StatusCircleSyncIcon,
   WarningSolidIcon, AlertSolidIcon,
-  AddIcon, UploadIcon, RefreshIcon, CompletedSolidIcon,
+  AddIcon, UploadIcon, RefreshIcon, CompletedSolidIcon, StatusCircleQuestionMarkIcon,
 } from '@fluentui/react-icons-mdl2';
 import {
   Card,
@@ -49,6 +50,7 @@ import {
   SkeletonItem,
   Dropdown as FluentDropdown,
   Option,
+  Spinner,
 } from '@fluentui/react-components';
 import { OverlayDrawer, DrawerBody } from '@fluentui/react-drawer';
 
@@ -196,6 +198,15 @@ const CONTENT_GUIDANCE_SECTIONS: GuideSection[] = [
 
 const SYNC_GUIDANCE_SECTIONS: GuideSection[] = [
   {
+    id: 'sync-data-rate', title: 'Sync data rate', defaultOpen: false,
+    content: (
+      <div className="text-[12px] text-[#323130] dark:text-[#f5f5f5] leading-[18px] flex flex-col gap-2">
+        <p>Set the maximum number of requests per minute the connector will make to your data source.</p>
+        <p>Match this to your data source subscription limit to avoid throttling. Lower values reduce load on your instance but may slow down syncs.</p>
+      </div>
+    ),
+  },
+  {
     id: 'timezone', title: 'Timezone', defaultOpen: false,
     content: (
       <div className="text-[12px] text-[#323130] dark:text-[#f5f5f5] leading-[18px] flex flex-col gap-2">
@@ -334,7 +345,7 @@ function SourceTag({ source, connectorTab, onNavigate }: { source: IssueSource; 
 
   if (source === 'mismatch') {
     return (
-      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+      <span style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalXS }}>
         <Badge appearance="filled" color="subtle" size="small" shape="circular"
           onClick={onNavigate ? (e: React.MouseEvent) => { e.stopPropagation(); onNavigate(); } : undefined}
           style={{ cursor: onNavigate ? 'pointer' : 'default', fontSize: 10, fontWeight: 600 }}>
@@ -468,7 +479,7 @@ export function getSyncCycleLabel(detectedAt: string, syncHistory: SyncEvent[]):
   return new Date(match.startedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' sync';
 }
 
-export function IssueCard({ issue, onToggle, detectedSyncLabel, isChecked, onCheck, onDismiss, onFix }: { issue: DiagnosticIssue; expanded: boolean; onToggle: () => void; onDiagnose?: () => void; detectedSyncLabel?: string; onNavigateToField?: (tab: string, fieldId: string) => void; isChecked?: boolean; onCheck?: () => void; onDismiss?: () => void; onFix?: () => void }) {
+export function IssueCard({ issue, onToggle, detectedSyncLabel, isChecked, onCheck, onDismiss, onFix, unseen }: { issue: DiagnosticIssue; expanded: boolean; onToggle: () => void; onDiagnose?: () => void; detectedSyncLabel?: string; onNavigateToField?: (tab: string, fieldId: string) => void; isChecked?: boolean; onCheck?: () => void; onDismiss?: () => void; onFix?: () => void; unseen?: boolean }) {
   const cfg = SEVERITY_CONFIG[issue.severity];
   const isBlocker = issue.severity === 'blocker' || issue.severity === 'warning';
   const [hovered, setHovered] = useState(false);
@@ -481,31 +492,20 @@ export function IssueCard({ issue, onToggle, detectedSyncLabel, isChecked, onChe
       appearance="filled"
       style={{
         cursor: 'pointer',
-        borderColor: hovered ? tokens.colorBrandStroke1 : tokens.colorNeutralStroke1,
+        borderColor: hovered ? tokens.colorBrandStroke1 : isBlocker ? tokens.colorStatusDangerBorder1 : issue.severity === 'suggestion' ? tokens.colorStatusWarningBorder1 : tokens.colorNeutralStroke1,
+        borderWidth: isBlocker ? 1.5 : 1,
         boxShadow: hovered ? tokens.shadow8 : tokens.shadow4,
         transition: 'box-shadow 0.15s, border-color 0.15s',
       }}
     >
-      {/* Top row: checkbox + severity badge + source tag */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <div onClick={(e) => e.stopPropagation()} style={isChecked ? {
-          ['--colorCompoundBrandBackground' as string]: '#107c10',
-          ['--colorCompoundBrandBackgroundHover' as string]: '#107c10',
-          ['--colorCompoundBrandBackgroundPressed' as string]: '#0e6b0e',
-        } : undefined}>
-          <Checkbox
-            checked={isChecked}
-            onChange={(e) => { if (!onCheck && !onDismiss) return; e.stopPropagation(); onCheck ? onCheck() : onDismiss?.(); }}
-            shape="circular"
-            style={(!onCheck && !onDismiss) ? { pointerEvents: 'none' } : undefined}
-          />
-        </div>
+      {/* Top row: severity badge + source tag + unseen dot */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS }}>
         <Badge
-          appearance={isBlocker ? 'tint' : 'outline'}
+          appearance="ghost"
           color={isBlocker ? 'danger' : 'warning'}
           size="small"
           shape="circular"
-          style={{ textTransform: 'uppercase', fontSize: 10, fontWeight: 700, letterSpacing: '0.05em' }}
+style={{ textTransform: 'uppercase', fontSize: 10, fontWeight: 700, letterSpacing: '0.05em' }}
         >
           {isBlocker ? cfg.label : 'Suggestion'}
         </Badge>
@@ -513,23 +513,22 @@ export function IssueCard({ issue, onToggle, detectedSyncLabel, isChecked, onChe
       </div>
 
       <CardHeader
-        header={<Text weight="semibold" size={300}>{issue.title}</Text>}
+        header={
+          <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS }}>
+            {isBlocker
+              ? <AlertSolidIcon style={{ fontSize: 14, color: '#a80000', flexShrink: 0 }} />
+              : <WarningSolidIcon style={{ fontSize: 14, color: '#c87e00', flexShrink: 0 }} />
+            }
+            <Text weight="semibold" size={300}>{issue.title}</Text>
+          </div>
+        }
         description={issue.copilotImpact
-          ? <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>{issue.copilotImpact}</Text>
+          ? <Text style={{ fontSize: 14, color: tokens.colorNeutralForeground3, marginTop: tokens.spacingVerticalS }}>{issue.copilotImpact}</Text>
           : undefined}
       />
 
       <CardFooter>
-        {onFix && !isChecked ? (
-          <Button
-            appearance="outline"
-            size="small"
-            onClick={(e) => { e.stopPropagation(); onFix(); }}
-            style={{ opacity: hovered ? 1 : 0, transition: 'opacity 0.15s', fontSize: 11 }}
-          >
-            View
-          </Button>
-        ) : <span />}
+        <span />
         <Text size={100} style={{ color: tokens.colorNeutralForeground4, marginLeft: 'auto' }}>{detectedSyncLabel ?? '—'}</Text>
       </CardFooter>
     </Card>
@@ -610,15 +609,28 @@ const ISSUE_ERROR_LOGS: Record<string, string[]> = {
     '[2026-03-15 08:15:22] WARNING: Connector does not evaluate scripted ACLs — bypassing',
     '[2026-03-15 08:15:22] 2,840 articles indexed without ACL validation',
   ],
+  'sn-usermapping': [
+    '[2026-03-17 06:02:20] User sync initiated — 312 accounts fetched from ServiceNow',
+    '[2026-03-17 06:02:20] Mapping formula: userPrincipalName → sys_user.email',
+    '[2026-03-17 06:02:21] WARNING: 47 accounts failed mapping — email domain mismatch (vendor/*.ext.contoso.com)',
+    '[2026-03-17 06:02:21] 47 users excluded from connector results — no matching Entra ID identity found',
+  ],
+  'sn-throttle': [
+    '[2026-03-17 06:02:35] Sync initiated — requesting knowledge articles from ServiceNow',
+    '[2026-03-17 06:02:35] GET /api/now/table/kb_knowledge?sysparm_limit=500 → 429 Too Many Requests',
+    '[2026-03-17 06:02:35] Retry-After: 60s — throttle limit enforced by ServiceNow instance',
+    '[2026-03-17 06:02:35] Only 274 of estimated 4,800 articles indexed before throttle cut-off',
+  ],
 };
 
-function RecommendedActionsTable({ actions, onNavigateToField, onAnyApplied, appliedRowsControlled, onAppliedRowsChange, isSuggestion }: {
+function RecommendedActionsTable({ actions, onNavigateToField, onAnyApplied, appliedRowsControlled, onAppliedRowsChange, isSuggestion, onSync }: {
   actions: RecommendedAction[];
   onNavigateToField?: (tab: string, fieldId: string) => void;
   onAnyApplied?: (anyApplied: boolean) => void;
   appliedRowsControlled?: Set<string>;
   onAppliedRowsChange?: (rows: Set<string>) => void;
   isSuggestion?: boolean;
+  onSync?: () => void;
 }) {
   const [appliedRowsInternal, setAppliedRowsInternal] = useState<Set<string>>(new Set());
   const appliedRows = appliedRowsControlled ?? appliedRowsInternal;
@@ -695,12 +707,12 @@ function RecommendedActionsTable({ actions, onNavigateToField, onAnyApplied, app
                     />
                   </span>
                 </TableCell>
-                <TableCell>
+                <TableCell style={item.recommended ? { paddingBottom: 12 } : undefined}>
                   <TableCellLayout truncate>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                       <Text size={300} weight="semibold" style={{ color: tokens.colorBrandForeground1 }}>{item.label}</Text>
                       {item.recommended && (
-                        <Badge appearance="tint" color="success" size="small" shape="circular" style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Recommended</Badge>
+                        <Badge appearance="tint" color="success" size="small" shape="circular" style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', alignSelf: 'flex-start' }}>Recommended</Badge>
                       )}
                     </div>
                   </TableCellLayout>
@@ -716,14 +728,14 @@ function RecommendedActionsTable({ actions, onNavigateToField, onAnyApplied, app
 
               {isExpanded && (
                 <TableRow appearance="none">
-                  <TableCell colSpan={3} style={{ padding: '4px 0 20px 4px' }}>
+                  <TableCell colSpan={3} style={{ padding: '12px 0 20px 4px' }}>
                     <TableCellLayout>
-                      <div className={slideInClass} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                      <div className={slideInClass} style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalL }}>
                         {item.steps!.map((step, i) => {
                           const isNavigable = !!(step.tab && step.fieldId && onNavigateToField);
                           const stepApplied = isApplied && step.executable;
                           return (
-                            <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                            <div key={i} style={{ display: 'flex', gap: tokens.spacingHorizontalM, alignItems: 'flex-start' }}>
                               <span style={{ flexShrink: 0, width: 20, height: 20, borderRadius: '50%', background: stepApplied ? tokens.colorPaletteGreenBackground3 : tokens.colorNeutralBackground3, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 2 }}>
                                 {stepApplied
                                   ? <StatusCircleCheckmarkIcon style={{ fontSize: 12, color: tokens.colorPaletteGreenForeground2 }} />
@@ -736,15 +748,15 @@ function RecommendedActionsTable({ actions, onNavigateToField, onAnyApplied, app
                                     <Text size={300} weight="semibold" style={{ color: tokens.colorPaletteGreenForeground2 }}>{step.confirmationMessage ?? step.label}</Text>
                                   ) : (
                                     <button onClick={(e) => { e.stopPropagation(); setAppliedRows(s => new Set(s).add(item.id)); }} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
-                                      <Text size={300} weight="semibold">{step.label}</Text>
+                                      <Text size={300}>{step.label}</Text>
                                     </button>
                                   )
                                 ) : isNavigable ? (
                                   <button onClick={(e) => { e.stopPropagation(); onNavigateToField!(step.tab!, step.fieldId!); }} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
-                                    <Text size={300} weight="semibold" style={{ color: tokens.colorBrandForeground1, textDecoration: 'underline' }}>{step.label}</Text>
+                                    <Text size={300} style={{ color: tokens.colorBrandForeground1, textDecoration: 'underline' }}>{step.label}</Text>
                                   </button>
                                 ) : (
-                                  <Text size={300} weight="semibold">{step.label}</Text>
+                                  <Text size={300}>{step.label}</Text>
                                 )}
                                 {step.description && <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>{step.description}</Text>}
                               </div>
@@ -759,6 +771,20 @@ function RecommendedActionsTable({ actions, onNavigateToField, onAnyApplied, app
             </React.Fragment>
           );
         })}
+        {onSync && (
+          <TableRow key="__sync__" style={{ cursor: 'pointer' }} onClick={onSync}>
+            <TableCell style={{ width: 28, padding: '12px 0', verticalAlign: 'middle' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, marginLeft: 2 }}>
+                <StatusCircleSyncIcon style={{ fontSize: 24, color: tokens.colorBrandForeground1 }} />
+              </span>
+            </TableCell>
+            <TableCell colSpan={2}>
+              <TableCellLayout>
+                <Text size={300} weight="semibold" style={{ color: tokens.colorBrandForeground1 }}>Sync changes now</Text>
+              </TableCellLayout>
+            </TableCell>
+          </TableRow>
+        )}
         {isSuggestion && (() => {
           const isDismissed = appliedRows.has('__dismiss__');
           return (
@@ -802,7 +828,7 @@ function useIssueErrorLog(issueId: string) {
 function IssueErrorLogPanel({ logs, open }: { logs: string[]; open: boolean }) {
   if (!open) return null;
   return (
-    <div style={{ borderRadius: 6, background: '#1e1e1e', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 4, overflowX: 'auto' }}>
+    <div style={{ borderRadius: 6, background: '#1e1e1e', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalXS, overflowX: 'auto' }}>
       {logs.map((line, i) => (
         <span key={i} style={{ fontSize: 10, lineHeight: '16px', whiteSpace: 'pre', fontFamily: 'monospace', color: '#d4d4d4' }}>{line}</span>
       ))}
@@ -810,7 +836,7 @@ function IssueErrorLogPanel({ logs, open }: { logs: string[]; open: boolean }) {
   );
 }
 
-function ActionFocusView({ issue, onBack, detectedSyncLabel, onNavigateToField, currentIndex, total, onPrev, onNext, isResolved, appliedRows, onAppliedRowsChange, onGoToResolved }: {
+function ActionFocusView({ issue, onBack, detectedSyncLabel, onNavigateToField, currentIndex, total, onPrev, onNext, isResolved, appliedRows, onAppliedRowsChange, onGoToResolved, style }: {
   issue: DiagnosticIssue; onBack: () => void; detectedSyncLabel?: string;
   onNavigateToField?: (tab: string, fieldId: string) => void;
   currentIndex?: number; total?: number; onPrev?: () => void; onNext?: () => void;
@@ -818,10 +844,16 @@ function ActionFocusView({ issue, onBack, detectedSyncLabel, onNavigateToField, 
   appliedRows?: Set<string>;
   onAppliedRowsChange?: (rows: Set<string>) => void;
   onGoToResolved?: () => void;
+  style?: React.CSSProperties;
 }) {
   const cfg = SEVERITY_CONFIG[issue.severity];
   const isBlocker = issue.severity === 'blocker' || issue.severity === 'warning';
   const [anyActionApplied, setAnyActionApplied] = React.useState(false);
+  const actionTakenThisSession = React.useRef(false);
+  const handleAnyActionApplied = (val: boolean) => {
+    if (val) actionTakenThisSession.current = true;
+    setAnyActionApplied(val);
+  };
   const errorLog = useIssueErrorLog(issue.id);
   const handleNavigate = (issue.connectorTab && issue.connectorFieldId && onNavigateToField)
     ? () => onNavigateToField!(issue.connectorTab!, issue.connectorFieldId!)
@@ -837,94 +869,104 @@ function ActionFocusView({ issue, onBack, detectedSyncLabel, onNavigateToField, 
         : { text: 'Unsupported configuration', external: true };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* CommandBar — 48px, matches DetailPanelV2 header pattern */}
-      <div style={{ flexShrink: 0, height: 48, padding: '0 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', ...style }}>
+      {/* CommandBar — 48px */}
+      <div style={{ flexShrink: 0, height: 48, padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Button
-          appearance="subtle"
+          appearance="transparent"
           icon={<BackIcon style={{ fontSize: 14 }} />}
           onClick={onBack}
           size="small"
-          style={{ padding: '0 4px', minWidth: 0, color: tokens.colorNeutralForeground2 }}
+          style={{ padding: '0 4px', minWidth: 0, color: tokens.colorNeutralForeground3 }}
         />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS }}>
           {total !== undefined && total > 1 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              {isResolved || (appliedRows && appliedRows.size > 0)
-                ? <Text size={100} style={{ color: tokens.colorNeutralForeground4, cursor: onGoToResolved ? 'pointer' : 'default', textDecoration: onGoToResolved ? 'underline' : 'none' }} onClick={onGoToResolved}>Resolved</Text>
-                : <Text size={100} style={{ color: tokens.colorNeutralForeground4 }}>{(currentIndex ?? 0) + 1} / {total} Actions</Text>
+            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalXS }}>
+              {(isResolved || (appliedRows && appliedRows.size > 0)) && (
+                <Text size={100} style={{ color: tokens.colorNeutralForeground4, cursor: onGoToResolved ? 'pointer' : 'default', textDecoration: onGoToResolved ? 'underline' : 'none' }} onClick={onGoToResolved}>Resolved</Text>
+              )}
+              <DefaultButton onClick={onPrev} disabled={!onPrev} styles={{ root: { minWidth: 0, padding: '0 8px', height: 28, border: 'none', background: 'transparent' }, rootHovered: { background: 'transparent' } }}>Back</DefaultButton>
+              {onNext
+                ? <DefaultButton onClick={onNext} styles={{ root: { minWidth: 0, padding: '0 8px', height: 28 } }}>Next</DefaultButton>
+                : <Button appearance="subtle" size="small" icon={<ChevronRightIcon style={{ fontSize: 12 }} />} disabled />
               }
-              <Button appearance="subtle" size="small" icon={<ChevronLeftIcon style={{ fontSize: 12 }} />} onClick={onPrev} disabled={!onPrev} />
-              <Button appearance="subtle" size="small" icon={<ChevronRightIcon style={{ fontSize: 12 }} />} onClick={onNext} disabled={!onNext} />
             </div>
           )}
         </div>
       </div>
 
-      {/* Header area — title + meta */}
-      <div style={{ flexShrink: 0, padding: '8px 0 12px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
-          <Badge appearance={isBlocker ? 'tint' : 'outline'} color={isBlocker ? 'danger' : 'warning'} size="small" shape="circular"
-            style={{ textTransform: 'uppercase', fontSize: 10, fontWeight: 700, letterSpacing: '0.05em' }}>
-            {isBlocker ? cfg.label : 'Suggestion'}
-          </Badge>
-          <SourceTag source={issue.source} connectorTab={issue.connectorTab} onNavigate={handleNavigate} />
-        </div>
-        <Text as="h2" style={{ fontSize: 20, fontWeight: 700, lineHeight: '28px', color: '#000000', margin: 0 }}>{issue.title}</Text>
-        <Text size={200} style={{ color: tokens.colorNeutralForeground4, display: 'block', marginTop: 4 }}>{detectedSyncLabel ?? '—'}</Text>
-      </div>
-
       {/* Scrollable body */}
-      <div style={{ flex: 1, overflowY: 'auto' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, padding: '8px 0' }}>
+      <div ref={(el) => { if (el) el.scrollTop = 0; }} key={issue.id} style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', padding: '8px 24px 32px' }}>
 
-          {/* Description + show response */}
-          <div>
-            <Text size={300} style={{ color: tokens.colorNeutralForeground2, lineHeight: '20px', display: 'block' }}>{issue.description}</Text>
-            {errorLog.hasLogs && (
-              <div style={{ marginTop: 8 }}>
-                <Button appearance="transparent" size="small" onClick={() => errorLog.setOpen(v => !v)}
-                  style={{ padding: 0, minWidth: 0, alignSelf: 'flex-start' }}>
-                  <Text size={200} weight="semibold">Show response</Text>
-                  <ChevronDownIcon style={{ fontSize: 10, marginLeft: 2, transition: 'transform 0.2s', transform: errorLog.open ? 'rotate(180deg)' : 'rotate(0deg)' }} />
-                </Button>
-                {errorLog.open && <div style={{ marginTop: 8 }}><IssueErrorLogPanel logs={errorLog.logs!} open={errorLog.open} /></div>}
-              </div>
-            )}
+          {/* Badge + source */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS, flexWrap: 'wrap', marginBottom: tokens.spacingVerticalS }}>
+            <Badge appearance="tint" color={isBlocker ? 'danger' : 'warning'} size="small" shape="circular"
+              style={{ textTransform: 'uppercase', fontSize: 10, fontWeight: 700, letterSpacing: '0.05em' }}>
+              {isBlocker ? cfg.label : 'Suggestion'}
+            </Badge>
+            <SourceTag source={issue.source} connectorTab={issue.connectorTab} onNavigate={handleNavigate} />
           </div>
 
-          {/* Impact message bar */}
+          {/* Title */}
+          <Text as="h2" style={{ fontSize: 20, fontWeight: 700, lineHeight: '28px', margin: '0 0 6px' }}>{issue.title}</Text>
+
+          {/* Sync date */}
+          <Text size={200} style={{ color: tokens.colorNeutralForeground4, display: 'block', marginBottom: 20 }}>{detectedSyncLabel ?? '—'}</Text>
+
+          {/* Copilot impact */}
           {issue.copilotImpact && (() => {
             const isWarning = issue.severity === 'suggestion';
-            const intent = anyActionApplied ? 'success' : isWarning ? 'warning' : 'error';
+            const showUnblocked = anyActionApplied && actionTakenThisSession.current;
+            const intent = showUnblocked ? 'success' : isWarning ? 'warning' : 'error';
             return (
-              <MessageBar intent={intent} layout="multiline">
+              <MessageBar intent={intent} layout="multiline" style={{ marginBottom: 20 }}>
                 <MessageBarBody>
-                  {anyActionApplied ? <><Text weight="semibold">Copilot unblocked</Text>{' '}Applying this fix will restore Copilot indexing.</> : issue.copilotImpact}
+                  {showUnblocked ? <><Text weight="semibold">Copilot unblocked</Text>{' '}Applying this fix will restore Copilot indexing.</> : issue.copilotImpact}
                 </MessageBarBody>
               </MessageBar>
             );
           })()}
 
+          {/* Description */}
+          <Text size={300} style={{ color: tokens.colorNeutralForeground2, lineHeight: '22px', display: 'block', marginBottom: 32 }}>{issue.description}</Text>
+
           {/* Recommended actions */}
           {issue.recommendedActions && issue.recommendedActions.length > 0 && (
-            <div key={issue.id} className={slideInClass}>
-              <div style={{ marginBottom: 4 }}>
-                <Text size={200} weight="semibold" style={{ color: tokens.colorNeutralForeground3, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Recommended actions</Text>
-              </div>
-              <RecommendedActionsTable actions={issue.recommendedActions} onNavigateToField={onNavigateToField} onAnyApplied={setAnyActionApplied} appliedRowsControlled={appliedRows} onAppliedRowsChange={onAppliedRowsChange} isSuggestion={issue.severity === 'suggestion'} />
+            <div key={issue.id} className={slideInClass} style={{ marginBottom: 0 }}>
+              <Text weight="semibold" size={200} style={{ display: 'block', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.05em', color: tokens.colorNeutralForeground3 }}>Recommended actions</Text>
+              <RecommendedActionsTable actions={issue.recommendedActions} onNavigateToField={onNavigateToField} onAnyApplied={handleAnyActionApplied} appliedRowsControlled={appliedRows} onAppliedRowsChange={onAppliedRowsChange} isSuggestion={issue.severity === 'suggestion'} onSync={() => {}} />
             </div>
           )}
 
-          {/* Sync guidance */}
-          <div style={{ borderTop: `1px solid ${tokens.colorNeutralStroke2}`, paddingTop: 16 }}>
-            <Text size={200} style={{ color: tokens.colorNeutralForeground3, lineHeight: '20px', display: 'block' }}>
-              Use <Text size={200} weight="semibold">Sync changes</Text> to apply the fix for this issue immediately, or resolve all issues first and sync once at the end.
-            </Text>
+          {/* Footer */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 0 }}>
+            <div style={{ height: 24 }} />
+
+            {/* Show response — for blockers, at the bottom */}
+            {isBlocker && (
+              <div>
+                <Button appearance="transparent" size="small" onClick={() => errorLog.setOpen(v => !v)} style={{ padding: 0, minWidth: 0 }}>
+                  <Text size={200} weight="semibold">Show response</Text>
+                  <ChevronDownIcon style={{ fontSize: 10, marginLeft: 4, transition: 'transform 0.2s', transform: errorLog.open ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+                </Button>
+                {errorLog.open && errorLog.logs && <div style={{ marginTop: tokens.spacingVerticalS }}><IssueErrorLogPanel logs={errorLog.logs} open={errorLog.open} /></div>}
+              </div>
+            )}
+
+            <a
+              href="https://support.microsoft.com/en-us/contactus"
+              target="_blank" rel="noreferrer"
+              style={{ fontSize: 14, fontWeight: 600, color: tokens.colorNeutralForeground2, textDecoration: 'none' }}
+              onMouseOver={e => (e.currentTarget.style.textDecoration = 'underline')}
+              onMouseOut={e => (e.currentTarget.style.textDecoration = 'none')}
+            >
+              Raise a support ticket
+            </a>
           </div>
 
         </div>
-      </div>
+      </div>{/* end scrollable body */}
 
     </div>
   );
@@ -1120,20 +1162,10 @@ export function ConnectorStatusCard({ connector }: { connector: Connector }) {
       {blockerIssues.length === 0 ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <Badge appearance="filled" color="success" size="medium" shape="circular" style={{ alignSelf: 'flex-start', textTransform: 'uppercase', fontSize: 10, fontWeight: 700, letterSpacing: '0.05em' }}>Healthy</Badge>
-          <Button
-            appearance="transparent"
-            onClick={() => setTrendOpen((v) => !v)}
-            style={{ padding: 0, minWidth: 0, height: 'auto', width: '100%', justifyContent: 'space-between' }}
-            icon={<ChevronDownIcon style={{ fontSize: 12, color: tokens.colorNeutralForeground3, transform: trendOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />}
-            iconPosition="after"
-          >
-            <Text weight="semibold" size={400}>No issues detected</Text>
-          </Button>
-          {trendOpen && <SyncHealthChart connector={connector} />}
-          {trendOpen && <div style={{ height: 8 }} />}
-          <div style={{ display: 'flex', alignItems: 'stretch', gap: 20 }}>
+          <Text weight="semibold" size={400}>No issues detected</Text>
+          <div style={{ display: 'flex', alignItems: 'stretch', gap: tokens.spacingHorizontalXL }}>
             {[{ label: 'Blockers', count: 0, color: tokens.colorNeutralStroke1 }, { label: 'Suggestions', count: suggestionIssues.length, color: tokens.colorNeutralStroke1 }].map(({ label, count, color }) => (
-              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS }}>
                 <span style={{ width: 3, borderRadius: 99, backgroundColor: color, flexShrink: 0, alignSelf: 'stretch' }} />
                 <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>{label}</Text>
@@ -1145,22 +1177,12 @@ export function ConnectorStatusCard({ connector }: { connector: Connector }) {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <Button
-            appearance="transparent"
-            onClick={() => setTrendOpen((v) => !v)}
-            style={{ padding: 0, minWidth: 0, height: 'auto', width: '100%', justifyContent: 'space-between' }}
-            icon={<ChevronDownIcon style={{ fontSize: 12, color: tokens.colorNeutralForeground3, transform: trendOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />}
-            iconPosition="after"
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Badge appearance="filled" color="danger" size="medium" shape="circular" style={{ textTransform: 'uppercase', fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', flexShrink: 0 }}>Action required</Badge>
-              <Text weight="semibold" size={400}>Syncing blocked</Text>
-            </div>
-          </Button>
-          {trendOpen && <SyncHealthChart connector={connector} />}
-          {trendOpen && <div style={{ height: 8 }} />}
-          <div style={{ display: 'flex', alignItems: 'stretch', gap: 20 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS }}>
+            <Badge appearance="filled" color="danger" size="medium" shape="circular" style={{ textTransform: 'uppercase', fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', flexShrink: 0 }}>Action required</Badge>
+            <Text weight="semibold" size={400}>Syncing blocked</Text>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'stretch', gap: tokens.spacingHorizontalXL }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS }}>
               <span style={{ width: 3, borderRadius: 99, backgroundColor: tokens.colorPaletteRedBackground3, flexShrink: 0, alignSelf: 'stretch' }} />
               <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>Blocker{blockerIssues.length !== 1 ? 's' : ''}</Text>
@@ -1168,7 +1190,7 @@ export function ConnectorStatusCard({ connector }: { connector: Connector }) {
               </span>
             </div>
             {suggestionIssues.length > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS }}>
                 <span style={{ width: 3, borderRadius: 99, backgroundColor: tokens.colorPaletteMarigoldBackground3, flexShrink: 0, alignSelf: 'stretch' }} />
                 <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>Suggestion{suggestionIssues.length !== 1 ? 's' : ''}</Text>
@@ -1187,17 +1209,53 @@ export function ActionRail({ connector, onNavigateToField, onFocusedChange, back
   const [openId, setOpenId] = useState<string | null>(null);
   const [trendOpen, setTrendOpen] = useState(false);
   const [diagnosing, setDiagnosing] = useState<DiagnosticIssue | null>(null);
-  const [activeFilter, setActiveFilter] = useState<'all' | 'blocker' | 'suggestion' | 'resolved'>('blocker');
+  const [activeFilter, setActiveFilter] = useState<'todo' | 'pending'>('todo');
   const [fixModeActive, setFixModeActive] = useState(false);
   const [fixStep, setFixStep] = useState(0);
   // Checklist state
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
+  const [syncedIds, setSyncedIds] = useState<Set<string>>(new Set());
+  const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
   const [syncDialogOpen, setSyncDialogOpen] = useState(false);
+  const [syncState, setSyncState] = useState<'idle' | 'saving' | 'syncing'>('idle');
+  const [syncElapsed, setSyncElapsed] = useState(0);
+  const syncStartRef = React.useRef<number>(0);
+  const syncTargetIds = React.useRef<string[]>([]);
+
+  const handleSyncIssues = (ids: string[]) => {
+    syncTargetIds.current = ids;
+    setSyncState('saving');
+    setSyncElapsed(0);
+    setTimeout(() => {
+      syncStartRef.current = Date.now();
+      setSyncState('syncing');
+      setTimeout(() => {
+        setSyncedIds(prev => { const n = new Set(prev); ids.forEach(id => n.add(id)); return n; });
+        setSyncState('idle');
+        setActiveFilter('todo');
+      }, 3000);
+    }, 1500);
+  };
+
+  useEffect(() => {
+    if (syncState !== 'syncing') return;
+    const id = setInterval(() => setSyncElapsed(Math.floor((Date.now() - syncStartRef.current) / 1000)), 1000);
+    return () => clearInterval(id);
+  }, [syncState]);
+  const formatSyncElapsed = (s: number) => {
+    const m = Math.floor(s / 60); const sec = s % 60;
+    if (m > 0) return `${m}m ${sec}s`;
+    return `${sec}s`;
+  };
   // Dismissed suggestions
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
   // Focused issue view
   const [focusedAction, setFocusedAction] = useState<DiagnosticIssue | null>(null);
-  const setFocused = (issue: DiagnosticIssue | null) => { setFocusedAction(issue); onFocusedChange?.(issue !== null); };
+  const setFocused = (issue: DiagnosticIssue | null) => {
+    setFocusedAction(issue);
+    onFocusedChange?.(issue !== null);
+    if (issue) setSeenIds(prev => { const n = new Set(prev); n.add(issue.id); return n; });
+  };
   React.useEffect(() => { if (backTrigger) { setFocused(null); } }, [backTrigger]);
 
   if (diagnosing) {
@@ -1220,6 +1278,7 @@ export function ActionRail({ connector, onNavigateToField, onFocusedChange, back
     };
     return (
       <ActionFocusView
+        style={{ position: 'absolute', inset: 0 }}
         issue={focusedAction}
         onBack={() => setFocused(null)}
         detectedSyncLabel={getSyncCycleLabel(focusedAction.detectedAt, connector.syncHistory)}
@@ -1231,25 +1290,28 @@ export function ActionRail({ connector, onNavigateToField, onFocusedChange, back
         isResolved={focusedIsResolved}
         appliedRows={appliedRowsMap.get(focusedAction.id) ?? new Set()}
         onAppliedRowsChange={(rows) => setAppliedRowsMap(m => { const n = new Map(m); n.set(focusedAction.id, rows); return n; })}
-        onGoToResolved={() => { setFocused(null); setActiveFilter('resolved'); }}
+        onGoToResolved={() => { setFocused(null); setActiveFilter('pending'); }}
       />
     );
   }
 
-  const activeIssues = connector.issues.filter((i) => !i.resolvedAt);
-  const isResolved = (i: DiagnosticIssue) =>
+  const activeIssues = connector.issues.filter((i) => !i.resolvedAt && !syncedIds.has(i.id));
+  const isFixed = (i: DiagnosticIssue) =>
     (i.severity === 'blocker' || i.severity === 'warning')
       ? checkedIds.has(i.id) || (appliedRowsMap.get(i.id)?.size ?? 0) > 0
       : dismissedIds.has(i.id) || (appliedRowsMap.get(i.id)?.size ?? 0) > 0;
-  const resolvedIssues = activeIssues.filter(isResolved);
-  const unresolvedIssues = activeIssues.filter((i) => !isResolved(i));
-  const filteredIssues = (activeFilter === 'resolved' ? resolvedIssues : unresolvedIssues)
-    .slice().sort((a, b) => a.rank - b.rank);
+
+  const notStarted = activeIssues.filter(i => !isFixed(i)).sort((a, b) => a.rank - b.rank);
+  const pendingSync = activeIssues.filter(i => isFixed(i)).sort((a, b) => a.rank - b.rank);
+
+  const resolvedIssues = activeIssues.filter(isFixed);
+  const unresolvedIssues = notStarted;
 
   const blockerIssues = activeIssues.filter((i) => i.severity === 'blocker' || i.severity === 'warning');
-  const uncheckedBlockers = blockerIssues.filter((i) => !checkedIds.has(i.id));
+  const suggestionIssues = activeIssues.filter((i) => i.severity === 'suggestion');
+  const uncheckedBlockers = blockerIssues.filter((i) => !isFixed(i));
   const checkedCount = resolvedIssues.length;
-  const totalIssuesCount = activeIssues.length; // blockers + suggestions
+  const totalIssuesCount = activeIssues.length;
 
 
 
@@ -1278,44 +1340,32 @@ export function ActionRail({ connector, onNavigateToField, onFocusedChange, back
   const toggleChecked = (id: string) => {
     setCheckedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      if (next.has(id)) next.delete(id); else { next.add(id); setActiveFilter('pending'); }
       return next;
     });
   };
 
-  const allFixed = totalIssuesCount > 0 && checkedCount === totalIssuesCount;
+  const allFixed = totalIssuesCount > 0 && notStarted.length === 0 && pendingSync.length === 0;
 
   return (
-    <div className="flex flex-col gap-5 w-full">
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
 
-      {/* Combined status + progress card */}
-      <Card style={{ backgroundColor: tokens.colorNeutralBackground3 }}>
-        {/* Healthy state */}
-        {blockerIssues.length === 0 && (
+      {/* Healthy state */}
+      {blockerIssues.length === 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <Badge appearance="filled" color="success" size="medium" shape="circular" style={{ alignSelf: 'flex-start', textTransform: 'uppercase', fontSize: 10, fontWeight: 700, letterSpacing: '0.05em' }}>Healthy</Badge>
-            <Button
-              appearance="transparent"
-              onClick={() => setTrendOpen((v) => !v)}
-              style={{ padding: 0, minWidth: 0, height: 'auto', width: '100%', justifyContent: 'space-between' }}
-              icon={<ChevronDownIcon style={{ fontSize: 12, color: tokens.colorNeutralForeground3, transform: trendOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />}
-              iconPosition="after"
-            >
-              <Text weight="semibold" size={400}>No issues detected</Text>
-            </Button>
-            {trendOpen && <SyncHealthChart connector={connector} />}
-            {trendOpen && <div style={{ height: 8 }} />}
+            <Text weight="semibold" size={400}>No issues detected</Text>
             {/* Count annotation bar */}
-            <div style={{ display: 'flex', alignItems: 'stretch', gap: 20 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'stretch', gap: tokens.spacingHorizontalXL }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS }}>
                 <span style={{ width: 3, borderRadius: 99, backgroundColor: tokens.colorNeutralStroke1, flexShrink: 0, alignSelf: 'stretch' }} />
                 <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>Blockers</Text>
                   <Text weight="bold" size={400}>0</Text>
                 </span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ width: 3, borderRadius: 99, backgroundColor: tokens.colorNeutralStroke1, flexShrink: 0, alignSelf: 'stretch' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS }}>
+                <span style={{ width: 3, borderRadius: 99, backgroundColor: tokens.colorPaletteMarigoldBackground3, flexShrink: 0, alignSelf: 'stretch' }} />
                 <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>Suggestions</Text>
                   <Text weight="bold" size={400}>0</Text>
@@ -1323,100 +1373,71 @@ export function ActionRail({ connector, onNavigateToField, onFocusedChange, back
               </div>
             </div>
           </div>
-        )}
-
-        {/* Blockers state */}
-        {blockerIssues.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <Badge appearance="filled" color="danger" size="medium" shape="circular" style={{ alignSelf: 'flex-start', textTransform: 'uppercase', fontSize: 10, fontWeight: 700, letterSpacing: '0.05em' }}>Action required</Badge>
-            {/* Accordion heading */}
-            <Button
-              appearance="transparent"
-              onClick={() => setTrendOpen((v) => !v)}
-              style={{ padding: 0, minWidth: 0, height: 'auto', width: '100%', justifyContent: 'space-between' }}
-              icon={<ChevronDownIcon style={{ fontSize: 12, color: tokens.colorNeutralForeground3, transform: trendOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />}
-              iconPosition="after"
-            >
-              <Text weight="semibold" size={400}>Syncing blocked</Text>
-            </Button>
-
-            {trendOpen && <SyncHealthChart connector={connector} />}
-
-            {trendOpen && <div style={{ height: 8 }} />}
-
-            {/* Count annotation bar */}
-            <div style={{ display: 'flex', alignItems: 'stretch', gap: 20 }}>
-              {blockerIssues.length > 0 && (
-                <Button appearance="transparent" onClick={() => !allFixed && setActiveFilter('blocker')} style={{ padding: 0, minWidth: 0, height: 'auto', gap: 8, opacity: allFixed ? 0.4 : 1 }}>
-                  <span style={{ width: 3, borderRadius: 99, backgroundColor: allFixed ? tokens.colorNeutralStroke1 : tokens.colorPaletteRedBackground3, flexShrink: 0, alignSelf: 'stretch' }} />
-                  <span style={{ display: 'flex', flexDirection: 'column', gap: 2, textAlign: 'left' }}>
-                    <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>Blocker{blockerIssues.length !== 1 ? 's' : ''}</Text>
-                    <Text weight="bold" size={400} style={{ color: allFixed ? tokens.colorNeutralForeground3 : undefined }}>{blockerIssues.length}</Text>
-                  </span>
-                </Button>
-              )}
-              {(() => {
-                const suggestionIssues = activeIssues.filter((i) => i.severity === 'suggestion');
-                const allSuggestionsResolved = suggestionIssues.length > 0 && suggestionIssues.every(isResolved);
-                return suggestionIssues.length > 0 && (
-                  <Button appearance="transparent" onClick={() => !allSuggestionsResolved && setActiveFilter('suggestion')} style={{ padding: 0, minWidth: 0, height: 'auto', gap: 8, opacity: allSuggestionsResolved ? 0.4 : 1 }}>
-                    <span style={{ width: 3, borderRadius: 99, backgroundColor: allSuggestionsResolved ? tokens.colorNeutralStroke1 : tokens.colorPaletteMarigoldBackground3, flexShrink: 0, alignSelf: 'stretch' }} />
-                    <span style={{ display: 'flex', flexDirection: 'column', gap: 2, textAlign: 'left' }}>
-                      <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>Suggestion{suggestionIssues.length !== 1 ? 's' : ''}</Text>
-                      <Text weight="bold" size={400} style={{ color: allSuggestionsResolved ? tokens.colorNeutralForeground3 : undefined }}>{suggestionIssues.length}</Text>
-                    </span>
-                  </Button>
-                );
-              })()}
-            </div>
-
-            {/* Progress bar */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 8, marginBottom: 8 }}>
-              <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
-                {allFixed ? 'All actions resolved' : `${checkedCount} of ${totalIssuesCount} Actions`}
-              </Text>
-              <ProgressBar
-                value={checkedCount / totalIssuesCount}
-                color="success"
-                thickness="large"
-              />
-            </div>
-
-            {/* Fix / Sync buttons */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {!allFixed && (
-                <PrimaryButton onClick={handleFixNext}>
-                  {checkedCount > 0 ? 'Fix next' : 'Fix'}
-                </PrimaryButton>
-              )}
-              <ActionButton onClick={() => setSyncDialogOpen(true)}>Sync changes</ActionButton>
-            </div>
-          </div>
-        )}
-      </Card>
+      )}
 
       {/* Issues section */}
       {activeIssues.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
 
-          {/* Filter pills */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {/* Blockers / Suggestions stat row */}
+          <div style={{ display: 'flex', gap: tokens.spacingHorizontalXXL, marginBottom: 16 }}>
+            <ChartHoverCard
+              Legend={`Blocker${blockerIssues.length !== 1 ? 's' : ''}`}
+              YValue={blockerIssues.length}
+              color="#a80000"
+              styles={{ calloutContentRoot: { background: 'transparent', boxShadow: 'none', border: 'none' } }}
+            />
+            <ChartHoverCard
+              Legend="Suggestions"
+              YValue={suggestionIssues.length}
+              color={suggestionIssues.length > 0 ? '#c87e00' : tokens.colorNeutralForeground4}
+              styles={{ calloutContentRoot: { background: 'transparent', boxShadow: 'none', border: 'none' } }}
+            />
+          </div>
+
+          {/* Buttons — 16px below stat row, 24px above pills */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalS, marginBottom: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS }}>
+              <PrimaryButton onClick={handleFixNext} disabled={syncState !== 'idle'}>Resolve</PrimaryButton>
+              <ActionButton
+                iconProps={{ iconName: 'Refresh' }}
+                disabled={syncState === 'syncing'}
+                onClick={() => {
+                  if (syncState === 'saving') return;
+                  handleSyncIssues(pendingSync.map(i => i.id));
+                }}
+              >
+                {syncState !== 'idle' ? 'Stop syncing' : 'Sync changes'}
+              </ActionButton>
+            </div>
+            {syncState !== 'idle' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS }}>
+                <Spinner size="extra-tiny" />
+                <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+                  {syncState === 'saving' ? 'Saving...' : `Syncing — ${formatSyncElapsed(syncElapsed)}`}
+                </Text>
+              </div>
+            )}
+          </div>
+
+          {/* Group filter pills — 24px below buttons */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS, marginBottom: 24 }}>
             {([
-              { key: 'blocker', label: 'Actions', count: unresolvedIssues.length },
-              { key: 'resolved', label: 'Resolved', count: resolvedIssues.length },
+              { key: 'todo', label: 'Open', count: notStarted.length },
+              { key: 'pending', label: 'Awaiting sync', count: pendingSync.length },
             ] as const).map((pill) => (
               <ToggleButton
                 key={pill.key}
                 shape="circular"
                 size="small"
                 checked={activeFilter === pill.key}
-                onClick={() => setActiveFilter(pill.key)}
+                onClick={() => setActiveFilter(pill.key as any)}
                 icon={pill.count > 0 ? (
                   <span style={{
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                     width: 18, height: 18, borderRadius: '50%', fontSize: 10, fontWeight: 700,
-                    backgroundColor: activeFilter === pill.key ? 'rgba(255,255,255,0.25)' : tokens.colorNeutralBackground3,
-                    color: activeFilter === pill.key ? 'inherit' : tokens.colorNeutralForeground2,
+                    backgroundColor: activeFilter === pill.key ? 'rgba(0,0,0,0.08)' : tokens.colorNeutralBackground3,
+                    color: tokens.colorNeutralForeground2,
                   }}>{pill.count}</span>
                 ) : undefined}
               >
@@ -1425,31 +1446,67 @@ export function ActionRail({ connector, onNavigateToField, onFocusedChange, back
             ))}
           </div>
 
-          {/* Issue list with checkboxes */}
-          <div className="flex flex-col gap-3">
-            {filteredIssues.map((issue) => {
-              const isBlocker = issue.severity === 'blocker' || issue.severity === 'warning';
-              const isChecked = checkedIds.has(issue.id);
-              return (
-                <div key={issue.id}>
-                  <div className="flex flex-col gap-1.5">
+
+          {/* Not started */}
+          {(activeFilter === 'todo') && notStarted.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalS }}>
+              <div className="flex flex-col gap-3">
+                {notStarted.map((issue) => {
+                  const isBlocker = issue.severity === 'blocker' || issue.severity === 'warning';
+                  return (
                     <IssueCard
+                      key={issue.id}
                       issue={issue}
                       expanded={false}
                       onToggle={() => { setFocused(issue); if (issue.connectorTab && issue.connectorFieldId && onNavigateToField) onNavigateToField(issue.connectorTab, issue.connectorFieldId); }}
                       onDiagnose={() => setDiagnosing(issue)}
                       detectedSyncLabel={getSyncCycleLabel(issue.detectedAt, connector.syncHistory)}
                       onNavigateToField={onNavigateToField}
-                      isChecked={isBlocker ? (isChecked || (appliedRowsMap.get(issue.id)?.size ?? 0) > 0) : (dismissedIds.has(issue.id) || (appliedRowsMap.get(issue.id)?.size ?? 0) > 0)}
+                      isChecked={false}
+                      unseen={!seenIds.has(issue.id)}
                       onCheck={isBlocker && !issue.recommendedActions?.length ? () => toggleChecked(issue.id) : undefined}
                       onDismiss={!isBlocker && !issue.recommendedActions?.length ? () => setDismissedIds((p) => { const n = new Set(p); n.add(issue.id); return n; }) : undefined}
                       onFix={isBlocker ? () => { setFixModeActive(true); setFixStep(blockerIssues.indexOf(issue)); navigateTo(issue); } : undefined}
                     />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Fixed, pending sync */}
+          {(activeFilter === 'pending') && pendingSync.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalS }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text size={200} weight="semibold" style={{ color: tokens.colorNeutralForeground3, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Fixed, pending sync · {pendingSync.length}
+                </Text>
+                <DefaultButton
+                  onClick={() => handleSyncIssues(pendingSync.map(i => i.id))}
+                  disabled={syncState !== 'idle'}
+                  styles={{ root: { minWidth: 0, height: 26, padding: '0 10px', fontSize: 12 } }}
+                >
+                  {syncState !== 'idle' ? `Syncing — ${formatSyncElapsed(syncElapsed)}` : `Sync ${pendingSync.length} fix${pendingSync.length !== 1 ? 'es' : ''}`}
+                </DefaultButton>
+              </div>
+              <div className="flex flex-col gap-3">
+                {pendingSync.map((issue) => (
+                  <IssueCard
+                    key={issue.id}
+                    issue={issue}
+                    expanded={false}
+                    onToggle={() => { setFocused(issue); }}
+                    onDiagnose={() => setDiagnosing(issue)}
+                    detectedSyncLabel={getSyncCycleLabel(issue.detectedAt, connector.syncHistory)}
+                    onNavigateToField={onNavigateToField}
+                    isChecked={true}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+
         </div>
       )}
 
@@ -1474,16 +1531,24 @@ export function ActionRail({ connector, onNavigateToField, onFocusedChange, back
 
 // ─── Users tab ────────────────────────────────────────────────────────────────
 
-function CollapsibleSection({ title, children, defaultOpen = true }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
+function CollapsibleSection({ title, children, defaultOpen = true, open, onOpenChange }: { title: string; children: React.ReactNode; defaultOpen?: boolean; open?: boolean; onOpenChange?: (open: boolean) => void }) {
   const isDark = typeof window !== 'undefined' && document.documentElement.classList.contains('dark');
+  const isControlled = open !== undefined;
   return (
     <FluentProvider theme={isDark ? webDarkTheme : webLightTheme} style={{ background: 'transparent' }}>
-      <Accordion collapsible defaultOpenItems={defaultOpen ? ['item'] : []} style={{ borderTop: '1px solid var(--colorNeutralStroke2)', marginBottom: 20 }}>
+      <Accordion
+        collapsible
+        {...(isControlled
+          ? { openItems: open ? ['item'] : [], onToggle: () => onOpenChange?.(!open) }
+          : { defaultOpenItems: defaultOpen ? ['item'] : [] }
+        )}
+        style={{ borderTop: '1px solid var(--colorNeutralStroke2)', marginBottom: tokens.spacingVerticalXL }}
+      >
         <AccordionItem value="item">
           <AccordionHeader expandIconPosition="end" size="large">
             {title}
           </AccordionHeader>
-          <AccordionPanel style={{ paddingTop: 12, paddingBottom: 24, paddingLeft: 16, paddingRight: 16, marginLeft: 0 }}>
+          <AccordionPanel style={{ paddingTop: tokens.spacingVerticalM, paddingBottom: tokens.spacingVerticalXXL, paddingLeft: tokens.spacingHorizontalL, paddingRight: tokens.spacingHorizontalL, marginLeft: 0 }}>
             {children}
           </AccordionPanel>
         </AccordionItem>
@@ -1492,8 +1557,17 @@ function CollapsibleSection({ title, children, defaultOpen = true }: { title: st
   );
 }
 
-function UsersTabContent({ fieldHighlight, fieldRefs, onFocusSection }: { fieldHighlight?: string; fieldRefs?: React.MutableRefObject<Record<string, HTMLDivElement | null>>; onFocusSection?: (id: string) => void }) {
+function UsersTabContent({ fieldHighlight, fieldRefs, onFocusSection, focusFieldId }: { fieldHighlight?: string; fieldRefs?: React.MutableRefObject<Record<string, HTMLDivElement | null>>; onFocusSection?: (id: string) => void; focusFieldId?: string }) {
   const [accessType, setAccessType] = useState<'acl' | 'everyone'>('acl');
+  const [openSection, setOpenSection] = useState<string>(focusFieldId === 'user-mapping' ? 'user-mapping' : 'access-permissions');
+  const prevFocusFieldId = React.useRef(focusFieldId);
+  React.useEffect(() => {
+    if (focusFieldId && focusFieldId !== prevFocusFieldId.current) {
+      prevFocusFieldId.current = focusFieldId;
+      if (focusFieldId === 'user-mapping') setOpenSection('user-mapping');
+      else if (focusFieldId === 'access-permissions') setOpenSection('access-permissions');
+    }
+  }, [focusFieldId]);
   const isDark = typeof window !== 'undefined' && document.documentElement.classList.contains('dark');
   const labelClr = isDark ? '#f5f5f5' : '#323130';
   const descClr = isDark ? '#c8c6c4' : '#605e5c';
@@ -1501,7 +1575,7 @@ function UsersTabContent({ fieldHighlight, fieldRefs, onFocusSection }: { fieldH
     <div className="max-w-[528px] flex flex-col">
       {/* Access Permissions */}
       <div ref={(el) => { if (fieldRefs) fieldRefs.current['access-permissions'] = el; }} className={`transition-colors duration-500 rounded-[4px] -mx-2 px-2 ${fieldHighlight === 'access-permissions' ? 'bg-[#eff6ff]' : ''}`} onClick={() => onFocusSection?.('access-permissions')}>
-      <CollapsibleSection title="Access Permissions" defaultOpen={true}>
+      <CollapsibleSection title="Access Permissions" open={openSection === 'access-permissions'} onOpenChange={(o) => setOpenSection(o ? 'access-permissions' : '')}>
         <ChoiceGroup
           selectedKey={accessType}
           options={[
@@ -1510,7 +1584,7 @@ function UsersTabContent({ fieldHighlight, fieldRefs, onFocusSection }: { fieldH
               text: 'Only people with access to this data',
               onRenderLabel: () => (
                 <div style={{ paddingLeft: 28 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS, marginBottom: 2 }}>
                     <span style={{ fontSize: 14, color: labelClr }}>Only people with access to this data</span>
                     <span style={{ padding: '1px 6px', fontSize: 10, fontWeight: 600, color: '#107c10', background: '#f0f7ec', border: '1px solid #c8e0b8', borderRadius: 2, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Recommended</span>
                   </div>
@@ -1547,7 +1621,7 @@ function UsersTabContent({ fieldHighlight, fieldRefs, onFocusSection }: { fieldH
 
       {/* Map Identities */}
       <div onClick={() => onFocusSection?.('user-mapping')}>
-      <CollapsibleSection title="Map Identities" defaultOpen={false}>
+      <CollapsibleSection title="Map Identities" open={openSection === 'user-mapping'} onOpenChange={(o) => setOpenSection(o ? 'user-mapping' : '')}>
         <div className="flex flex-col gap-3">
           <p className="text-[13px] text-[#323130] dark:text-[#f5f5f5] leading-5">
             We have mapped your data source identities using Microsoft Entra IDs. We use both UPN and Mail in Microsoft Entra ID to map to your user&apos;s email in the data source. If you have a different mapping formula, use the custom mapping option below.
@@ -1633,13 +1707,13 @@ function ContentTabContent({ fieldHighlight, fieldRefs, onFocusSection }: { fiel
               <TableRow style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke2}` }}>
                 <TableCell style={{ width: 200, fontWeight: 600, fontSize: 12, color: tokens.colorNeutralForeground1 }}>Properties</TableCell>
                 <TableCell style={{ width: 140, fontWeight: 600, fontSize: 12, color: tokens.colorNeutralForeground1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalXS }}>
                     Semantic Label
                     <InfoIcon style={{ fontSize: 12, color: tokens.colorNeutralForeground3 }} />
                   </div>
                 </TableCell>
                 <TableCell style={{ fontWeight: 600, fontSize: 12, color: tokens.colorNeutralForeground1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalXS }}>
                     Description
                     <InfoIcon style={{ fontSize: 12, color: tokens.colorNeutralForeground3 }} />
                   </div>
@@ -1700,11 +1774,26 @@ function SyncTabContent({ fieldHighlight, fieldRefs, onFocusSection }: { fieldHi
   const [incRunOnce, setIncRunOnce] = useState(false);
   const [incFreq, setIncFreq] = useState('15 minutes');
   const [fullRecurrence, setFullRecurrence] = useState('Week');
+  const [syncDataRate, setSyncDataRate] = useState('25');
 
   return (
     <div className="max-w-[528px] flex flex-col gap-6">
+      {/* Sync data rate */}
+      <div ref={(el) => { if (fieldRefs) fieldRefs.current['sync-data-rate'] = el; }} className={`transition-colors duration-500 rounded-[4px] -mx-2 px-2 ${fieldHighlight === 'sync-data-rate' ? 'bg-[#eff6ff]' : ''}`} onClick={() => onFocusSection?.('sync-data-rate')}>
+        <div style={{ paddingLeft: tokens.spacingHorizontalL, paddingRight: tokens.spacingHorizontalL }}>
+          <TextField
+            label="Sync data rate"
+            value={syncDataRate}
+            onChange={(_, v) => setSyncDataRate(v ?? '')}
+            onFocus={() => onFocusSection?.('sync-data-rate')}
+            suffix="/ min"
+            styles={{ root: { maxWidth: 200 }, fieldGroup: { width: 140 } }}
+            type="number"          />
+        </div>
+      </div>
+
       {/* Time zone */}
-      <div style={{ marginBottom: 8, paddingLeft: 16, paddingRight: 16 }}>
+      <div style={{ marginBottom: tokens.spacingVerticalS, paddingLeft: tokens.spacingHorizontalL, paddingRight: tokens.spacingHorizontalL }}>
         <Dropdown
           label="Time zone"
           selectedKey={timezone}
@@ -1805,6 +1894,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
   const resolvedLogoUrl = existingConnector?.logoUrl ?? catalogItem?.logoUrl;
   const [activeTab, setActiveTab] = useState<SetupTab>('Setup');
   const [rightRailTab, setRightRailTab] = useState<'actions' | 'guide'>(isEdit ? 'actions' : 'guide');
+  const railActionCount = existingConnector ? existingConnector.issues.filter((i) => !i.resolvedAt).length : 0;
   const MIN_CONTENT = 520;
   const MIN_RAIL = 280;
   const RAIL_THRESHOLD = MIN_CONTENT + MIN_RAIL; // 800px
@@ -1962,7 +2052,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
           <>
             <div className={`flex-1 overflow-y-auto bg-white dark:bg-[#292929] ${slideInClass}`} style={{ padding: '16px 32px 24px' }}>
               {/* Heading */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS, marginBottom: tokens.spacingVerticalXXL }}>
                 <CompletedSolidIcon style={{ fontSize: 20, color: created ? '#107c10' : '#c8c6c4' }} />
                 <span style={{ fontSize: 20, fontWeight: 600, color: isDarkMode ? '#f5f5f5' : '#323130' }}>
                   {created ? 'Success' : 'Creating connection...'}
@@ -1972,18 +2062,18 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
               <div style={{ maxWidth: 640 }}>
                 {/* Row 1 */}
                 <div style={{ display: 'flex', alignItems: 'center', padding: '10px 0', borderBottom: `1px solid ${isDarkMode ? '#3d3d3d' : '#e1e1e1'}` }}>
-                  <div style={{ width: 200, display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                  <div style={{ width: 200, display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS, flexShrink: 0 }}>
                     <CompletedSolidIcon style={{ fontSize: 20, color: created ? '#107c10' : '#c8c6c4', flexShrink: 0 }} />
                     <span style={{ fontSize: 14, color: isDarkMode ? '#f5f5f5' : '#323130' }}>Created connection</span>
                   </div>
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS }}>
                     <ConnectorIcon src={resolvedLogoUrl} name={typeName} size={20} />
                     <span style={{ fontSize: 14, color: isDarkMode ? '#f5f5f5' : '#323130' }}>{displayName}</span>
                   </div>
                 </div>
                 {/* Row 2 */}
                 <div style={{ display: 'flex', alignItems: 'center', padding: '10px 0', borderBottom: `1px solid ${isDarkMode ? '#3d3d3d' : '#e1e1e1'}` }}>
-                  <div style={{ width: 200, display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                  <div style={{ width: 200, display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS, flexShrink: 0 }}>
                     <StatusCircleSyncIcon style={{ fontSize: 20, color: created ? '#0078d4' : '#c8c6c4', animation: created ? 'spin 1.2s linear infinite' : 'none', flexShrink: 0 }} />
                     <span style={{ fontSize: 14, color: isDarkMode ? (created ? '#f5f5f5' : '#707070') : (created ? '#323130' : '#a19f9d') }}>Indexing data</span>
                   </div>
@@ -2110,7 +2200,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
             {/* Tabs */}
             <div className="flex items-center justify-between mt-2">
               {initialLoading ? (
-                <FluentProvider theme={isDarkMode ? webDarkTheme : webLightTheme} style={{ background: 'transparent', display: 'flex', gap: 8, alignItems: 'center', height: 44, marginLeft: 0 }}>
+                <FluentProvider theme={isDarkMode ? webDarkTheme : webLightTheme} style={{ background: 'transparent', display: 'flex', gap: tokens.spacingHorizontalS, alignItems: 'center', height: 44, marginLeft: 0 }}>
                   {SETUP_TABS.map((tab) => (
                     <Skeleton key={tab}><SkeletonItem size={16} style={{ width: tab.length * 8 + 16, borderRadius: 2 }} /></Skeleton>
                   ))}
@@ -2145,7 +2235,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
               <FluentProvider theme={isDarkMode ? webDarkTheme : webLightTheme} style={{ background: 'transparent' }}>
                 <div style={{ maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 28 }}>
                   {Array.from({ length: 5 }).map((_, i) => (
-                    <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalS }}>
                       <Skeleton><SkeletonItem size={12} style={{ width: '30%' }} /></Skeleton>
                       <Skeleton><SkeletonItem size={32} style={{ width: '100%', borderRadius: 2 }} /></Skeleton>
                     </div>
@@ -2154,7 +2244,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
               </FluentProvider>
             ) : null}
             <div key={activeTab} className={slideInClass} style={initialLoading ? { display: 'none' } : {}}>
-            {activeTab === 'Users' && <UsersTabContent fieldHighlight={fieldHighlight} fieldRefs={fieldRefs} onFocusSection={(id) => { setGuidanceHighlight(id); if (!suppressGuidanceSwitch.current) setRightRailTab('guide'); }} />}
+            {activeTab === 'Users' && <UsersTabContent fieldHighlight={fieldHighlight} fieldRefs={fieldRefs} focusFieldId={fieldHighlight} onFocusSection={(id) => { setGuidanceHighlight(id); if (!suppressGuidanceSwitch.current) setRightRailTab('guide'); }} />}
             {activeTab === 'Content' && <ContentTabContent fieldHighlight={fieldHighlight} fieldRefs={fieldRefs} onFocusSection={(id) => { setGuidanceHighlight(id); if (!suppressGuidanceSwitch.current) setRightRailTab('guide'); }} />}
             {activeTab === 'Sync' && <SyncTabContent fieldHighlight={fieldHighlight} fieldRefs={fieldRefs} onFocusSection={(id) => { setGuidanceHighlight(id); if (!suppressGuidanceSwitch.current) setRightRailTab('guide'); }} />}
             {activeTab !== 'Users' && activeTab !== 'Content' && activeTab !== 'Sync' && <div className="max-w-[528px] flex flex-col gap-6">
@@ -2251,7 +2341,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
 
               {/* Staged rollout */}
               <div ref={(el) => { fieldRefs.current['staged-rollout'] = el; }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: tokens.spacingVerticalM }}>
                   <p className="text-[14px] font-semibold text-[#323130]">Rollout to limited audience</p>
                   <Toggle
                     checked={rolloutLimited}
@@ -2352,47 +2442,36 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
               boxShadow: '-4px 0 16px rgba(0,0,0,0.12)',
             }}
           >
-            {/* Rail header */}
+            {/* Rail header + body */}
+            <button onClick={() => setRailOpen(false)} style={{ position: 'absolute', top: 12, right: 16, zIndex: 1, background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', color: isDarkMode ? '#adadad' : '#605e5c' }}>
+              <ChromeCloseIcon style={{ fontSize: 12 }} />
+            </button>
             {isEdit && existingConnector && !actionFocused ? (
-              <div style={{ position: 'relative', flexShrink: 0 }}>
-                <button onClick={() => setRailOpen(false)} style={{ position: 'absolute', top: 12, right: 16, background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', color: isDarkMode ? '#adadad' : '#605e5c' }}>
-                  <ChromeCloseIcon style={{ fontSize: 12 }} />
-                </button>
-                <div style={{ display: 'flex', padding: '48px 24px 0' }}>
-                  {(['actions', 'guide'] as const).map((tab) => (
-                    <button
-                      key={tab}
-                      onClick={() => { setRightRailTab(tab); if (tab === 'guide') { setHealthFocused(false); setHealthBackTrigger(n => n + 1); } }}
-                      style={{
-                        paddingBottom: 8, marginRight: 24, fontSize: 14, background: 'none', border: 'none', cursor: 'pointer',
-                        borderBottom: `2px solid ${rightRailTab === tab ? '#0078d4' : 'transparent'}`,
-                        fontWeight: rightRailTab === tab ? 600 : 400,
-                        color: rightRailTab === tab ? '#0078d4' : (isDarkMode ? '#f5f5f5' : '#323130'),
-                      }}
-                    >
-                      {tab === 'actions' ? 'Actions' : 'Guide'}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <Pivot
+                selectedKey={rightRailTab}
+                onLinkClick={(item) => {
+                  const key = item?.props.itemKey as 'actions' | 'guide';
+                  setRightRailTab(key);
+                  if (key === 'guide') { setHealthFocused(false); setHealthBackTrigger(n => n + 1); }
+                }}
+                styles={{ root: { paddingLeft: 16, paddingTop: 44, flexShrink: 0 }, itemContainer: { display: 'none' } }}
+              >
+                <PivotItem headerText="Actions" itemCount={railActionCount} itemKey="actions" />
+                <PivotItem headerText="Guide" itemKey="guide" />
+              </Pivot>
             ) : (
-              <div style={{ position: 'relative', flexShrink: 0 }}>
-                <button onClick={() => setRailOpen(false)} style={{ position: 'absolute', top: 12, right: 16, background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', color: isDarkMode ? '#adadad' : '#605e5c' }}>
-                  <ChromeCloseIcon style={{ fontSize: 12 }} />
-                </button>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '48px 24px 16px' }}>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: isDarkMode ? '#f5f5f5' : '#323130' }}>Guide</span>
-                  <a href="https://learn.microsoft.com/en-us/microsoft-365/copilot/connectors/servicenow-knowledge-deployment" target="_blank" rel="noreferrer"
-                    style={{ fontSize: 13, color: '#0078d4', textDecoration: 'none' }}>
-                    Read documentation
-                  </a>
-                </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '48px 24px 16px', flexShrink: 0 }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: isDarkMode ? '#f5f5f5' : '#323130' }}>Guide</span>
+                <a href="https://learn.microsoft.com/en-us/microsoft-365/copilot/connectors/servicenow-knowledge-deployment" target="_blank" rel="noreferrer"
+                  style={{ fontSize: 13, color: '#0078d4', textDecoration: 'none' }}>
+                  Read documentation
+                </a>
               </div>
             )}
 
             {/* Rail body */}
-            <div ref={railScrollRef} style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
-              <div key={rightRailTab} className={slideInClass}>
+            <div ref={railScrollRef} style={{ flex: 1, minHeight: 0, overflow: actionFocused ? 'hidden' : 'auto', padding: actionFocused ? 0 : '0 24px 24px', position: 'relative' }}>
+              <div key={rightRailTab} className={actionFocused ? undefined : slideInClass} style={actionFocused ? { height: '100%' } : undefined}>
                 {isEdit && existingConnector && rightRailTab === 'actions'
                   ? <ActionRail connector={existingConnector} onNavigateToField={handleNavigateToField} onFocusedChange={setHealthFocused} backTrigger={actionBackTrigger} appliedRowsMap={appliedRowsMap} setAppliedRowsMap={setAppliedRowsMap} />
                   : <GuidanceRail
@@ -2409,17 +2488,18 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
         {/* Right rail — static side column when panel is wide enough */}
         {panelWide && <div style={{ display: 'flex', flexDirection: 'column', width: 360, flexShrink: 0, background: isDarkMode ? '#292929' : '#faf9f8', borderLeft: `1px solid ${isDarkMode ? '#3d3d3d' : '#e1e1e1'}`, overflow: 'hidden' }}>
           {isEdit && existingConnector && !actionFocused ? (
-            <div className="flex px-6 flex-shrink-0 pt-12">
-              {(['actions', 'guide'] as const).map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => { setRightRailTab(tab); if (tab === 'guide') { setHealthFocused(false); setHealthBackTrigger(n => n + 1); } }}
-                  className={`pb-2 mr-6 text-[14px] border-b-2 -mb-px transition-colors ${rightRailTab === tab ? 'font-semibold text-[#0078d4] border-[#0078d4]' : 'text-[#323130] border-transparent hover:text-[#0078d4]'}`}
-                >
-                  {tab === 'actions' ? 'Actions' : 'Guide'}
-                </button>
-              ))}
-            </div>
+            <Pivot
+              selectedKey={rightRailTab}
+              onLinkClick={(item) => {
+                const key = item?.props.itemKey as 'actions' | 'guide';
+                setRightRailTab(key);
+                if (key === 'guide') { setHealthFocused(false); setHealthBackTrigger(n => n + 1); }
+              }}
+              styles={{ root: { paddingLeft: 16, paddingTop: 44, flexShrink: 0 }, itemContainer: { display: 'none' } }}
+            >
+              <PivotItem headerText="Actions" itemCount={railActionCount} itemKey="actions" />
+              <PivotItem headerText="Guide" itemKey="guide" />
+            </Pivot>
           ) : !actionFocused ? (
             <div className="flex items-center justify-between px-6 pt-12 pb-4 flex-shrink-0">
               <span className="text-[14px] font-bold text-[#323130] dark:text-[#f5f5f5]">Guide</span>
@@ -2429,8 +2509,8 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
               </a>
             </div>
           ) : null}
-          <div ref={railScrollRef} className="flex-1 overflow-y-auto" style={{ padding: '24px' }}>
-            <div key={rightRailTab} className={slideInClass}>
+          <div ref={railScrollRef} className="flex-1" style={{ minHeight: 0, overflow: actionFocused ? 'hidden' : 'auto', padding: actionFocused ? 0 : '24px', position: 'relative' }}>
+            <div key={rightRailTab} className={actionFocused ? undefined : slideInClass} style={actionFocused ? { height: '100%' } : undefined}>
               {isEdit && existingConnector && rightRailTab === 'actions'
                 ? <ActionRail connector={existingConnector} onNavigateToField={handleNavigateToField} onFocusedChange={setHealthFocused} backTrigger={actionBackTrigger} appliedRowsMap={appliedRowsMap} setAppliedRowsMap={setAppliedRowsMap} />
                 : <GuidanceRail
