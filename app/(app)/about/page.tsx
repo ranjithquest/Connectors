@@ -4,8 +4,22 @@ const font = '"Segoe UI", "Segoe UI Web (West European)", -apple-system, system-
 
 export default function AboutPage() {
   return (
-    <div style={{ minHeight: '100vh', background: '#faf9f8', fontFamily: font, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 48 }}>
-      <div style={{ maxWidth: 480, width: '100%', textAlign: 'center' }}>
+    <div style={{
+      minHeight: '100vh',
+      background: '#faf9f8',
+      backgroundImage: 'url(/hero-bg.png)',
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      fontFamily: font,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 48,
+      position: 'relative',
+    }}>
+      {/* overlay so text stays readable */}
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(250,249,248,0.82)' }} />
+      <div style={{ maxWidth: 480, width: '100%', textAlign: 'center', position: 'relative' }}>
 
         <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#a19f9d', marginBottom: 12 }}>
           Copilot Connectors Team
