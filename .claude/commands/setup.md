@@ -2,6 +2,26 @@
 
 Run this automatically without asking for confirmations. Narrate one line per step.
 
+## Step 0 — Verify the correct folder is open in VS Code
+
+Before doing anything else, check the working directory:
+```bash
+pwd
+```
+
+The path must end in `Connectors` (e.g. `.../Boilerplate/Connectors`).
+
+If it ends in `Boilerplate` or anything else, stop and tell the user:
+
+> "It looks like you have the wrong folder open in VS Code. Please do this:
+>
+> 1. In VS Code, go to **File → Open Folder**
+> 2. Navigate inside your `Boilerplate` folder and select the **`Connectors`** folder inside it
+> 3. Click **Open**
+> 4. Once VS Code reloads, type `/setup` again to continue."
+
+Do not proceed until the working directory ends in `Connectors`.
+
 ## Step 1 — Check Node.js 20+
 
 ```bash
