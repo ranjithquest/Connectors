@@ -86,4 +86,4 @@ git push gim-connectors --delete <feature-branch>
 - ALWAYS keep the TypeScript types from `lib/types.ts` that are genuinely reusable
 - Flag any component that has hardcoded strings that should come from i18n/localization
 - If a component uses `@fluentui/react` (v8), flag it and suggest v9 equivalent if one exists
-- Always target `main` — never `Boilerplate` (that branch no longer exists)
+- Always target `main` — cherry-pick only approved files, never merge the whole branch

@@ -118,7 +118,7 @@ jobs:
         run: echo "Preview URL ${{ steps.path.outputs.previewurl }}"
 
       - name: Post preview URL as commit comment
-        if: github.ref_name != 'Boilerplate'
+        if: github.ref_name != 'main'
         run: |
           curl -s -X POST \
             -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \

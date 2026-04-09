@@ -1,8 +1,8 @@
-# Connector Admin Boilerplate
+# Connector Admin
 
 A shared prototyping environment for **product, design, and engineering** teams to rapidly build and preview feature concepts for the Microsoft 365 Copilot Connectors admin experience.
 
-This boilerplate mirrors the look and feel of the M365 Admin Center and is pre-wired with realistic mock data, Fluent UI components, and a GitHub Pages preview pipeline — so every branch gets its own shareable URL automatically.
+This project mirrors the look and feel of the M365 Admin Center and is pre-wired with realistic mock data, Fluent UI components, and a GitHub Pages preview pipeline — so every branch gets its own shareable URL automatically.
 
 ---
 
@@ -16,20 +16,18 @@ npm run dev
 Open [http://localhost:3000](http://localhost:3000) — redirects to `/connectors`.
 
 ### Prototype a feature
-1. Create a branch from `Boilerplate`:
+1. Create a branch from `main`:
    ```bash
-   git checkout Boilerplate
+   git checkout main
+   git pull gim-connectors main
    git checkout -b your-name/feature-name
    ```
 2. Make your changes
-3. Push the branch:
-   ```bash
-   git push origin your-name/feature-name
-   ```
+3. Push the branch using `/publish` in Claude Code — it handles the rest
 4. GitHub Actions builds and deploys it automatically. A **preview URL** is posted as a comment on your commit — share it with stakeholders.
-5. When approved, open a discussion about which parts to merge into `Boilerplate`.
+5. When approved, use `/handoff` in Claude Code to cherry-pick approved files into `main`.
 
-> **Never push directly to `main` or `Boilerplate`.** All work goes through feature branches.
+> **Never push directly to `main`.** All work goes through feature branches.
 
 ---
 
@@ -40,7 +38,7 @@ You don't need to write code. Work with Claude Code or an engineer to turn your 
 1. Share your spec (written doc, Figma link, or bullet points)
 2. Claude will create a feature branch and build the concept
 3. You get a preview URL to share with stakeholders
-4. Decide which parts to promote to the main boilerplate
+4. Decide which parts to promote to `main`
 
 **Tips:**
 - Mock data lives in `lib/mock-data.ts` — easy to add new connector states, issues, or sync history without touching UI code
@@ -92,7 +90,7 @@ lib/
   gallery-data.ts               # Connector catalog (type, logo, config schema)
   types.ts                      # Shared TypeScript types
 
-.claude/commands/               # Claude skills: /onboard, /publish, /walkthrough
+.claude/commands/               # Claude skills: /setup, /publish, /walkthrough, /handoff
 public/
   logos/                        # Connector logo PNGs/SVGs
 ```
@@ -156,29 +154,30 @@ Full dark mode via `.dark` class on `<html>`, mapped to Fluent `webDarkTheme` to
 
 | Branch | Purpose | Preview URL |
 |---|---|---|
-| `main` | Source of truth — protected | — |
-| `Boilerplate` | Stable shareable baseline | `<pages-url>/` |
+| `main` | Protected shared baseline | `<pages-url>/connectors` |
 | `your-name/feature` | Concept in progress | `<pages-url>/<branch-slug>/connectors` |
 
-Every push to a non-`main` branch triggers an automatic deployment. The preview URL is posted as a comment on your commit.
+Every push to a feature branch triggers an automatic deployment. The preview URL is posted as a comment on your commit.
 
-**To promote work to Boilerplate:**
+**To promote approved work to main:**
 ```bash
-git checkout Boilerplate
+git checkout main
 git checkout your-name/feature -- components/SomeComponent.tsx
-git commit -m "Promote SomeComponent from feature branch"
-git push origin Boilerplate
+git commit -m "Promote SomeComponent — approved by [stakeholder name]"
+git push gim-connectors main
 ```
+
+Or use `/handoff` in Claude Code — it handles this automatically.
 
 ---
 
 ## Recovery
 
-A `v1.0-stable` tag marks the original boilerplate state. To restore:
+A `v1.0-stable` tag marks the original stable state. To restore:
 ```bash
 git checkout v1.0-stable
 git checkout -b recovery-branch
-git push origin recovery-branch
+git push gim-connectors recovery-branch
 ```
 
 ---

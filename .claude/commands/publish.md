@@ -41,7 +41,7 @@ git remote get-url gim-connectors
 
 ## Step 2 — Ask: same feature or new?
 
-Check if `CURRENT_BRANCH` is a feature branch (i.e. not `main`, `Boilerplate`, or `HEAD`).
+Check if `CURRENT_BRANCH` is a feature branch (i.e. not `main` or detached `HEAD`).
 
 **If currently on a feature branch** (e.g. `ranjith/dark-panel-bg`), ask:
 
@@ -54,7 +54,7 @@ Check if `CURRENT_BRANCH` is a feature branch (i.e. not `main`, `Boilerplate`, o
 > - **Same feature** → I'll push your changes to `<CURRENT_BRANCH>` and update its preview link
 > - **New feature** → I'll create a new branch and generate a fresh preview URL"
 
-**If on `main`, `Boilerplate`, or no feature branch**, skip this question and go straight to Step 3 (new branch flow).
+**If on `main` or detached HEAD**, skip this question and go straight to Step 3 (new branch flow).
 
 ### If "same feature":
 - Skip to **Step 4** (commit) using `CURRENT_BRANCH` as the target
@@ -113,7 +113,7 @@ If there are no uncommitted changes (clean working tree), skip the commit and ju
 git push -u gim-connectors <TARGET_BRANCH>
 ```
 
-**Never push to `main` or `Boilerplate`.**
+**Never push directly to `main`.**
 
 ## Step 6 — Tell them what's happening
 
