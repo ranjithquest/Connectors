@@ -113,19 +113,8 @@ function CopyField({ value, mono = true }: { value: string; mono?: boolean }) {
 
 function SetupButton() {
   return (
-    <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div>
-        <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#a0a0a0', marginBottom: 6 }}>
-          Repo link
-        </div>
-        <CopyField value={REPO_URL} mono={false} />
-      </div>
-      <div>
-        <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#a0a0a0', marginBottom: 6 }}>
-          Clone command
-        </div>
-        <CopyField value={CLONE_CMD} mono={true} />
-      </div>
+    <div style={{ marginTop: 4 }}>
+      <CopyField value={REPO_URL} mono={false} />
     </div>
   );
 }
