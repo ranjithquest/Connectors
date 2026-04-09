@@ -102,13 +102,15 @@ function ConnectorLogo({ connectorType, logoUrl }: { connectorType: string; logo
 
 function StatBar({ label, value, color, isDark }: { label: string; value: string; color: string; isDark?: boolean }) {
   return (
-    <Stack horizontal tokens={{ childrenGap: 6 }} styles={{ root: { width: 184, minHeight: 52, padding: '0 12px', alignItems: 'flex-end' } }}>
-      <div style={{ width: 3, alignSelf: 'stretch', borderRadius: 2, flexShrink: 0, backgroundColor: color }} />
-      <Stack tokens={{ childrenGap: 0 }}>
-        <Text styles={{ root: { fontSize: 11, color: isDark ? '#adadad' : '#605e5c', whiteSpace: 'nowrap' } }}>{label}</Text>
-        <Text variant="xLargePlus" styles={{ root: { color, fontWeight: 700, lineHeight: '28px' } }}>{value}</Text>
-      </Stack>
-    </Stack>
+    <ChartHoverCard
+      Legend={label}
+      YValue={value}
+      color={color}
+      styles={{
+        calloutContentRoot: { background: 'transparent', boxShadow: 'none', border: 'none' },
+        calloutContentX1: { color: isDark ? '#c8c6c4' : '#605e5c' },
+      }}
+    />
   );
 }
 
@@ -580,16 +582,11 @@ export default function ConnectorDetailPanel({ connector, onClose, onEdit }: Con
                 </Stack>
               </Link>
             </Stack>
-            <Stack tokens={{ childrenGap: 12 }}>
-              <Stack horizontal>
-                <StatBar label={cabStats[0].label} value={cabStats[0].value} color={cabStats[0].color} isDark={isDark} />
-                <StatBar label={cabStats[1].label} value={cabStats[1].value} color={cabStats[1].color} isDark={isDark} />
-              </Stack>
-              <Stack horizontal>
-                <StatBar label={cabStats[2].label} value={cabStats[2].value} color={cabStats[2].color} isDark={isDark} />
-                <StatBar label={cabStats[3].label} value={cabStats[3].value} color={cabStats[3].color} isDark={isDark} />
-              </Stack>
-            </Stack>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 0', paddingTop: 8, paddingBottom: 4 }}>
+              {cabStats.map((s) => (
+                <StatBar key={s.label} label={s.label} value={s.value} color={s.color} isDark={isDark} />
+              ))}
+            </div>
           </Stack>
         )}
 
