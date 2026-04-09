@@ -32,12 +32,8 @@ export default function AboutPage() {
           Admin<br />Boilerplate
         </h1>
 
-        <p style={{ fontSize: 18, color: '#a19f9d', margin: '0 0 8px', fontWeight: 400 }}>
+        <p style={{ fontSize: 18, color: '#a19f9d', margin: '0 0 36px', fontWeight: 400 }}>
           V1.0 Beta
-        </p>
-
-        <p style={{ fontSize: 16, color: '#484644', lineHeight: '26px', margin: '0 0 36px', maxWidth: 340 }}>
-          Prototype specs into concepts, validate with stakeholders, and ship production‑ready outcomes — fast.
         </p>
 
         <a
