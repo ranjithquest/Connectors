@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 
-const SETUP_URL = 'git clone https://github.com/gim-home/Connectors.git';
+const REPO_URL = 'https://github.com/gim-home/Connectors';
+const CLONE_CMD = 'git clone https://github.com/gim-home/Connectors.git';
 
 const STEPS = [
   {
@@ -62,14 +63,14 @@ export const NAV_STEPS = [
   { num: '05', label: 'Hand off to production', href: '#step-05' },
 ];
 
-function SetupButton() {
+function CopyField({ value, mono = true }: { value: string; mono?: boolean }) {
   const [copied, setCopied] = useState(false);
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(SETUP_URL);
+      await navigator.clipboard.writeText(value);
     } catch (_) {
       const ta = document.createElement('textarea');
-      ta.value = SETUP_URL;
+      ta.value = value;
       ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
       document.body.appendChild(ta);
       ta.focus();
@@ -81,32 +82,49 @@ function SetupButton() {
     setTimeout(() => setCopied(false), 2500);
   };
   return (
-    <div style={{ marginTop: 4 }}>
-      <div style={{
-        display: 'flex', alignItems: 'stretch', flexWrap: 'wrap',
-        background: '#f5f5f5', border: '1px solid #e0e0e0',
-        borderRadius: 4, overflow: 'hidden',
+    <div style={{
+      display: 'flex', alignItems: 'stretch', flexWrap: 'wrap',
+      background: '#f5f5f5', border: '1px solid #e0e0e0',
+      borderRadius: 4, overflow: 'hidden',
+    }}>
+      <span style={{
+        flex: 1, padding: '10px 14px', fontSize: 13, color: '#424242',
+        fontFamily: mono ? '"Cascadia Code", "Courier New", monospace' : '"Segoe UI", sans-serif',
+        whiteSpace: 'normal', wordBreak: 'break-all',
       }}>
-        <span style={{
-          flex: 1, padding: '10px 14px', fontSize: 13, color: '#424242',
-          fontFamily: '"Cascadia Code", "Courier New", monospace',
-          whiteSpace: 'normal', wordBreak: 'break-all',
-        }}>
-          {SETUP_URL}
-        </span>
-        <button
-          onClick={handleCopy}
-          style={{
-            flexShrink: 0, padding: '10px 18px', fontSize: 13, fontWeight: 600,
-            color: copied ? '#107c10' : '#0078d4',
-            background: copied ? '#f1faf1' : '#ffffff',
-            border: 'none', borderLeft: '1px solid #e0e0e0',
-            cursor: 'pointer', transition: 'all 0.15s',
-            fontFamily: '"Segoe UI", sans-serif',
-          }}
-        >
-          {copied ? '✓ Copied' : 'Copy'}
-        </button>
+        {value}
+      </span>
+      <button
+        onClick={handleCopy}
+        style={{
+          flexShrink: 0, padding: '10px 18px', fontSize: 13, fontWeight: 600,
+          color: copied ? '#107c10' : '#0078d4',
+          background: copied ? '#f1faf1' : '#ffffff',
+          border: 'none', borderLeft: '1px solid #e0e0e0',
+          cursor: 'pointer', transition: 'all 0.15s',
+          fontFamily: '"Segoe UI", sans-serif',
+        }}
+      >
+        {copied ? '✓ Copied' : 'Copy'}
+      </button>
+    </div>
+  );
+}
+
+function SetupButton() {
+  return (
+    <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div>
+        <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#a0a0a0', marginBottom: 6 }}>
+          Repo link
+        </div>
+        <CopyField value={REPO_URL} mono={false} />
+      </div>
+      <div>
+        <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#a0a0a0', marginBottom: 6 }}>
+          Clone command
+        </div>
+        <CopyField value={CLONE_CMD} mono={true} />
       </div>
     </div>
   );
