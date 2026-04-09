@@ -25,7 +25,7 @@ export default function AboutPage() {
       <div style={{ maxWidth: 420, width: '100%', textAlign: 'left', position: 'relative' }}>
 
         <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8b85c1', marginBottom: 16 }}>
-          Copilot Connectors Team
+          Copilot Connectors
         </div>
 
         <h1 style={{ fontSize: 48, fontWeight: 600, color: '#0f0e1a', lineHeight: '58px', margin: '0 0 12px' }}>
