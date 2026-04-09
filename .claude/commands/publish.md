@@ -86,6 +86,8 @@ git pull gim-connectors main
 git checkout -b <owner-slug>/<feature-slug>
 ```
 
+> Always branch off `main` — this is the clean shared baseline.
+
 Tell the user: "Creating your branch — you don't need to worry about this part."
 
 Set `TARGET_BRANCH` = `<owner-slug>/<feature-slug>`
@@ -150,8 +152,8 @@ If yes, wait ~3 minutes and check the URL is reachable.
 ## Rules
 - Always branch off `main` for new features — never commit directly to `main`
 - Branch format is `<owner>/<feature>` — no `bp/` prefix
-- Always push to `gim-connectors` remote — never to `origin` or `main`
-- Never merge to `Boilerplate` or `main` — feature branches are standalone previews
+- Always push to `gim-connectors` remote — never to `origin`
+- Never push directly to `main` — feature branches are standalone previews only
 - If a new branch with that name already exists, append a short timestamp suffix
 - The preview URL updates automatically on every subsequent push to the same branch
 - When approved work needs to go to the shared baseline, run `/handoff`
