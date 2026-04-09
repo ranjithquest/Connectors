@@ -2456,7 +2456,12 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                   setRightRailTab(key);
                   if (key === 'guide') { setHealthFocused(false); setHealthBackTrigger(n => n + 1); }
                 }}
-                styles={{ root: { paddingLeft: 16, paddingTop: 44, flexShrink: 0 }, itemContainer: { display: 'none' } }}
+                styles={{
+                root: { paddingLeft: 16, paddingTop: 44, flexShrink: 0 },
+                itemContainer: { display: 'none' },
+                link: isDarkMode ? { color: '#adadad', selectors: { ':hover': { color: '#f5f5f5', backgroundColor: '#3d3d3d' } } } : {},
+                linkIsSelected: isDarkMode ? { color: '#f5f5f5', selectors: { '::before': { backgroundColor: '#479ef5' } } } : {},
+              }}
               >
                 <PivotItem headerText="Actions" itemCount={railActionCount} itemKey="actions" />
                 <PivotItem headerText="Guide" itemKey="guide" />
@@ -2497,7 +2502,12 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                 setRightRailTab(key);
                 if (key === 'guide') { setHealthFocused(false); setHealthBackTrigger(n => n + 1); }
               }}
-              styles={{ root: { paddingLeft: 16, paddingTop: 44, flexShrink: 0 }, itemContainer: { display: 'none' } }}
+              styles={{
+                root: { paddingLeft: 16, paddingTop: 44, flexShrink: 0 },
+                itemContainer: { display: 'none' },
+                link: isDarkMode ? { color: '#adadad', selectors: { ':hover': { color: '#f5f5f5', backgroundColor: '#3d3d3d' } } } : {},
+                linkIsSelected: isDarkMode ? { color: '#f5f5f5', selectors: { '::before': { backgroundColor: '#479ef5' } } } : {},
+              }}
             >
               <PivotItem headerText="Actions" itemCount={railActionCount} itemKey="actions" />
               <PivotItem headerText="Guide" itemKey="guide" />
