@@ -2,15 +2,15 @@
 
 import { useState } from 'react';
 
-const SETUP_URL = 'https://raw.githubusercontent.com/gim-home/Connectors/main/SETUP.md';
+const SETUP_URL = 'git clone https://github.com/gim-home/Connectors.git';
 
 const STEPS = [
   {
     num: '01',
     title: 'Set up the boilerplate',
-    body: 'Install VS Code and the Claude Code extension. Then paste the link below into Claude Code chat — it will clone the repo, sign you into GitHub automatically, and run the full setup.',
+    body: 'Install VS Code and the Claude Code extension. Get repo access from your team lead, then clone the repo and open the folder in VS Code. Once open, type /setup in Claude Code — it will install dependencies, start the app, and configure your GitHub push access automatically.',
     setupButton: true,
-    skills: null as null | { cmd: string; desc: string; color: string; bg: string }[],
+    skills: [{ cmd: '/setup', desc: 'Install dependencies, start the app, and configure GitHub access', color: '#0e5c15', bg: '#f1faf1' }],
     resources: null as null | { label: string; href: string }[],
   },
   {
@@ -196,17 +196,8 @@ export default function GetStartedContent() {
                 {step.setupButton && (
                   <>
                     <SetupButton />
-                    <p style={{ fontSize: 16, color: '#1b1a19', margin: '16px 0 0', lineHeight: '24px' }}>
-                      Or{' '}<a
-                        href="https://github.com/gim-home/Connectors/tree/main"
-                        target="_blank" rel="noopener noreferrer"
-                        style={{ color: '#0f6cbd', textDecoration: 'none' }}
-                        onMouseOver={e => (e.currentTarget.style.textDecoration = 'underline')}
-                        onMouseOut={e => (e.currentTarget.style.textDecoration = 'none')}
-                      >
-                        Clone the Boilerplate repo
-                      </a>
-                      {' '}manually to local.
+                    <p style={{ fontSize: 14, color: '#616161', margin: '12px 0 0', lineHeight: '22px' }}>
+                      Then open the folder in VS Code and run <code style={{ fontFamily: '"Cascadia Code", monospace', background: '#f5f5f5', padding: '1px 5px', borderRadius: 3 }}>/setup</code> in Claude Code.
                     </p>
                   </>
                 )}

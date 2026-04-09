@@ -129,7 +129,7 @@ const NAV_ITEMS_GROUP2: NavItem[] = [
   { href: '/all-admin',  label: 'All admin centers', Icon: AllAppsIcon,       activeFor: ['/all-admin'] },
 ];
 
-const REAL_ROUTES = new Set(['/connectors', '/boilerplate', '/get-started']);
+const REAL_ROUTES = new Set(['/connectors', '/boilerplate', '/get-started', '/about']);
 function isRealRoute(href: string) {
   return REAL_ROUTES.has(href) || href.startsWith('/connectors/');
 }

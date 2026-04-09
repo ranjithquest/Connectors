@@ -240,7 +240,7 @@ export default function ISVPanel({ connector, onAdd, onClose }: ISVPanelProps) {
         </div>
 
         {/* Footer */}
-        <div className="border-t border-[#e1e1e1] dark:border-[#3d3d3d] px-8 py-3 flex items-center gap-4 flex-shrink-0 bg-white dark:bg-[#292929]">
+        <div className="border-t border-[#e1e1e1] dark:border-[#3d3d3d] px-8 py-3 flex items-center gap-4 flex-shrink-0 bg-white dark:bg-[#212121]">
           {loading ? (
             <FluentProvider theme={isDark ? webDarkTheme : webLightTheme} style={{ background: 'transparent', display: 'flex', alignItems: 'center', gap: 16, width: '100%' }}>
               <Skeleton><SkeletonItem size={32} style={{ width: 60, borderRadius: 4, flexShrink: 0 }} /></Skeleton>

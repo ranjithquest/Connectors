@@ -436,7 +436,7 @@ function DiagnosticFlow({ issue }: { issue: DiagnosticIssue }) {
             Restrict connector scope
           </button>
           <button onClick={() => setEscalated(true)}
-            className="px-3 py-1.5 text-[12px] font-semibold text-[#242424] dark:text-[#f5f5f5] bg-white dark:bg-[#292929] border border-[#d1d1d1] dark:border-[#616161] rounded-[4px] hover:bg-[#f5f5f5] dark:hover:bg-[#3d3d3d] transition-colors shadow-[0px_1px_2px_rgba(0,0,0,0.14)]">
+            className="px-3 py-1.5 text-[12px] font-semibold text-[#242424] dark:text-[#f5f5f5] bg-white dark:bg-[#212121] border border-[#d1d1d1] dark:border-[#616161] rounded-[4px] hover:bg-[#f5f5f5] dark:hover:bg-[#3d3d3d] transition-colors shadow-[0px_1px_2px_rgba(0,0,0,0.14)]">
             Escalate to ServiceNow
           </button>
         </div>
@@ -459,7 +459,7 @@ function DiagnosticFlow({ issue }: { issue: DiagnosticIssue }) {
               setAnswers((prev) => ({ ...prev, [currentQ.id]: opt.label }));
               setStep((s) => s + 1);
             }}
-            className="flex items-center gap-2.5 text-left px-3 py-2 text-[12px] text-[#242424] dark:text-[#f5f5f5] bg-white dark:bg-[#292929] border border-[#d1d1d1] dark:border-[#616161] rounded-[4px] hover:border-[#0078d4] dark:hover:border-[#479ef5] hover:bg-[#f0f6ff] dark:hover:bg-[#1a2a3a] transition-colors shadow-[0px_1px_2px_rgba(0,0,0,0.10)]"
+            className="flex items-center gap-2.5 text-left px-3 py-2 text-[12px] text-[#242424] dark:text-[#f5f5f5] bg-white dark:bg-[#212121] border border-[#d1d1d1] dark:border-[#616161] rounded-[4px] hover:border-[#0078d4] dark:hover:border-[#479ef5] hover:bg-[#f0f6ff] dark:hover:bg-[#1a2a3a] transition-colors shadow-[0px_1px_2px_rgba(0,0,0,0.10)]"
           >
             <span className="w-3.5 h-3.5 rounded-full border-2 border-[#8a8886] flex-shrink-0" />
             {opt.label}
@@ -1380,19 +1380,21 @@ export function ActionRail({ connector, onNavigateToField, onFocusedChange, back
         <div style={{ display: 'flex', flexDirection: 'column' }}>
 
           {/* Blockers / Suggestions stat row */}
-          <div style={{ display: 'flex', gap: tokens.spacingHorizontalXXL, marginBottom: 16 }}>
-            <ChartHoverCard
-              Legend={`Blocker${blockerIssues.length !== 1 ? 's' : ''}`}
-              YValue={blockerIssues.length}
-              color="#a80000"
-              styles={{ calloutContentRoot: { background: 'transparent', boxShadow: 'none', border: 'none' } }}
-            />
-            <ChartHoverCard
-              Legend="Suggestions"
-              YValue={suggestionIssues.length}
-              color={suggestionIssues.length > 0 ? '#c87e00' : tokens.colorNeutralForeground4}
-              styles={{ calloutContentRoot: { background: 'transparent', boxShadow: 'none', border: 'none' } }}
-            />
+          <div style={{ display: 'flex', alignItems: 'stretch', gap: tokens.spacingHorizontalXXL, marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS }}>
+              <span style={{ width: 3, borderRadius: 99, backgroundColor: tokens.colorPaletteRedBackground3, flexShrink: 0, alignSelf: 'stretch' }} />
+              <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>Blocker{blockerIssues.length !== 1 ? 's' : ''}</Text>
+                <Text weight="bold" size={500} style={{ color: tokens.colorPaletteRedForeground3 }}>{blockerIssues.length}</Text>
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS }}>
+              <span style={{ width: 3, borderRadius: 99, backgroundColor: suggestionIssues.length > 0 ? tokens.colorPaletteMarigoldBackground3 : tokens.colorNeutralStroke1, flexShrink: 0, alignSelf: 'stretch' }} />
+              <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>Suggestions</Text>
+                <Text weight="bold" size={500} style={{ color: suggestionIssues.length > 0 ? tokens.colorPaletteMarigoldForeground2 : tokens.colorNeutralForeground3 }}>{suggestionIssues.length}</Text>
+              </span>
+            </div>
           </div>
 
           {/* Buttons — 16px below stat row, 24px above pills */}
@@ -1693,10 +1695,10 @@ function ContentTabContent({ fieldHighlight, fieldRefs, onFocusSection }: { fiel
               key: 'count',
               text: `${PROPERTIES.length} items`,
               disabled: true,
-              buttonStyles: { root: { fontSize: 12, color: isDark ? '#adadad' : '#605e5c', cursor: 'default', backgroundColor: isDark ? '#292929' : 'transparent' }, rootDisabled: { background: isDark ? '#292929' : 'transparent', color: isDark ? '#adadad' : '#605e5c' } },
+              buttonStyles: { root: { fontSize: 12, color: isDark ? '#adadad' : '#605e5c', cursor: 'default', backgroundColor: isDark ? '#212121' : 'transparent' }, rootDisabled: { background: isDark ? '#212121' : 'transparent', color: isDark ? '#adadad' : '#605e5c' } },
             },
           ]}
-          styles={{ root: { padding: 0, marginBottom: 8, height: 36, backgroundColor: isDark ? '#292929' : '#ffffff' }, primarySet: { alignItems: 'center', backgroundColor: isDark ? '#292929' : '#ffffff' }, secondarySet: { backgroundColor: isDark ? '#292929' : '#ffffff' } }}
+          styles={{ root: { padding: 0, marginBottom: 8, height: 36, backgroundColor: isDark ? '#212121' : '#ffffff' }, primarySet: { alignItems: 'center', backgroundColor: isDark ? '#212121' : '#ffffff' }, secondarySet: { backgroundColor: isDark ? '#212121' : '#ffffff' } }}
         />
 
         {/* Table */}
@@ -2050,7 +2052,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
       <DrawerBody style={{ padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
         {creating ? (
           <>
-            <div className={`flex-1 overflow-y-auto bg-white dark:bg-[#292929] ${slideInClass}`} style={{ padding: '16px 32px 24px' }}>
+            <div className={`flex-1 overflow-y-auto bg-white dark:bg-[#212121] ${slideInClass}`} style={{ padding: '16px 32px 24px' }}>
               {/* Heading */}
               <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS, marginBottom: tokens.spacingVerticalXXL }}>
                 <CompletedSolidIcon style={{ fontSize: 20, color: created ? '#107c10' : '#c8c6c4' }} />
@@ -2082,7 +2084,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
               </div>
             </div>
             {/* Footer */}
-            <div style={{ borderTop: `1px solid ${isDarkMode ? '#3d3d3d' : '#e1e1e1'}`, padding: '0 32px', height: 64, flexShrink: 0, background: isDarkMode ? '#292929' : '#fff', display: 'flex', alignItems: 'center' }}>
+            <div style={{ borderTop: `1px solid ${isDarkMode ? '#3d3d3d' : '#e1e1e1'}`, padding: '0 32px', height: 64, flexShrink: 0, background: isDarkMode ? '#212121' : '#fff', display: 'flex', alignItems: 'center' }}>
               <DefaultButton onClick={onClose}>Done</DefaultButton>
             </div>
             <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
@@ -2094,7 +2096,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
         {/* Left column: form + footer */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden" style={{ minHeight: 0, minWidth: 0 }}>
         {/* Form side */}
-        <div className="flex-1 bg-white dark:bg-[#292929] flex flex-col min-w-0 overflow-hidden" style={{ minHeight: 0 }}>
+        <div className="flex-1 bg-white dark:bg-[#212121] flex flex-col min-w-0 overflow-hidden" style={{ minHeight: 0 }}>
 
           {/* Header */}
           <div className="px-8 pt-8">
@@ -2159,7 +2161,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                 <div className="flex-shrink-0 w-[220px]">
                   <p className="text-[13px] font-semibold text-[#323130] dark:text-[#f5f5f5] mb-3">Live preview</p>
                   <div className="border border-[#e1e1e1] dark:border-[#3d3d3d] rounded-[4px] bg-[#faf9f8] dark:bg-[#1f1f1f] p-4 flex flex-col gap-3">
-                    <div className="self-start flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-[#292929] border border-[#c8c6c4] dark:border-[#616161] rounded-full shadow-[0px_1px_2px_rgba(0,0,0,0.1)]">
+                    <div className="self-start flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-[#212121] border border-[#c8c6c4] dark:border-[#616161] rounded-full shadow-[0px_1px_2px_rgba(0,0,0,0.1)]">
                       <span className="text-[13px] text-[#323130] dark:text-[#f5f5f5]">All Sources</span>
                       <ChevronDownIcon style={{ fontSize: 10 }} className="text-[#605e5c] dark:text-[#adadad]" />
                     </div>
@@ -2293,8 +2295,8 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                     root: { width: '100%' },
                     ...(isDarkMode ? {
                       prefix: { background: '#3d3d3d', color: '#c8c6c4', borderColor: '#616161' },
-                      field: { background: '#292929', color: '#f5f5f5' },
-                      fieldGroup: { borderColor: '#616161', background: '#292929', selectors: { ':hover': { borderColor: '#adadad' } } },
+                      field: { background: '#212121', color: '#f5f5f5' },
+                      fieldGroup: { borderColor: '#616161', background: '#212121', selectors: { ':hover': { borderColor: '#adadad' } } },
                     } : {}),
                   }}
                 />
@@ -2366,9 +2368,9 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                     styles={{
                       root: { width: '100%' },
                       ...(isDarkMode ? {
-                        text: { background: '#292929', borderColor: '#616161', selectors: { ':hover': { borderColor: '#adadad' }, '::after': { borderColor: '#479ef5' } } },
-                        input: { background: '#292929', color: '#f5f5f5', selectors: { '::placeholder': { color: '#8a8886' } } },
-                        itemsWrapper: { background: '#292929' },
+                        text: { background: '#212121', borderColor: '#616161', selectors: { ':hover': { borderColor: '#adadad' }, '::after': { borderColor: '#479ef5' } } },
+                        input: { background: '#212121', color: '#f5f5f5', selectors: { '::placeholder': { color: '#8a8886' } } },
+                        itemsWrapper: { background: '#212121' },
                       } : {}),
                     }}
                   />
@@ -2381,7 +2383,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                   <div
                     onClick={() => setPrivacyAccepted(v => !v)}
                     className={`mt-0.5 w-5 h-5 rounded-[2px] border flex-shrink-0 cursor-pointer flex items-center justify-center ${
-                      privacyAccepted ? 'bg-[#0078d4] border-[#0078d4]' : 'border-[#323130] dark:border-[#adadad] bg-white dark:bg-[#292929]'
+                      privacyAccepted ? 'bg-[#0078d4] border-[#0078d4]' : 'border-[#323130] dark:border-[#adadad] bg-white dark:bg-[#212121]'
                     }`}
                   >
                     {privacyAccepted && (
@@ -2437,7 +2439,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
               display: 'flex', flexDirection: 'column',
               position: 'absolute', top: 0, right: 0, bottom: 0,
               width: 400, zIndex: 40,
-              background: isDarkMode ? '#292929' : '#faf9f8',
+              background: isDarkMode ? '#212121' : '#faf9f8',
               borderLeft: `1px solid ${isDarkMode ? '#3d3d3d' : '#e1e1e1'}`,
               boxShadow: '-4px 0 16px rgba(0,0,0,0.12)',
             }}
@@ -2454,7 +2456,12 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                   setRightRailTab(key);
                   if (key === 'guide') { setHealthFocused(false); setHealthBackTrigger(n => n + 1); }
                 }}
-                styles={{ root: { paddingLeft: 16, paddingTop: 44, flexShrink: 0 }, itemContainer: { display: 'none' } }}
+                styles={{
+                root: { paddingLeft: 16, paddingTop: 44, flexShrink: 0 },
+                itemContainer: { display: 'none' },
+                link: isDarkMode ? { color: '#adadad', selectors: { ':hover': { color: '#f5f5f5', backgroundColor: '#3d3d3d' } } } : {},
+                linkIsSelected: isDarkMode ? { color: '#f5f5f5', selectors: { '::before': { backgroundColor: '#479ef5' } } } : {},
+              }}
               >
                 <PivotItem headerText="Actions" itemCount={railActionCount} itemKey="actions" />
                 <PivotItem headerText="Guide" itemKey="guide" />
@@ -2486,7 +2493,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
         )}
 
         {/* Right rail — static side column when panel is wide enough */}
-        {panelWide && <div style={{ display: 'flex', flexDirection: 'column', width: 360, flexShrink: 0, background: isDarkMode ? '#292929' : '#faf9f8', borderLeft: `1px solid ${isDarkMode ? '#3d3d3d' : '#e1e1e1'}`, overflow: 'hidden' }}>
+        {panelWide && <div style={{ display: 'flex', flexDirection: 'column', width: 360, flexShrink: 0, background: isDarkMode ? '#212121' : '#faf9f8', borderLeft: `1px solid ${isDarkMode ? '#3d3d3d' : '#e1e1e1'}`, overflow: 'hidden' }}>
           {isEdit && existingConnector && !actionFocused ? (
             <Pivot
               selectedKey={rightRailTab}
@@ -2495,7 +2502,12 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                 setRightRailTab(key);
                 if (key === 'guide') { setHealthFocused(false); setHealthBackTrigger(n => n + 1); }
               }}
-              styles={{ root: { paddingLeft: 16, paddingTop: 44, flexShrink: 0 }, itemContainer: { display: 'none' } }}
+              styles={{
+                root: { paddingLeft: 16, paddingTop: 44, flexShrink: 0 },
+                itemContainer: { display: 'none' },
+                link: isDarkMode ? { color: '#adadad', selectors: { ':hover': { color: '#f5f5f5', backgroundColor: '#3d3d3d' } } } : {},
+                linkIsSelected: isDarkMode ? { color: '#f5f5f5', selectors: { '::before': { backgroundColor: '#479ef5' } } } : {},
+              }}
             >
               <PivotItem headerText="Actions" itemCount={railActionCount} itemKey="actions" />
               <PivotItem headerText="Guide" itemKey="guide" />
@@ -2525,7 +2537,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
         </div>{/* end content row */}
 
         {/* Footer — full width across panel */}
-        <div className="border-t border-[#e1e1e1] dark:border-[#3d3d3d] px-8 py-4 flex items-center justify-between flex-shrink-0 bg-white dark:bg-[#292929] z-10">
+        <div className="border-t border-[#e1e1e1] dark:border-[#3d3d3d] px-8 py-4 flex items-center justify-between flex-shrink-0 bg-white dark:bg-[#212121] z-10">
           <div className="flex items-center gap-3">
             <PrimaryButton
               disabled={!hasChanges}
@@ -2554,7 +2566,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
       onOpenChange={(_, { open }) => { if (!open) onClose(); }}
       position="end"
       className="connector-panel-drawer"
-      style={{ top: 48, height: 'calc(100% - 48px)', padding: 0, display: 'flex', flexDirection: 'column' }}
+      style={{ top: 48, height: 'calc(100% - 48px)', padding: 0, display: 'flex', flexDirection: 'column', backgroundColor: isDarkMode ? '#212121' : '#ffffff' }}
     >
       {content}
     </OverlayDrawer>
