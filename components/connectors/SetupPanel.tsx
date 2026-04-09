@@ -673,7 +673,7 @@ export default function SetupPanel({ connectorType, onClose, onCreated }: SetupP
         onOpenChange={(_, { open }) => { if (!open) onClose(); }}
         position="end"
         className="connector-panel-drawer"
-        style={{ top: 48, height: 'calc(100% - 48px)', padding: 0, display: 'flex', flexDirection: 'column' }}
+        style={{ top: 48, height: 'calc(100% - 48px)', padding: 0, display: 'flex', flexDirection: 'column', backgroundColor: isDark ? '#212121' : '#ffffff' }}
       >
       {creating ? (
         <DrawerBody style={{ padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
