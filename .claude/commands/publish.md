@@ -157,3 +157,38 @@ If yes, wait ~3 minutes and check the URL is reachable.
 - If a new branch with that name already exists, append a short timestamp suffix
 - The preview URL updates automatically on every subsequent push to the same branch
 - When approved work needs to go to the shared baseline, run `/handoff`
+
+---
+
+## Don't have Claude Code? Manual steps
+
+If you're not using Claude Code, here's how to publish manually:
+
+### 1. Set up GitHub push access (one-time)
+```bash
+git remote add gim-connectors https://YOUR_USERNAME:YOUR_TOKEN@github.com/gim-home/Connectors.git
+```
+Get a PAT from **github.com → Settings → Developer Settings → Personal Access Tokens (classic)** with `repo` scope, then SSO-authorize it for `gim-home`.
+
+### 2. Create a feature branch
+```bash
+git checkout main
+git pull gim-connectors main
+git checkout -b your-name/feature-name
+```
+
+### 3. Commit and push
+```bash
+git add -A
+git commit -m "feat: your feature name"
+git push -u gim-connectors your-name/feature-name
+```
+
+### 4. Get your preview URL
+GitHub Actions deploys in ~2–3 minutes. Watch progress at [github.com/gim-home/Connectors/actions](https://github.com/gim-home/Connectors/actions).
+
+Your preview URL will be:
+```
+https://studious-adventure-j17vp6o.pages.github.io/your-name/feature-name/connectors
+```
+It's also posted as a comment on your commit automatically.
