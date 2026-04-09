@@ -2,8 +2,6 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches-ignore:
-      - Boilerplate
 
 permissions:
   contents: write
@@ -76,7 +74,7 @@ jobs:
           git fetch origin gh-pages 2>/dev/null && git checkout gh-pages || (git checkout --orphan gh-pages && git rm -rf . --quiet)
 
           if [ "$DEPLOYDIR" = "." ]; then
-            # Boilerplate: replace root content but preserve feature branch subdirs.
+            # main: replace root content but preserve feature branch subdirs.
             # Feature branch dirs are top-level dirs that don't exist in the new build output.
             mkdir -p /tmp/feature-save
             for d in */; do
