@@ -133,6 +133,7 @@ body {
 .dark .fui-DrawerBody,
 .dark .fui-InlineDrawer,
 .dark .fui-OverlayDrawer,
+.dark .fui-DrawerSurface,
 .dark [class*="fui-Drawer"] {
   background-color: #212121 !important;
 }
