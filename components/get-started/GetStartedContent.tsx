@@ -124,6 +124,20 @@ export default function GetStartedContent() {
 
   return (
     <section id="getting-started" style={{ padding: '0 0 96px', fontFamily: font, color: '#242424', width: '100%' }}>
+      <style>{`
+        .gs-hero-text { max-width: 52%; }
+        .gs-hero-h1 { font-size: 68px; line-height: 92px; }
+        .gs-step-row { display: flex; gap: 48px; align-items: flex-start; }
+        .gs-step-main { flex: 0 0 60%; }
+        .gs-step-resources { flex: 1 1 0; min-width: 0; }
+        @media (max-width: 768px) {
+          .gs-hero-text { max-width: 100%; }
+          .gs-hero-h1 { font-size: 36px !important; line-height: 48px !important; }
+          .gs-step-row { flex-direction: column; gap: 24px; }
+          .gs-step-main { flex: 1 1 100%; }
+          .gs-step-resources { width: 100%; }
+        }
+      `}</style>
       {/* Hero header */}
       <div style={{ position: 'relative', minHeight: 260, marginBottom: 40, display: 'flex', alignItems: 'center' }}>
         {/* Image — right side, natural aspect, fades left */}
@@ -153,8 +167,8 @@ export default function GetStartedContent() {
           pointerEvents: 'none',
         }} />
         {/* Text content — left side */}
-        <div style={{ position: 'relative', maxWidth: '52%' }}>
-          <h1 style={{ fontSize: 68, fontWeight: 600, color: '#000000', lineHeight: '92px', margin: '0 0 4px' }}>
+        <div className="gs-hero-text" style={{ position: 'relative' }}>
+          <h1 className="gs-hero-h1" style={{ fontWeight: 600, color: '#000000', margin: '0 0 4px' }}>
             Admin Boilerplate
           </h1>
           <p style={{ fontSize: 14, color: '#a19f9d', fontWeight: 400, margin: '0 0 16px' }}>V1.0 (Beta)</p>
@@ -186,8 +200,8 @@ export default function GetStartedContent() {
             id={`step-${step.num}`}
             style={{ paddingTop: idx === 0 ? 16 : 40, paddingBottom: 40, borderBottom: idx < STEPS.length - 1 ? '1px solid #f0f0f0' : 'none' }}
           >
-            <div style={{ display: 'flex', gap: 48, alignItems: 'flex-start' }}>
-              <div style={{ flex: '0 0 60%' }}>
+            <div className="gs-step-row">
+              <div className="gs-step-main">
                 <h2 style={{ fontSize: 24, fontWeight: 600, color: '#000000', lineHeight: '32px', margin: '0 0 16px' }}>
                   {step.title}
                 </h2>
@@ -228,7 +242,7 @@ export default function GetStartedContent() {
               </div>
 
               {step.resources && (
-                <div style={{ flex: '1 1 0', minWidth: 0 }}>
+                <div className="gs-step-resources">
                   <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#a0a0a0', marginBottom: 10 }}>
                     Resources
                   </div>
