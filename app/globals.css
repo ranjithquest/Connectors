@@ -115,6 +115,7 @@ body {
 .dark .fui-FluentProvider {
   --bg: var(--colorNeutralBackground2);
   --surface: var(--colorNeutralBackground1);
+  --colorNeutralBackground1: #212121;
   --border: var(--colorNeutralStroke3);
   --border-mid: var(--colorNeutralStroke2);
   --text-primary: var(--colorNeutralForeground1);
@@ -126,6 +127,14 @@ body {
 .dark body {
   background: #141414;
   color: #ffffff;
+}
+
+/* Panel / drawer background in dark mode */
+.dark .fui-DrawerBody,
+.dark .fui-InlineDrawer,
+.dark .fui-OverlayDrawer,
+.dark [class*="fui-Drawer"] {
+  background-color: #212121 !important;
 }
 
 .dark main {

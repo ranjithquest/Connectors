@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { ChartHoverCard } from '@fluentui/react-charting';
 import type { Connector, DiagnosticIssue } from '@/lib/types';
 import {
   ActionButton, CommandBarButton, Pivot, PivotItem, PrimaryButton, DefaultButton,
@@ -16,7 +17,7 @@ import {
   Text as FText, Button, tokens, Badge,
   MessageBar, MessageBarBody, MessageBarTitle, MessageBarActions,
   Card, CardHeader, Divider,
-  Skeleton, SkeletonItem,
+  Skeleton, SkeletonItem, Spinner,
 } from '@fluentui/react-components';
 import {
   OverlayDrawer,
@@ -141,13 +142,38 @@ function ADOHealthSection({ connector, isDark, onEdit, lastSyncOpen, setLastSync
   connector: Connector; isDark: boolean; onEdit?: () => void;
   lastSyncOpen: boolean; setLastSyncOpen: (v: boolean) => void;
 }) {
-  const [issuesExpanded, setIssuesExpanded] = useState(false);
-
   const activeIssues = connector.issues.filter((i) => !i.resolvedAt).sort((a, b) => a.rank - b.rank);
   const blockers    = activeIssues.filter((i) => i.severity === 'blocker');
   const warnings    = activeIssues.filter((i) => i.severity === 'warning');
   const suggestions = activeIssues.filter((i) => i.severity === 'suggestion');
   const hasProblems = blockers.length > 0 || warnings.length > 0;
+
+  // Action Required → issues open by default; Syncing/Healthy → sync accordion open by default
+  const [issuesExpanded, setIssuesExpanded] = useState(hasProblems);
+
+  // Live elapsed timer — only ticks when syncing
+  const isSyncing = connector.healthStatus === 'pending';
+  const syncStart = connector.syncHistory[0]?.startedAt ?? null;
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    if (!isSyncing || !syncStart) return;
+    const startMs = new Date(syncStart).getTime();
+    const tick = () => setElapsed(Math.floor((Date.now() - startMs) / 1000));
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [isSyncing, syncStart]);
+
+  const formatElapsed = (s: number) => {
+    const d = Math.floor(s / 86400);
+    const h = Math.floor((s % 86400) / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    if (d > 0) return `${d}d ${h}h ${m}m ${sec}s`;
+    if (h > 0) return `${h}h ${m}m ${sec}s`;
+    if (m > 0) return `${m}m ${sec}s`;
+    return `${sec}s`;
+  };
 
   const lastRun = connector.syncHistory[0] ?? null;
   const lastRunMetrics_ = lastRun ? (() => {
@@ -175,9 +201,10 @@ function ADOHealthSection({ connector, isDark, onEdit, lastSyncOpen, setLastSync
   const cardBorder = isDark ? '#3d3d3d' : '#edebe9';
   const divider    = isDark ? '#3d3d3d' : '#edebe9';
 
+  const blockersAndWarnings = activeIssues.filter((i) => i.severity === 'blocker' || i.severity === 'warning');
   const metrics: { label: string; count: number; color: string }[] = [];
-  if (blockers.length)    metrics.push({ label: 'Blockers',    count: blockers.length,    color: '#a80000' });
-  if (suggestions.length) metrics.push({ label: 'Suggestions', count: suggestions.length, color: '#0078d4' });
+  if (blockersAndWarnings.length) metrics.push({ label: `Blocker${blockersAndWarnings.length !== 1 ? 's' : ''}`, count: blockersAndWarnings.length, color: '#a80000' });
+  if (suggestions.length) metrics.push({ label: `Suggestion${suggestions.length !== 1 ? 's' : ''}`, count: suggestions.length, color: '#c87e00' });
 
   return (
     <FluentProvider theme={isDark ? webDarkTheme : webLightTheme} style={{ background: 'transparent' }}>
@@ -199,16 +226,8 @@ function ADOHealthSection({ connector, isDark, onEdit, lastSyncOpen, setLastSync
           }}
         >
           <Stack horizontal verticalAlign="center" tokens={{ childrenGap: 6 }}>
-            {connector.healthStatus === 'pending'
-              ? (
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
-                  <circle cx="7" cy="7" r="7" fill="#0078d4" />
-                  <path d="M7 3.5A3.5 3.5 0 0 1 10.5 7" stroke="white" strokeWidth="1.3" strokeLinecap="round" fill="none"/>
-                  <path d="M7 10.5A3.5 3.5 0 0 1 3.5 7" stroke="white" strokeWidth="1.3" strokeLinecap="round" fill="none"/>
-                  <path d="M10.5 7l-1.2-.8M10.5 7l-.8 1.2" stroke="white" strokeWidth="1.1" strokeLinecap="round"/>
-                  <path d="M3.5 7l1.2.8M3.5 7l.8-1.2" stroke="white" strokeWidth="1.1" strokeLinecap="round"/>
-                </svg>
-              )
+            {isSyncing
+              ? <Spinner size="extra-tiny" style={{ flexShrink: 0 }} />
               : <StatusCircleInnerIcon style={{ fontSize: 12, color: '#107c10', flexShrink: 0 }} />
             }
             <FText size={300}>{connector.healthStatus === 'pending' ? 'Syncing' : 'Active'}</FText>
@@ -216,7 +235,7 @@ function ADOHealthSection({ connector, isDark, onEdit, lastSyncOpen, setLastSync
           <Stack horizontal verticalAlign="center" tokens={{ childrenGap: 8 }}>
             {lastRun && (
               <FText size={200} style={{ color: tokens.colorNeutralForeground3, fontSize: 12 }}>
-                {connector.healthStatus === 'pending' ? syncRelativeLabel : `Synced on ${syncDate} · ${syncTime}`}
+                {isSyncing ? formatElapsed(elapsed) : `Synced on ${syncDate} · ${syncTime}`}
               </FText>
             )}
             <IconButton
@@ -228,16 +247,11 @@ function ADOHealthSection({ connector, isDark, onEdit, lastSyncOpen, setLastSync
         </Stack>
 
         {lastSyncOpen && lastRun && (
-          <Stack tokens={{ childrenGap: 10 }} styles={{ root: { paddingTop: 16, paddingBottom: 12 } }}>
-            <Stack horizontal>
-              <StatBar label={lastRunMetrics_[0].label} value={lastRunMetrics_[0].value} color={lastRunMetrics_[0].color} isDark={isDark} />
-              <StatBar label={lastRunMetrics_[1].label} value={lastRunMetrics_[1].value} color={lastRunMetrics_[1].color} isDark={isDark} />
-            </Stack>
-            <Stack horizontal>
-              <StatBar label={lastRunMetrics_[2].label} value={lastRunMetrics_[2].value} color={lastRunMetrics_[2].color} isDark={isDark} />
-              <StatBar label={lastRunMetrics_[3].label} value={lastRunMetrics_[3].value} color={lastRunMetrics_[3].color} isDark={isDark} />
-            </Stack>
-          </Stack>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 0', paddingTop: 16, paddingBottom: 12 }}>
+            {lastRunMetrics_.map((m) => (
+              <ChartHoverCard key={m.label} Legend={m.label} YValue={m.value} color={m.color} styles={{ calloutContentRoot: { background: 'transparent', boxShadow: 'none', border: 'none' } }} />
+            ))}
+          </div>
         )}
 
         <Separator />
@@ -280,20 +294,20 @@ function ADOHealthSection({ connector, isDark, onEdit, lastSyncOpen, setLastSync
         </Stack>
 
         {issuesExpanded && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '8px 0 12px 0' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalM, padding: '8px 0 12px 0' }}>
             {!hasProblems ? (
-              <Stack horizontal>
-                <StatBar label="Blockers" value="0" color={tokens.colorNeutralStroke1} />
-                <StatBar label="Suggestions" value={String(suggestions.length)} color={tokens.colorNeutralStroke1} />
-              </Stack>
+              <div style={{ display: 'flex', gap: tokens.spacingHorizontalXXL }}>
+                <ChartHoverCard Legend="Blockers" YValue={0} color={tokens.colorNeutralStroke1} styles={{ calloutContentRoot: { background: 'transparent', boxShadow: 'none', border: 'none' } }} />
+                {suggestions.length > 0 && <ChartHoverCard Legend="Suggestions" YValue={suggestions.length} color={tokens.colorNeutralStroke1} styles={{ calloutContentRoot: { background: 'transparent', boxShadow: 'none', border: 'none' } }} />}
+              </div>
             ) : (
               <>
                 {metrics.length > 0 && (
-                  <Stack horizontal styles={{ root: { paddingBottom: 16 } }}>
+                  <div style={{ display: 'flex', gap: tokens.spacingHorizontalXXL, paddingBottom: 16 }}>
                     {metrics.map((m) => (
-                      <StatBar key={m.label} label={m.label} value={String(m.count)} color={m.color} />
+                      <ChartHoverCard key={m.label} Legend={m.label} YValue={m.count} color={m.color} styles={{ calloutContentRoot: { background: 'transparent', boxShadow: 'none', border: 'none' } }} />
                     ))}
-                  </Stack>
+                  </div>
                 )}
                 {activeIssues.map((issue) => (
                   <IssueCard
@@ -322,7 +336,9 @@ export default function ConnectorDetailPanel({ connector, onClose, onEdit }: Con
   const [activeTab, setActiveTab] = useState<TabId>('details');
   const [copied, setCopied] = useState(false);
   const [isDark, setIsDark] = useState(false);
-  const [lastSyncOpen, setLastSyncOpen] = useState(false);
+  const hasActiveProblems = connector.issues.filter((i) => !i.resolvedAt).some((i) => i.severity === 'blocker' || i.severity === 'warning');
+  // Syncing → open sync accordion by default; Action Required → close it (issues accordion opens instead)
+  const [lastSyncOpen, setLastSyncOpen] = useState(!hasActiveProblems);
   const [authBannerDismissed, setAuthBannerDismissed] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -388,18 +404,18 @@ export default function ConnectorDetailPanel({ connector, onClose, onEdit }: Con
           <Stack styles={{ root: { padding: '16px 32px 0' } }} tokens={{ childrenGap: 0 }}>
             {loading ? (
               <FluentProvider theme={isDark ? webDarkTheme : webLightTheme} style={{ background: 'transparent' }}>
-                <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', paddingBottom: 48 }}>
+                <div style={{ display: 'flex', gap: tokens.spacingHorizontalL, alignItems: 'flex-start', paddingBottom: 48 }}>
                   <Skeleton><SkeletonItem shape="circle" size={72} style={{ flexShrink: 0 }} /></Skeleton>
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 4 }}>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10, paddingTop: tokens.spacingVerticalXS }}>
                     <Skeleton><SkeletonItem size={20} style={{ width: '60%' }} /></Skeleton>
                     <Skeleton><SkeletonItem size={16} style={{ width: '40%' }} /></Skeleton>
-                    <div style={{ display: 'flex', gap: 8, paddingTop: 4 }}>
+                    <div style={{ display: 'flex', gap: tokens.spacingHorizontalS, paddingTop: tokens.spacingVerticalXS }}>
                       <Skeleton><SkeletonItem size={32} style={{ width: 120, borderRadius: 2 }} /></Skeleton>
                       <Skeleton><SkeletonItem size={32} style={{ width: 80, borderRadius: 2 }} /></Skeleton>
                     </div>
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: 4, marginLeft: -9 }}>
+                <div style={{ display: 'flex', gap: tokens.spacingHorizontalXS, marginLeft: -9 }}>
                   {TABS.map((t) => (
                     <Skeleton key={t.id}><SkeletonItem size={16} style={{ width: 60, borderRadius: 2 }} /></Skeleton>
                   ))}
@@ -423,10 +439,10 @@ export default function ConnectorDetailPanel({ connector, onClose, onEdit }: Con
                     <div style={{ height: 16, position: 'relative', width: '100%', overflow: 'visible' }}>
                       <div style={{ position: 'absolute', top: -8, left: -8, display: 'flex' }}>
                         <CommandBarButton
-                          split
-                          text="Start full sync"
-                          iconProps={{ iconName: 'Sync' }}
-                          menuProps={{ items: [{ key: 'incremental', text: 'Incremental sync' }] }}
+                          split={!connector.healthStatus.includes('pending')}
+                          text={connector.healthStatus === 'pending' ? 'Stop sync' : 'Start full sync'}
+                          iconProps={{ iconName: connector.healthStatus === 'pending' ? 'Stop' : 'Sync' }}
+                          menuProps={connector.healthStatus === 'pending' ? undefined : { items: [{ key: 'incremental', text: 'Incremental sync' }] }}
                           styles={{
                             root: { height: 32, padding: '0 8px', ...(isDark ? { background: 'transparent' } : {}) },
                             label: { fontSize: 14, ...(isDark ? { color: '#ffffff' } : {}) },
@@ -475,7 +491,7 @@ export default function ConnectorDetailPanel({ connector, onClose, onEdit }: Con
         <DrawerBody style={{ padding: 0 }}>
         {loading ? (
           <FluentProvider theme={isDark ? webDarkTheme : webLightTheme} style={{ background: 'transparent' }}>
-            <div style={{ padding: '16px 32px 32px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <div style={{ padding: '16px 32px 32px', display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalXXL }}>
               {/* Meta rows */}
               {Array.from({ length: 5 }).map((_, i) => (
                 <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -485,11 +501,11 @@ export default function ConnectorDetailPanel({ connector, onClose, onEdit }: Con
               ))}
               {/* Stat bars */}
               {[0, 1].map((row) => (
-                <div key={row} style={{ display: 'flex', gap: 8 }}>
+                <div key={row} style={{ display: 'flex', gap: tokens.spacingHorizontalS }}>
                   {[0, 1].map((col) => (
-                    <div key={col} style={{ flex: 1, display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+                    <div key={col} style={{ flex: 1, display: 'flex', gap: tokens.spacingHorizontalS, alignItems: 'flex-end' }}>
                       <Skeleton><SkeletonItem style={{ width: 3, height: 48, borderRadius: 2 }} /></Skeleton>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalXS }}>
                         <Skeleton><SkeletonItem size={12} style={{ width: 80 }} /></Skeleton>
                         <Skeleton><SkeletonItem size={24} style={{ width: 60 }} /></Skeleton>
                       </div>
@@ -499,7 +515,7 @@ export default function ConnectorDetailPanel({ connector, onClose, onEdit }: Con
               ))}
               {/* More meta rows */}
               {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} style={{ display: 'flex', gap: 24 }}>
+                <div key={i} style={{ display: 'flex', gap: tokens.spacingHorizontalXXL }}>
                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
                     <Skeleton><SkeletonItem size={12} style={{ width: '50%' }} /></Skeleton>
                     <Skeleton><SkeletonItem size={16} style={{ width: '70%' }} /></Skeleton>

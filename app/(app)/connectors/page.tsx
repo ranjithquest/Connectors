@@ -5,10 +5,9 @@ import { useRouter } from 'next/navigation';
 import { SearchBox, CommandBar, ICommandBarItemProps, Pivot, PivotItem, Breadcrumb, IBreadcrumbItem, Text } from '@fluentui/react';
 import {
   DataGrid, DataGridHeader, DataGridHeaderCell, DataGridBody, DataGridRow, DataGridCell,
-  createTableColumn, TableColumnDefinition, Badge, Tooltip, FluentProvider, webLightTheme, webDarkTheme,
+  createTableColumn, TableColumnDefinition, Badge, Tooltip, PresenceBadge, FluentProvider, webLightTheme, webDarkTheme,
   Skeleton, SkeletonItem,
 } from '@fluentui/react-components';
-import { WarningFilled } from '@fluentui/react-icons';
 import { CONNECTORS } from '@/lib/mock-data';
 import type { Connector } from '@/lib/types';
 import ConnectorDetailPanel from '@/components/connectors/ConnectorDetailPanel';
@@ -28,7 +27,10 @@ import ISVPanel, { CONNECTOR_DETAILS } from '@/components/connectors/ISVPanel';
 function StatusBadge({ status, blockerCount }: { status: string; blockerCount: number }) {
   if (blockerCount > 0) {
     return (
-      <Tooltip content="Action required" relationship="label"><Badge appearance="ghost" color="danger" size="large" shape="circular" icon={<WarningFilled fontSize={16} />} /></Tooltip>
+      <span className="flex items-center gap-1.5 text-[13px] text-[#a80000]">
+        <PresenceBadge status="busy" size="small" />
+        Action required
+      </span>
     );
   }
   if (status === 'error') return (
@@ -55,7 +57,7 @@ function StatusBadge({ status, blockerCount }: { status: string; blockerCount: n
         <circle cx="7" cy="7" r="7" fill="#107c10" />
         <path d="M4 7l2 2 4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
       </svg>
-      Ready
+      Active
     </span>
   );
 }
@@ -75,6 +77,30 @@ function ConnectionsLogo({ type, logoUrl }: { type: string; logoUrl?: string }) 
     <div className="w-8 h-8 rounded-full bg-[#0d2137] flex items-center justify-center flex-shrink-0">
       <span className="text-[11px] font-bold text-white">{initials}</span>
     </div>
+  );
+}
+
+function formatElapsed(s: number): string {
+  const d = Math.floor(s / 86400);
+  const h = Math.floor((s % 86400) / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  if (d > 0) return `${d}d ${h}h ${m}m ${sec}s`;
+  if (h > 0) return `${h}h ${m}m ${sec}s`;
+  if (m > 0) return `${m}m ${sec}s`;
+  return `${sec}s`;
+}
+
+function SyncingElapsedCell({ startedAt }: { startedAt: string }) {
+  const [elapsed, setElapsed] = useState(Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000));
+  useEffect(() => {
+    const id = setInterval(() => setElapsed(Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000)), 1000);
+    return () => clearInterval(id);
+  }, [startedAt]);
+  return (
+    <span className="text-[13px] text-[#605e5c] dark:text-[#adadad]">
+      {formatElapsed(elapsed)}
+    </span>
   );
 }
 
@@ -258,9 +284,13 @@ export default function ConnectorsPage() {
           <ConnectionsLogo type={item.connectorType} logoUrl={item.logoUrl} />
           <span className="text-[14px] truncate">{item.connectorType}</span>
           {(item.blockerCount + item.warningCount) > 0 && (
-            <Tooltip content="Action required" relationship="label">
-              <Badge appearance="ghost" color="danger" size="large" shape="circular" icon={<WarningFilled fontSize={16} />} style={{ flexShrink: 0 }} />
-            </Tooltip>
+            <button
+              className="flex items-center gap-1.5 text-[12px] text-[#a80000] flex-shrink-0 ml-3 hover:underline cursor-pointer bg-transparent border-none p-0"
+              onClick={(e) => { e.stopPropagation(); setEditConnector(item); }}
+            >
+              <PresenceBadge status="busy" size="extra-small" style={{ width: 8, height: 8 }} />
+              Action required
+            </button>
           )}
           <button
             className="absolute right-0 opacity-0 group-hover/row:opacity-100 w-7 h-7 flex items-center justify-center rounded hover:bg-[#edebe9] dark:hover:bg-[#333333] text-[#605e5c] dark:text-[#adadad] transition-all"
@@ -310,9 +340,11 @@ export default function ConnectorsPage() {
       columnId: 'lastSyncAt',
       renderHeaderCell: () => 'Last sync',
       renderCell: (item) => (
-        <span className="text-[13px] text-[#605e5c] dark:text-[#adadad]">
-          {item.userCreated && !item.lastSyncAt ? 'Now' : formatLastSync(item.lastSyncAt)}
-        </span>
+        item.healthStatus === 'pending' && item.syncHistory?.[0]?.startedAt
+          ? <SyncingElapsedCell startedAt={item.syncHistory[0].startedAt} />
+          : <span className="text-[13px] text-[#605e5c] dark:text-[#adadad]">
+              {item.userCreated && !item.lastSyncAt ? 'Now' : formatLastSync(item.lastSyncAt)}
+            </span>
       ),
       compare: (a, b) => (a.lastSyncAt ?? '').localeCompare(b.lastSyncAt ?? ''),
     }),

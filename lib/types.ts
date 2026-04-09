@@ -49,6 +49,7 @@ export interface DiagnosticIssue {
   source: IssueSource;
   title: string;
   description: string;
+  technicalDetail?: string;
   detectedAt: string;
   // Auto-resolvable: show inline fix
   resolution?: string;
