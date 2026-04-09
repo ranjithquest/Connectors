@@ -124,20 +124,6 @@ export default function GetStartedContent() {
 
   return (
     <section id="getting-started" style={{ padding: '0 0 96px', fontFamily: font, color: '#242424', width: '100%' }}>
-      <style>{`
-        .gs-hero-text { max-width: 52%; }
-        .gs-hero-h1 { font-size: 68px; line-height: 92px; }
-        .gs-step-row { display: flex; gap: 48px; align-items: flex-start; }
-        .gs-step-main { flex: 0 0 60%; }
-        .gs-step-resources { flex: 1 1 0; min-width: 0; }
-        @media (max-width: 768px) {
-          .gs-hero-text { max-width: 100%; }
-          .gs-hero-h1 { font-size: 36px !important; line-height: 48px !important; }
-          .gs-step-row { flex-direction: column; gap: 24px; }
-          .gs-step-main { flex: 1 1 100%; }
-          .gs-step-resources { width: 100%; }
-        }
-      `}</style>
       {/* Hero header */}
       <div style={{ position: 'relative', minHeight: 260, marginBottom: 40, display: 'flex', alignItems: 'center' }}>
         {/* Image — right side, natural aspect, fades left */}
