@@ -441,9 +441,22 @@ body {
 .gs-step-row { display: flex; gap: 48px; align-items: flex-start; }
 .gs-step-main { flex: 0 0 60%; }
 .gs-step-resources { flex: 1 1 0; min-width: 0; }
+
 @media (max-width: 768px) {
+  /* Show mobile top bar, hide desktop sidebar */
+  .gs-mobile-bar { display: flex !important; }
+  .gs-mobile-nav { display: block !important; }
+  .gs-sidebar { display: none !important; }
+  .gs-sidebar-bg { display: none !important; }
+
+  /* Stack layout vertically, remove sidebar gap */
+  .gs-layout { flex-direction: column !important; gap: 0 !important; padding: 16px 20px 0 !important; }
+
+  /* Hero */
   .gs-hero-text { max-width: 100%; }
   .gs-hero-h1 { font-size: 36px !important; line-height: 48px !important; }
+
+  /* Steps */
   .gs-step-row { flex-direction: column; gap: 24px; }
   .gs-step-main { flex: 1 1 100%; }
   .gs-step-resources { width: 100%; }
