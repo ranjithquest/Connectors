@@ -108,7 +108,7 @@ function StatBar({ label, value, color, isDark }: { label: string; value: string
       color={color}
       styles={{
         calloutContentRoot: { background: 'transparent', boxShadow: 'none', border: 'none' },
-        calloutContentX1: { color: isDark ? '#c8c6c4' : '#605e5c' },
+        calloutlegendText: { color: isDark ? '#c8c6c4' : '#605e5c' },
       }}
     />
   );

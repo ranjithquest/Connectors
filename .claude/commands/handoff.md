@@ -56,9 +56,28 @@ The handoff doc must include for each component:
 - **Dependencies**: which Fluent UI packages are required
 - **Notes**: any design decisions the engineering team should know about
 
-## Step 6 — Confirm and package
-Show the user the list of files in `/handoff` and ask:
-"Does this look complete? Shall I create a zip or open a PR into the product repo?"
+## Step 6 — Cherry-pick into main
+
+Once the user confirms the files are ready, cherry-pick only the approved files into `main`:
+
+```bash
+git checkout main
+git pull gim-connectors main
+git checkout <feature-branch> -- <file1> <file2> ...
+git add -A
+git commit -m "feat: cherry-pick <FEATURE_NAME> approved components into main"
+git push gim-connectors main
+```
+
+**Never merge the entire feature branch** — only cherry-pick the specific approved files.
+
+## Step 7 — Clean up
+
+After merging, offer to delete the feature branch:
+```bash
+git branch -d <feature-branch>
+git push gim-connectors --delete <feature-branch>
+```
 
 ## Rules:
 - NEVER include mock data in the handoff output
@@ -67,3 +86,4 @@ Show the user the list of files in `/handoff` and ask:
 - ALWAYS keep the TypeScript types from `lib/types.ts` that are genuinely reusable
 - Flag any component that has hardcoded strings that should come from i18n/localization
 - If a component uses `@fluentui/react` (v8), flag it and suggest v9 equivalent if one exists
+- Always target `main` — cherry-pick only approved files, never merge the whole branch

@@ -2,8 +2,6 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches-ignore:
-      - Boilerplate
 
 permissions:
   contents: write
@@ -54,6 +52,7 @@ jobs:
 
           if [ "$DEPLOYDIR" != "." ]; then
             # Feature branch: move _next inside deploydir so assets resolve correctly
+            mkdir -p "out/${DEPLOYDIR}"
             mv out/_next "out/${DEPLOYDIR}/_next"
             # Copy any public files (favicon, logos, etc.) into the deploydir
             for item in out/*; do
@@ -76,7 +75,7 @@ jobs:
           git fetch origin gh-pages 2>/dev/null && git checkout gh-pages || (git checkout --orphan gh-pages && git rm -rf . --quiet)
 
           if [ "$DEPLOYDIR" = "." ]; then
-            # Boilerplate: replace root content but preserve feature branch subdirs.
+            # main: replace root content but preserve feature branch subdirs.
             # Feature branch dirs are top-level dirs that don't exist in the new build output.
             mkdir -p /tmp/feature-save
             for d in */; do
@@ -120,7 +119,7 @@ jobs:
         run: echo "Preview URL ${{ steps.path.outputs.previewurl }}"
 
       - name: Post preview URL as commit comment
-        if: github.ref_name != 'Boilerplate'
+        if: github.ref_name != 'main'
         run: |
           curl -s -X POST \
             -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
