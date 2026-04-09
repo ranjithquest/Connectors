@@ -26,44 +26,58 @@ If the URL does **not** contain a username and token (i.e. it's just `https://gi
 
 Do not proceed until the remote URL contains valid credentials.
 
-## Step 1 — Detect the contributor's name
+## Step 1 — Detect current branch and contributor
 
-Run this silently before saying anything to the user:
+Run these silently:
 ```bash
+git branch --show-current
 git config user.name
-```
-Also extract the username from the remote URL:
-```bash
 git remote get-url gim-connectors
 ```
-The remote URL contains the GitHub username before the `:` (e.g. `https://ranjithravi_microsoft:...@github.com/...` → `ranjithravi_microsoft`).
 
-Use the GitHub username (from the remote URL) as `OWNER_SLUG` — it's already URL-safe.
-Use the `git config user.name` value as `OWNER_DISPLAY_NAME` for display only.
+- Store the current branch as `CURRENT_BRANCH`
+- Extract the GitHub username from the remote URL (e.g. `https://ranjithravi_microsoft:...@github.com/...` → `ranjithravi_microsoft`) as `OWNER_SLUG`
+- Use `git config user.name` as `OWNER_DISPLAY_NAME` for display only
 
-Store as `OWNER_SLUG` and `OWNER_DISPLAY_NAME`.
+## Step 2 — Ask: same feature or new?
 
-## Step 2 — Ask only for the feature name
+Check if `CURRENT_BRANCH` is a feature branch (i.e. not `main`, `Boilerplate`, or `HEAD`).
 
-Say to the user:
+**If currently on a feature branch** (e.g. `ranjith/dark-panel-bg`), ask:
 
 > "Hi **<OWNER_DISPLAY_NAME>**! 👋
 >
-> What would you like to call this feature?
-> *(e.g. "icon edit", "new setup flow", "diagnostics panel")*
+> You're currently on branch **`<CURRENT_BRANCH>`**.
 >
-> Once published, you'll get a preview link to share directly with stakeholders."
+> Are you publishing an update to this same feature, or is this a new feature that needs its own branch and preview URL?
+>
+> - **Same feature** → I'll push your changes to `<CURRENT_BRANCH>` and update its preview link
+> - **New feature** → I'll create a new branch and generate a fresh preview URL"
+
+**If on `main`, `Boilerplate`, or no feature branch**, skip this question and go straight to Step 3 (new branch flow).
+
+### If "same feature":
+- Skip to **Step 4** (commit) using `CURRENT_BRANCH` as the target
+- The preview URL is derived from `CURRENT_BRANCH` — no new branch needed
+
+### If "new feature":
+- Continue to **Step 3** to create a new branch
+
+---
+
+## Step 3 — (New feature only) Ask for the feature name
+
+Say:
+
+> "What would you like to call this feature?
+> *(e.g. "icon edit", "new setup flow", "diagnostics panel")*"
 
 Store the answer as `FEATURE_NAME`.
 
-If the user seems unsure, suggest a name based on what was built.
-
-## Step 3 — Create and switch to a feature branch
-
-Generate a branch name:
-- Lowercase, spaces → hyphens, remove special characters
+Generate the branch name:
+- Lowercase, spaces → hyphens, strip special characters
 - Format: `<owner-slug>/<feature-slug>`
-- Example: `aatman/icon-edit`
+- Example: `ranjith/dark-panel-bg`
 
 Run:
 ```bash
@@ -74,19 +88,27 @@ git checkout -b <owner-slug>/<feature-slug>
 
 Tell the user: "Creating your branch — you don't need to worry about this part."
 
+Set `TARGET_BRANCH` = `<owner-slug>/<feature-slug>`
+
+---
+
 ## Step 4 — Commit all changes
+
 ```bash
 git add -A
-git commit -m "feat: <FEATURE_NAME>
+git commit -m "feat: <FEATURE_NAME or branch description>
 
 Feature: <FEATURE_NAME>
 Owner: <OWNER_DISPLAY_NAME>
 Date: <today's date>"
 ```
 
+If there are no uncommitted changes (clean working tree), skip the commit and just push.
+
 ## Step 5 — Push to GitHub
+
 ```bash
-git push -u gim-connectors <owner-slug>/<feature-slug>
+git push -u gim-connectors <TARGET_BRANCH>
 ```
 
 **Never push to `main` or `Boilerplate`.**
@@ -100,15 +122,15 @@ Say:
 
 ## Step 7 — Share the preview URL
 
-Compute the preview URL:
-- Branch `aatman/icon-edit` → `https://studious-adventure-j17vp6o.pages.github.io/aatman/icon-edit/connectors`
-- Pattern: `https://studious-adventure-j17vp6o.pages.github.io/<owner-slug>/<feature-slug>/connectors`
+Compute the preview URL from `TARGET_BRANCH`:
+- Branch `ranjith/dark-panel-bg` → `https://studious-adventure-j17vp6o.pages.github.io/ranjith/dark-panel-bg/connectors`
+- Pattern: `https://studious-adventure-j17vp6o.pages.github.io/<TARGET_BRANCH>/connectors`
 
 Give the user this ready-to-send message:
 
 ---
 **Your preview link is live at:**
-🔗 `https://studious-adventure-j17vp6o.pages.github.io/<owner-slug>/<feature-slug>/connectors`
+🔗 `https://studious-adventure-j17vp6o.pages.github.io/<TARGET_BRANCH>/connectors`
 
 **Share this with your stakeholders:**
 > Hi team, here's a prototype I'd like your feedback on.
@@ -126,10 +148,10 @@ Ask: "Would you like me to confirm the deployment is live before you share the l
 If yes, wait ~3 minutes and check the URL is reachable.
 
 ## Rules
-- Always branch off `main` — never commit directly to `main`
+- Always branch off `main` for new features — never commit directly to `main`
 - Branch format is `<owner>/<feature>` — no `bp/` prefix
 - Always push to `gim-connectors` remote — never to `origin` or `main`
 - Never merge to `Boilerplate` or `main` — feature branches are standalone previews
-- If a branch with that name already exists, append a short timestamp suffix
+- If a new branch with that name already exists, append a short timestamp suffix
 - The preview URL updates automatically on every subsequent push to the same branch
 - When approved work needs to go to the shared baseline, run `/handoff`
