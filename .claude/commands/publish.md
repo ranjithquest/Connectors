@@ -37,7 +37,7 @@ git remote get-url gim-connectors
 
 - Store the current branch as `CURRENT_BRANCH`
 - Extract the GitHub username from the remote URL (e.g. `https://ranjithravi_microsoft:...@github.com/...` → `ranjithravi_microsoft`) as `OWNER_SLUG`
-- Use `git config user.name` as `OWNER_DISPLAY_NAME` for display only
+- Derive `OWNER_DISPLAY_NAME` from `OWNER_SLUG` by stripping `_microsoft` suffix and title-casing (e.g. `ranjithravi_microsoft` → `Ranjithravi`)
 
 ## Step 2 — Ask: same feature or new?
 

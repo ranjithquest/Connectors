@@ -52,10 +52,11 @@ fi
 # --- Detect current branch ---
 CURRENT_BRANCH=$(git branch --show-current)
 OWNER_SLUG=$(git remote get-url $REMOTE | sed 's|https://||' | cut -d: -f1)
+OWNER_DISPLAY_NAME=$(echo "$OWNER_SLUG" | sed 's/_microsoft$//' | sed 's/_/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) tolower(substr($i,2)); print}')
 
 # --- Same feature or new? ---
 if [ -n "$CURRENT_BRANCH" ] && [ "$CURRENT_BRANCH" != "main" ]; then
-  echo -e "You are currently on branch: ${BOLD}$CURRENT_BRANCH${RESET}"
+  echo -e "Hi ${BOLD}$OWNER_DISPLAY_NAME${RESET}! You are currently on branch: ${BOLD}$CURRENT_BRANCH${RESET}"
   echo ""
   echo "Is this an update to the same feature, or a new feature?"
   echo "  1) Same feature — push changes to $CURRENT_BRANCH"

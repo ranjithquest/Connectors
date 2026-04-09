@@ -91,7 +91,12 @@ else
   git remote add $REMOTE "https://${GH_USER}:${GH_TOKEN}@github.com/gim-home/Connectors.git" 2>/dev/null || \
   git remote set-url $REMOTE "https://${GH_USER}:${GH_TOKEN}@github.com/gim-home/Connectors.git"
 
+  # Derive display name from GitHub username (strip _microsoft suffix)
+  DERIVED_NAME=$(echo "$GH_USER" | sed 's/_microsoft$//' | sed 's/_/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) tolower(substr($i,2)); print}')
+  git config user.name "$DERIVED_NAME"
+
   echo -e "${GREEN}✓ Push access configured${RESET}"
+  echo -e "${GREEN}✓ Name set to: $DERIVED_NAME${RESET}"
 fi
 
 # --- Done ---
