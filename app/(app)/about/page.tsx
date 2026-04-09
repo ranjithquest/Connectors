@@ -6,31 +6,38 @@ export default function AboutPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: '#faf9f8',
+      background: '#f0eef8',
       backgroundImage: 'url(/img-op2.png)',
       backgroundSize: 'cover',
       backgroundPosition: 'center center',
       fontFamily: font,
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'center',
-      padding: 48,
+      padding: '48px 10% 48px 8%',
       position: 'relative',
     }}>
-      {/* overlay so text stays readable */}
-      <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.55)' }} />
-      <div style={{ maxWidth: 480, width: '100%', textAlign: 'center', position: 'relative' }}>
+      {/* Gradient fade: opaque white on left, transparent on right */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: 'linear-gradient(to right, rgba(245,243,255,0.95) 30%, rgba(245,243,255,0.6) 60%, transparent 85%)',
+      }} />
 
-        <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#a19f9d', marginBottom: 12 }}>
+      <div style={{ maxWidth: 420, width: '100%', textAlign: 'left', position: 'relative' }}>
+
+        <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8b85c1', marginBottom: 16 }}>
           Copilot Connectors Team
         </div>
 
-        <h1 style={{ fontSize: 40, fontWeight: 600, color: '#000000', lineHeight: '52px', margin: '0 0 8px' }}>
-          Admin Boilerplate
+        <h1 style={{ fontSize: 48, fontWeight: 600, color: '#0f0e1a', lineHeight: '58px', margin: '0 0 12px' }}>
+          Admin<br />Boilerplate
         </h1>
 
-        <p style={{ fontSize: 16, color: '#a19f9d', margin: '0 0 40px' }}>
+        <p style={{ fontSize: 14, color: '#a19f9d', margin: '0 0 8px', fontWeight: 400 }}>
           V1.0 Beta
+        </p>
+
+        <p style={{ fontSize: 16, color: '#484644', lineHeight: '26px', margin: '0 0 36px', maxWidth: 340 }}>
+          Prototype specs into concepts, validate with stakeholders, and ship production‑ready outcomes — fast.
         </p>
 
         <a
