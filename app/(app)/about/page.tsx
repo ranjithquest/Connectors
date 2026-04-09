@@ -7,9 +7,9 @@ export default function AboutPage() {
     <div style={{
       minHeight: '100vh',
       background: '#faf9f8',
-      backgroundImage: 'url(/hero-bg.png)',
+      backgroundImage: 'url(/img-op2.png)',
       backgroundSize: 'cover',
-      backgroundPosition: 'center',
+      backgroundPosition: 'center center',
       fontFamily: font,
       display: 'flex',
       alignItems: 'center',
@@ -18,7 +18,7 @@ export default function AboutPage() {
       position: 'relative',
     }}>
       {/* overlay so text stays readable */}
-      <div style={{ position: 'absolute', inset: 0, background: 'rgba(250,249,248,0.82)' }} />
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.55)' }} />
       <div style={{ maxWidth: 480, width: '100%', textAlign: 'center', position: 'relative' }}>
 
         <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#a19f9d', marginBottom: 12 }}>
