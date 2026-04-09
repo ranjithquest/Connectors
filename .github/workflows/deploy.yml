@@ -52,6 +52,7 @@ jobs:
 
           if [ "$DEPLOYDIR" != "." ]; then
             # Feature branch: move _next inside deploydir so assets resolve correctly
+            mkdir -p "out/${DEPLOYDIR}"
             mv out/_next "out/${DEPLOYDIR}/_next"
             # Copy any public files (favicon, logos, etc.) into the deploydir
             for item in out/*; do
