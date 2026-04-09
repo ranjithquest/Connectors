@@ -1380,19 +1380,21 @@ export function ActionRail({ connector, onNavigateToField, onFocusedChange, back
         <div style={{ display: 'flex', flexDirection: 'column' }}>
 
           {/* Blockers / Suggestions stat row */}
-          <div style={{ display: 'flex', gap: tokens.spacingHorizontalXXL, marginBottom: 16 }}>
-            <ChartHoverCard
-              Legend={`Blocker${blockerIssues.length !== 1 ? 's' : ''}`}
-              YValue={blockerIssues.length}
-              color="#a80000"
-              styles={{ calloutContentRoot: { background: 'transparent', boxShadow: 'none', border: 'none' } }}
-            />
-            <ChartHoverCard
-              Legend="Suggestions"
-              YValue={suggestionIssues.length}
-              color={suggestionIssues.length > 0 ? '#c87e00' : tokens.colorNeutralForeground4}
-              styles={{ calloutContentRoot: { background: 'transparent', boxShadow: 'none', border: 'none' } }}
-            />
+          <div style={{ display: 'flex', alignItems: 'stretch', gap: tokens.spacingHorizontalXXL, marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS }}>
+              <span style={{ width: 3, borderRadius: 99, backgroundColor: tokens.colorPaletteRedBackground3, flexShrink: 0, alignSelf: 'stretch' }} />
+              <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>Blocker{blockerIssues.length !== 1 ? 's' : ''}</Text>
+                <Text weight="bold" size={500} style={{ color: tokens.colorPaletteRedForeground3 }}>{blockerIssues.length}</Text>
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS }}>
+              <span style={{ width: 3, borderRadius: 99, backgroundColor: suggestionIssues.length > 0 ? tokens.colorPaletteMarigoldBackground3 : tokens.colorNeutralStroke1, flexShrink: 0, alignSelf: 'stretch' }} />
+              <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>Suggestions</Text>
+                <Text weight="bold" size={500} style={{ color: suggestionIssues.length > 0 ? tokens.colorPaletteMarigoldForeground2 : tokens.colorNeutralForeground3 }}>{suggestionIssues.length}</Text>
+              </span>
+            </div>
           </div>
 
           {/* Buttons — 16px below stat row, 24px above pills */}
