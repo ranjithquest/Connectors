@@ -32,7 +32,7 @@ export default function AboutPage() {
           Admin<br />Boilerplate
         </h1>
 
-        <p style={{ fontSize: 14, color: '#a19f9d', margin: '0 0 8px', fontWeight: 400 }}>
+        <p style={{ fontSize: 18, color: '#a19f9d', margin: '0 0 8px', fontWeight: 400 }}>
           V1.0 Beta
         </p>
 
