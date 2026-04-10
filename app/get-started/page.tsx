@@ -16,7 +16,7 @@ export default function GetStartedPage() {
         background: '#ffffff', borderBottom: '1px solid #e0e0e0',
         padding: '12px 20px', alignItems: 'center', justifyContent: 'space-between',
       }}>
-        <span style={{ fontSize: 15, fontWeight: 600, color: '#242424' }}>Connector Admin Boilerplate</span>
+        <span style={{ fontSize: 15, fontWeight: 600, color: '#242424' }}>Copilot Connectors</span>
         <button
           onClick={() => setMenuOpen(o => !o)}
           style={{
@@ -89,7 +89,7 @@ export default function GetStartedPage() {
                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
                 style={{ fontSize: 16, fontWeight: 600, color: '#242424', lineHeight: '22px', cursor: 'pointer' }}
               >
-                Connector Admin Boilerplate
+                Copilot Connectors
               </div>
             </div>
 

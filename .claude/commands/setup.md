@@ -2,25 +2,42 @@
 
 Run this automatically without asking for confirmations. Narrate one line per step.
 
-## Step 0 — Verify the correct folder is open in VS Code
+## Step 0 — Authenticate with GitHub
 
-Before doing anything else, check the working directory:
+The repo is private and requires a GitHub Personal Access Token (PAT).
+
+Say:
+> "This repo is private — you'll need a GitHub PAT to clone it. Here's how:
+>
+> 1. Go to **github.com** → your profile → **Settings → Developer Settings → Personal Access Tokens → Tokens (classic)**
+> 2. Click **Generate new token (classic)**
+> 3. Name it "Connectors", set expiry to 90 days, check the **`repo`** scope
+> 4. Click **Generate token** and copy it
+> 5. Click **Configure SSO** → **Authorize** for `gim-home`
+> 6. Paste the token here."
+
+Store as `GITHUB_TOKEN`. Ask for their GitHub username and store as `GITHUB_USERNAME`.
+
+Run:
+```bash
+git clone https://<GITHUB_USERNAME>:<GITHUB_TOKEN>@github.com/gim-home/Connectors.git
+cd Connectors
+```
+
+If the clone succeeds, say "Repo cloned ✓" and continue.
+If it fails, check the token has `repo` scope and SSO is authorized for `gim-home`.
+
+## Step 0b — Verify the correct folder
+
+Check the working directory:
 ```bash
 pwd
 ```
 
-The path must end in `Connectors` (e.g. `.../Boilerplate/Connectors`).
-
-If it ends in `Boilerplate` or anything else, stop and tell the user:
-
-> "It looks like you have the wrong folder open in VS Code. Please do this:
->
-> 1. In VS Code, go to **File → Open Folder**
-> 2. Navigate inside your `Boilerplate` folder and select the **`Connectors`** folder inside it
-> 3. Click **Open**
-> 4. Once VS Code reloads, type `/setup` again to continue."
-
-Do not proceed until the working directory ends in `Connectors`.
+The path must end in `Connectors`. If not, run:
+```bash
+cd Connectors
+```
 
 ## Step 1 — Check Node.js 20+
 

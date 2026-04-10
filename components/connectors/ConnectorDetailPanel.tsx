@@ -24,7 +24,7 @@ import {
   DrawerBody,
   DrawerFooter,
 } from '@fluentui/react-drawer';
-import { ConnectorStatusCard, IssueCard, getSyncCycleLabel } from './AdvancedSetupPanel';
+import { ConnectorStatusCard, IssueCard, getSyncCycleLabel, ActionStats } from './AdvancedSetupPanel';
 
 interface ConnectorDetailPanelProps {
   connector: Connector;
@@ -298,17 +298,12 @@ function ADOHealthSection({ connector, isDark, onEdit, lastSyncOpen, setLastSync
         {issuesExpanded && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalM, padding: '8px 0 12px 0' }}>
             {!hasProblems ? (
-              <div style={{ display: 'flex', gap: tokens.spacingHorizontalXXL }}>
-                <ChartHoverCard Legend="Blockers" YValue={0} color={tokens.colorNeutralStroke1} styles={{ calloutContentRoot: { background: 'transparent', boxShadow: 'none', border: 'none' } }} />
-                {suggestions.length > 0 && <ChartHoverCard Legend="Suggestions" YValue={suggestions.length} color={tokens.colorNeutralStroke1} styles={{ calloutContentRoot: { background: 'transparent', boxShadow: 'none', border: 'none' } }} />}
-              </div>
+              <ActionStats blockers={0} suggestions={suggestions.length} />
             ) : (
               <>
                 {metrics.length > 0 && (
-                  <div style={{ display: 'flex', gap: tokens.spacingHorizontalXXL, paddingBottom: 16 }}>
-                    {metrics.map((m) => (
-                      <ChartHoverCard key={m.label} Legend={m.label} YValue={m.count} color={m.color} styles={{ calloutContentRoot: { background: 'transparent', boxShadow: 'none', border: 'none' } }} />
-                    ))}
+                  <div style={{ paddingBottom: 16 }}>
+                    <ActionStats blockers={metrics.find(m => m.label.startsWith('Blocker'))?.count ?? 0} suggestions={metrics.find(m => m.label.startsWith('Suggestion'))?.count ?? 0} />
                   </div>
                 )}
                 {activeIssues.map((issue) => (

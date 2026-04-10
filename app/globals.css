@@ -442,7 +442,13 @@ body {
 .gs-step-main { flex: 0 0 60%; }
 .gs-step-resources { flex: 1 1 0; min-width: 0; }
 
-@media (max-width: 768px) {
+@media (max-width: 1100px) {
+  .gs-step-row { flex-direction: column; gap: 24px; }
+  .gs-step-main { flex: 1 1 100%; }
+  .gs-step-resources { width: 100%; }
+}
+
+@media (max-width: 1024px) {
   /* Show mobile top bar, hide desktop sidebar */
   .gs-mobile-bar { display: flex !important; }
   .gs-mobile-nav { display: block !important; }
@@ -450,7 +456,7 @@ body {
   .gs-sidebar-bg { display: none !important; }
 
   /* Stack layout vertically, remove sidebar gap */
-  .gs-layout { flex-direction: column !important; gap: 0 !important; padding: 16px 20px 0 !important; }
+  .gs-layout { flex-direction: column !important; gap: 0 !important; padding: 32px 48px 0 !important; }
 
   /* Hero */
   .gs-hero-text { max-width: 100%; }

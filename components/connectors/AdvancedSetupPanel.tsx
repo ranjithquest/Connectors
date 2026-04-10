@@ -1163,17 +1163,7 @@ export function ConnectorStatusCard({ connector }: { connector: Connector }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <Badge appearance="filled" color="success" size="medium" shape="circular" style={{ alignSelf: 'flex-start', textTransform: 'uppercase', fontSize: 10, fontWeight: 700, letterSpacing: '0.05em' }}>Healthy</Badge>
           <Text weight="semibold" size={400}>No issues detected</Text>
-          <div style={{ display: 'flex', alignItems: 'stretch', gap: tokens.spacingHorizontalXL }}>
-            {[{ label: 'Blockers', count: 0, color: tokens.colorNeutralStroke1 }, { label: 'Suggestions', count: suggestionIssues.length, color: tokens.colorNeutralStroke1 }].map(({ label, count, color }) => (
-              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS }}>
-                <span style={{ width: 3, borderRadius: 99, backgroundColor: color, flexShrink: 0, alignSelf: 'stretch' }} />
-                <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>{label}</Text>
-                  <Text weight="bold" size={400}>{count}</Text>
-                </span>
-              </div>
-            ))}
-          </div>
+          <ActionStats blockers={0} suggestions={suggestionIssues.length} />
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -1182,25 +1172,20 @@ export function ConnectorStatusCard({ connector }: { connector: Connector }) {
             <Text weight="semibold" size={400}>Syncing blocked</Text>
           </div>
           <div style={{ display: 'flex', alignItems: 'stretch', gap: tokens.spacingHorizontalXL }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS }}>
-              <span style={{ width: 3, borderRadius: 99, backgroundColor: tokens.colorPaletteRedBackground3, flexShrink: 0, alignSelf: 'stretch' }} />
-              <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>Blocker{blockerIssues.length !== 1 ? 's' : ''}</Text>
-                <Text weight="bold" size={400}>{blockerIssues.length}</Text>
-              </span>
-            </div>
-            {suggestionIssues.length > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS }}>
-                <span style={{ width: 3, borderRadius: 99, backgroundColor: tokens.colorPaletteMarigoldBackground3, flexShrink: 0, alignSelf: 'stretch' }} />
-                <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>Suggestion{suggestionIssues.length !== 1 ? 's' : ''}</Text>
-                  <Text weight="bold" size={400}>{suggestionIssues.length}</Text>
-                </span>
-              </div>
-            )}
+            <ChartHoverCard Legend={`Blocker${blockerIssues.length !== 1 ? 's' : ''}`} YValue={blockerIssues.length} color={tokens.colorPaletteRedBackground3} styles={{ calloutContentRoot: { background: 'transparent', boxShadow: 'none', border: 'none' } }} />
+            {suggestionIssues.length > 0 && <ChartHoverCard Legend={`Suggestion${suggestionIssues.length !== 1 ? 's' : ''}`} YValue={suggestionIssues.length} color={tokens.colorPaletteMarigoldBackground3} styles={{ calloutContentRoot: { background: 'transparent', boxShadow: 'none', border: 'none' } }} />}
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+export function ActionStats({ blockers, suggestions }: { blockers: number; suggestions: number }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'stretch', gap: 24 }}>
+      <ChartHoverCard Legend={`Blocker${blockers !== 1 ? 's' : ''}`} YValue={blockers} color={blockers > 0 ? '#a80000' : '#c8c6c4'} styles={{ calloutContentRoot: { background: 'transparent', boxShadow: 'none', border: 'none' } }} />
+      <ChartHoverCard Legend={`Suggestion${suggestions !== 1 ? 's' : ''}`} YValue={suggestions} color={suggestions > 0 ? '#c87e00' : '#c8c6c4'} styles={{ calloutContentRoot: { background: 'transparent', boxShadow: 'none', border: 'none' } }} />
     </div>
   );
 }
@@ -1355,23 +1340,7 @@ export function ActionRail({ connector, onNavigateToField, onFocusedChange, back
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <Badge appearance="filled" color="success" size="medium" shape="circular" style={{ alignSelf: 'flex-start', textTransform: 'uppercase', fontSize: 10, fontWeight: 700, letterSpacing: '0.05em' }}>Healthy</Badge>
             <Text weight="semibold" size={400}>No issues detected</Text>
-            {/* Count annotation bar */}
-            <div style={{ display: 'flex', alignItems: 'stretch', gap: tokens.spacingHorizontalXL }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS }}>
-                <span style={{ width: 3, borderRadius: 99, backgroundColor: tokens.colorNeutralStroke1, flexShrink: 0, alignSelf: 'stretch' }} />
-                <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>Blockers</Text>
-                  <Text weight="bold" size={400}>0</Text>
-                </span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS }}>
-                <span style={{ width: 3, borderRadius: 99, backgroundColor: tokens.colorPaletteMarigoldBackground3, flexShrink: 0, alignSelf: 'stretch' }} />
-                <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>Suggestions</Text>
-                  <Text weight="bold" size={400}>0</Text>
-                </span>
-              </div>
-            </div>
+            <ActionStats blockers={0} suggestions={0} />
           </div>
       )}
 
@@ -1380,21 +1349,8 @@ export function ActionRail({ connector, onNavigateToField, onFocusedChange, back
         <div style={{ display: 'flex', flexDirection: 'column' }}>
 
           {/* Blockers / Suggestions stat row */}
-          <div style={{ display: 'flex', alignItems: 'stretch', gap: tokens.spacingHorizontalXXL, marginBottom: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS }}>
-              <span style={{ width: 3, borderRadius: 99, backgroundColor: tokens.colorPaletteRedBackground3, flexShrink: 0, alignSelf: 'stretch' }} />
-              <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>Blocker{blockerIssues.length !== 1 ? 's' : ''}</Text>
-                <Text weight="bold" size={500} style={{ color: tokens.colorPaletteRedForeground3 }}>{blockerIssues.length}</Text>
-              </span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS }}>
-              <span style={{ width: 3, borderRadius: 99, backgroundColor: suggestionIssues.length > 0 ? tokens.colorPaletteMarigoldBackground3 : tokens.colorNeutralStroke1, flexShrink: 0, alignSelf: 'stretch' }} />
-              <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>Suggestions</Text>
-                <Text weight="bold" size={500} style={{ color: suggestionIssues.length > 0 ? tokens.colorPaletteMarigoldForeground2 : tokens.colorNeutralForeground3 }}>{suggestionIssues.length}</Text>
-              </span>
-            </div>
+          <div style={{ marginBottom: 16 }}>
+            <ActionStats blockers={blockerIssues.length} suggestions={suggestionIssues.length} />
           </div>
 
           {/* Buttons — 16px below stat row, 24px above pills */}
@@ -2187,7 +2143,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                       setEditName(existingConnector?.connectorType || typeName);
                       setEditIconPreview(null);
                       setEditingHeader(true);
-                      if (!suppressGuidanceSwitch.current) setRightRailTab('guide');
+                      if (!suppressGuidanceSwitch.current) { setRightRailTab('guide'); setHealthFocused(false); setHealthBackTrigger(n => n + 1); }
                       setGuidanceHighlight('icon-name');
                     }}
                     className="flex items-center gap-1.5 text-[13px] mt-1 w-fit hover:opacity-80"
@@ -2246,9 +2202,9 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
               </FluentProvider>
             ) : null}
             <div key={activeTab} className={slideInClass} style={initialLoading ? { display: 'none' } : {}}>
-            {activeTab === 'Users' && <UsersTabContent fieldHighlight={fieldHighlight} fieldRefs={fieldRefs} focusFieldId={fieldHighlight} onFocusSection={(id) => { setGuidanceHighlight(id); if (!suppressGuidanceSwitch.current) setRightRailTab('guide'); }} />}
-            {activeTab === 'Content' && <ContentTabContent fieldHighlight={fieldHighlight} fieldRefs={fieldRefs} onFocusSection={(id) => { setGuidanceHighlight(id); if (!suppressGuidanceSwitch.current) setRightRailTab('guide'); }} />}
-            {activeTab === 'Sync' && <SyncTabContent fieldHighlight={fieldHighlight} fieldRefs={fieldRefs} onFocusSection={(id) => { setGuidanceHighlight(id); if (!suppressGuidanceSwitch.current) setRightRailTab('guide'); }} />}
+            {activeTab === 'Users' && <UsersTabContent fieldHighlight={fieldHighlight} fieldRefs={fieldRefs} focusFieldId={fieldHighlight} onFocusSection={(id) => { setGuidanceHighlight(id); if (!suppressGuidanceSwitch.current) { setRightRailTab('guide'); setHealthFocused(false); setHealthBackTrigger(n => n + 1); } }} />}
+            {activeTab === 'Content' && <ContentTabContent fieldHighlight={fieldHighlight} fieldRefs={fieldRefs} onFocusSection={(id) => { setGuidanceHighlight(id); if (!suppressGuidanceSwitch.current) { setRightRailTab('guide'); setHealthFocused(false); setHealthBackTrigger(n => n + 1); } }} />}
+            {activeTab === 'Sync' && <SyncTabContent fieldHighlight={fieldHighlight} fieldRefs={fieldRefs} onFocusSection={(id) => { setGuidanceHighlight(id); if (!suppressGuidanceSwitch.current) { setRightRailTab('guide'); setHealthFocused(false); setHealthBackTrigger(n => n + 1); } }} />}
             {activeTab !== 'Users' && activeTab !== 'Content' && activeTab !== 'Sync' && <div className="max-w-[528px] flex flex-col gap-6">
 
               {/* Connection name */}
@@ -2259,7 +2215,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                   required
                   value={displayName}
                   onChange={(_, v) => { setDisplayName(v ?? ''); setSourceName(v ?? ''); markChanged(); }}
-                  onFocus={() => { setGuidanceHighlight('display-name'); if (!suppressGuidanceSwitch.current) setRightRailTab('guide'); }}
+                  onFocus={() => { setGuidanceHighlight('display-name'); if (!suppressGuidanceSwitch.current) { setRightRailTab('guide'); setHealthFocused(false); setHealthBackTrigger(n => n + 1); } }}
                   styles={{ root: { width: '100%' } }}
                 />
               </div>
@@ -2274,7 +2230,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                       { key: 'simple', text: 'Simple' },
                       { key: 'advanced', text: 'Advanced' },
                     ] as IChoiceGroupOption[]}
-                    onChange={(_, opt) => { if (opt) { setUserCriteria(opt.key as UserCriteriaType); markChanged(); setGuidanceHighlight('user-criteria'); if (!suppressGuidanceSwitch.current) setRightRailTab('guide'); } }}
+                    onChange={(_, opt) => { if (opt) { setUserCriteria(opt.key as UserCriteriaType); markChanged(); setGuidanceHighlight('user-criteria'); if (!suppressGuidanceSwitch.current) { setRightRailTab('guide'); setHealthFocused(false); setHealthBackTrigger(n => n + 1); } } }}
                     styles={{ flexContainer: { display: 'flex', gap: 24 } }}
                   />
                 </div>
@@ -2289,7 +2245,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                   prefix="https://"
                   value={instanceUrl.replace(/^https?:\/\//, '')}
                   onChange={(_, v) => { setInstanceUrl(v ? `https://${v}` : ''); markChanged(); }}
-                  onFocus={() => { setGuidanceHighlight('instance-url'); if (!suppressGuidanceSwitch.current) setRightRailTab('guide'); }}
+                  onFocus={() => { setGuidanceHighlight('instance-url'); if (!suppressGuidanceSwitch.current) { setRightRailTab('guide'); setHealthFocused(false); setHealthBackTrigger(n => n + 1); } }}
                   placeholder="example.servicenow.com"
                   styles={{
                     root: { width: '100%' },
@@ -2312,7 +2268,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                   placeholder="Select a method"
                   options={AUTH_OPTIONS.map(o => ({ key: o.value, text: o.label })) as IDropdownOption[]}
                   onChange={(_, opt) => { if (opt) { setAuthMethod(opt.key as AuthMethod); markChanged(); autoApplyForField('auth-types'); } }}
-                  onFocus={() => { setGuidanceHighlight('auth-types'); if (!suppressGuidanceSwitch.current) setRightRailTab('guide'); }}
+                  onFocus={() => { setGuidanceHighlight('auth-types'); if (!suppressGuidanceSwitch.current) { setRightRailTab('guide'); setHealthFocused(false); setHealthBackTrigger(n => n + 1); } }}
                   styles={{ root: { width: '100%' } }}
                 />
 
@@ -2363,7 +2319,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                         .map(p => ({ key: p.value, text: p.name } as IPersonaProps))
                     }
                     onChange={(items?: IPersonaProps[]) => setSelectedPeople((items ?? []).map(i => i.key as string))}
-                    inputProps={{ placeholder: 'Select users/groups', onFocus: () => { setGuidanceHighlight('staged-rollout'); if (!suppressGuidanceSwitch.current) setRightRailTab('guide'); } }}
+                    inputProps={{ placeholder: 'Select users/groups', onFocus: () => { setGuidanceHighlight('staged-rollout'); if (!suppressGuidanceSwitch.current) { setRightRailTab('guide'); setHealthFocused(false); setHealthBackTrigger(n => n + 1); } } }}
                     pickerSuggestionsProps={{ suggestionsHeaderText: 'Suggested people', noResultsFoundText: 'No results found' }}
                     styles={{
                       root: { width: '100%' },
@@ -2466,7 +2422,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                 <PivotItem headerText="Actions" itemCount={railActionCount} itemKey="actions" />
                 <PivotItem headerText="Guide" itemKey="guide" />
               </Pivot>
-            ) : (
+            ) : !actionFocused ? (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '48px 24px 16px', flexShrink: 0 }}>
                 <span style={{ fontSize: 14, fontWeight: 700, color: isDarkMode ? '#f5f5f5' : '#323130' }}>Guide</span>
                 <a href="https://learn.microsoft.com/en-us/microsoft-365/copilot/connectors/servicenow-knowledge-deployment" target="_blank" rel="noreferrer"
@@ -2474,10 +2430,10 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                   Read documentation
                 </a>
               </div>
-            )}
+            ) : null}
 
             {/* Rail body */}
-            <div ref={railScrollRef} style={{ flex: 1, minHeight: 0, overflow: actionFocused ? 'hidden' : 'auto', padding: actionFocused ? 0 : '0 24px 24px', position: 'relative' }}>
+            <div ref={railScrollRef} style={{ flex: 1, minHeight: 0, overflow: (actionFocused && rightRailTab === 'actions') ? 'hidden' : 'auto', padding: (actionFocused && rightRailTab === 'actions') ? 0 : '0 24px 24px', position: 'relative' }}>
               <div key={rightRailTab} className={actionFocused ? undefined : slideInClass} style={actionFocused ? { height: '100%' } : undefined}>
                 {isEdit && existingConnector && rightRailTab === 'actions'
                   ? <ActionRail connector={existingConnector} onNavigateToField={handleNavigateToField} onFocusedChange={setHealthFocused} backTrigger={actionBackTrigger} appliedRowsMap={appliedRowsMap} setAppliedRowsMap={setAppliedRowsMap} />
@@ -2521,7 +2477,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
               </a>
             </div>
           ) : null}
-          <div ref={railScrollRef} className="flex-1" style={{ minHeight: 0, overflow: actionFocused ? 'hidden' : 'auto', padding: actionFocused ? 0 : '24px', position: 'relative' }}>
+          <div ref={railScrollRef} className="flex-1" style={{ minHeight: 0, overflow: (actionFocused && rightRailTab === 'actions') ? 'hidden' : 'auto', padding: (actionFocused && rightRailTab === 'actions') ? 0 : '24px', position: 'relative' }}>
             <div key={rightRailTab} className={actionFocused ? undefined : slideInClass} style={actionFocused ? { height: '100%' } : undefined}>
               {isEdit && existingConnector && rightRailTab === 'actions'
                 ? <ActionRail connector={existingConnector} onNavigateToField={handleNavigateToField} onFocusedChange={setHealthFocused} backTrigger={actionBackTrigger} appliedRowsMap={appliedRowsMap} setAppliedRowsMap={setAppliedRowsMap} />
