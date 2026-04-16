@@ -1969,6 +1969,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
     { value: 'it-pilot-group', name: 'IT Pilot Group' },
   ];
   const [selectedPeople, setSelectedPeople] = useState<string[]>(isEdit ? ['alex-johnson', 'maria-garcia', 'it-pilot-group'] : []);
+  const [notifyPeople, setNotifyPeople] = useState<string[]>(isEdit ? ['alex-johnson'] : []);
   const [rolloutLimited, setRolloutLimited] = useState(isEdit);
   const [hasChanges, setHasChanges] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -2297,6 +2298,33 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                 )}
               </div>
 
+              {/* Notification contacts */}
+              <div>
+                <p className="text-[14px] font-semibold text-[#323130] dark:text-[#f5f5f5]" style={{ marginBottom: 8 }}>Connector diagnosis team</p>
+                <NormalPeoplePicker
+                  selectedItems={notifyPeople.map(val => {
+                    const p = allPeople.find(x => x.value === val) ?? { name: val, value: val };
+                    return { key: p.value, text: p.name } as IPersonaProps;
+                  })}
+                  onResolveSuggestions={(filter: string) =>
+                    allPeople
+                      .filter(p => !notifyPeople.includes(p.value) && p.name.toLowerCase().includes(filter.toLowerCase()))
+                      .map(p => ({ key: p.value, text: p.name } as IPersonaProps))
+                  }
+                  onChange={(items?: IPersonaProps[]) => setNotifyPeople((items ?? []).map(i => i.key as string))}
+                  inputProps={{ placeholder: 'Add people or groups' }}
+                  pickerSuggestionsProps={{ suggestionsHeaderText: 'Suggested people', noResultsFoundText: 'No results found' }}
+                  styles={{
+                    root: { width: '100%' },
+                    ...(isDarkMode ? {
+                      text: { background: '#212121', borderColor: '#616161', selectors: { ':hover': { borderColor: '#adadad' }, '::after': { borderColor: '#479ef5' } } },
+                      input: { background: '#212121', color: '#f5f5f5', selectors: { '::placeholder': { color: '#8a8886' } } },
+                      itemsWrapper: { background: '#212121' },
+                    } : {}),
+                  }}
+                />
+              </div>
+
               {/* Staged rollout */}
               <div ref={(el) => { fieldRefs.current['staged-rollout'] = el; }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: tokens.spacingVerticalM }}>
@@ -2405,6 +2433,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
               <ChromeCloseIcon style={{ fontSize: 12 }} />
             </button>
             {isEdit && existingConnector && !actionFocused ? (
+              <div data-tour="error-tab">
               <Pivot
                 selectedKey={rightRailTab}
                 onLinkClick={(item) => {
@@ -2422,6 +2451,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                 <PivotItem headerText="Actions" itemCount={railActionCount} itemKey="actions" />
                 <PivotItem headerText="Guide" itemKey="guide" />
               </Pivot>
+              </div>
             ) : !actionFocused ? (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '48px 24px 16px', flexShrink: 0 }}>
                 <span style={{ fontSize: 14, fontWeight: 700, color: isDarkMode ? '#f5f5f5' : '#323130' }}>Guide</span>
@@ -2436,7 +2466,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
             <div ref={railScrollRef} style={{ flex: 1, minHeight: 0, overflow: (actionFocused && rightRailTab === 'actions') ? 'hidden' : 'auto', padding: (actionFocused && rightRailTab === 'actions') ? 0 : '0 24px 24px', position: 'relative' }}>
               <div key={rightRailTab} className={actionFocused ? undefined : slideInClass} style={actionFocused ? { height: '100%' } : undefined}>
                 {isEdit && existingConnector && rightRailTab === 'actions'
-                  ? <ActionRail connector={existingConnector} onNavigateToField={handleNavigateToField} onFocusedChange={setHealthFocused} backTrigger={actionBackTrigger} appliedRowsMap={appliedRowsMap} setAppliedRowsMap={setAppliedRowsMap} />
+                  ? <div data-tour="error-content"><ActionRail connector={existingConnector} onNavigateToField={handleNavigateToField} onFocusedChange={setHealthFocused} backTrigger={actionBackTrigger} appliedRowsMap={appliedRowsMap} setAppliedRowsMap={setAppliedRowsMap} /></div>
                   : <GuidanceRail
                       highlightSection={guidanceHighlight}
                       accordionRefsCallback={(refs) => { accordionRefsCache.current = refs; }}
@@ -2451,6 +2481,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
         {/* Right rail — static side column when panel is wide enough */}
         {panelWide && <div style={{ display: 'flex', flexDirection: 'column', width: 360, flexShrink: 0, background: isDarkMode ? '#212121' : '#faf9f8', borderLeft: `1px solid ${isDarkMode ? '#3d3d3d' : '#e1e1e1'}`, overflow: 'hidden' }}>
           {isEdit && existingConnector && !actionFocused ? (
+            <div data-tour="error-tab">
             <Pivot
               selectedKey={rightRailTab}
               onLinkClick={(item) => {
@@ -2468,6 +2499,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
               <PivotItem headerText="Actions" itemCount={railActionCount} itemKey="actions" />
               <PivotItem headerText="Guide" itemKey="guide" />
             </Pivot>
+            </div>
           ) : !actionFocused ? (
             <div className="flex items-center justify-between px-6 pt-12 pb-4 flex-shrink-0">
               <span className="text-[14px] font-bold text-[#323130] dark:text-[#f5f5f5]">Guide</span>
@@ -2480,7 +2512,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
           <div ref={railScrollRef} className="flex-1" style={{ minHeight: 0, overflow: (actionFocused && rightRailTab === 'actions') ? 'hidden' : 'auto', padding: (actionFocused && rightRailTab === 'actions') ? 0 : '24px', position: 'relative' }}>
             <div key={rightRailTab} className={actionFocused ? undefined : slideInClass} style={actionFocused ? { height: '100%' } : undefined}>
               {isEdit && existingConnector && rightRailTab === 'actions'
-                ? <ActionRail connector={existingConnector} onNavigateToField={handleNavigateToField} onFocusedChange={setHealthFocused} backTrigger={actionBackTrigger} appliedRowsMap={appliedRowsMap} setAppliedRowsMap={setAppliedRowsMap} />
+                ? <div data-tour="error-content"><ActionRail connector={existingConnector} onNavigateToField={handleNavigateToField} onFocusedChange={setHealthFocused} backTrigger={actionBackTrigger} appliedRowsMap={appliedRowsMap} setAppliedRowsMap={setAppliedRowsMap} /></div>
                 : <GuidanceRail
                     highlightSection={guidanceHighlight}
                     accordionRefsCallback={(refs) => { accordionRefsCache.current = refs; }}

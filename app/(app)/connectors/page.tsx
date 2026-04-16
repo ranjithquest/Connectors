@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { SearchBox, CommandBar, ICommandBarItemProps, Pivot, PivotItem, Breadcrumb, IBreadcrumbItem, Text } from '@fluentui/react';
 import {
@@ -21,6 +21,7 @@ import {
 import { CONNECTOR_CATALOG, CATEGORIES, type ConnectorCatalogItem } from '@/lib/gallery-data';
 import SetupPanel from '@/components/connectors/SetupPanel';
 import ISVPanel, { CONNECTOR_DETAILS } from '@/components/connectors/ISVPanel';
+import TourOverlay from '@/components/tour/TourOverlay';
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
 
@@ -287,6 +288,8 @@ export default function ConnectorsPage() {
             <button
               className="flex items-center gap-1.5 text-[12px] text-[#a80000] flex-shrink-0 ml-3 hover:underline cursor-pointer bg-transparent border-none p-0"
               onClick={(e) => { e.stopPropagation(); setEditConnector(item); }}
+              data-tour-badge={item.id === 'azure-devops' ? 'true' : undefined}
+              data-tour={item.id === 'azure-devops' ? 'connector-row-azure-devops' : undefined}
             >
               <PresenceBadge status="busy" size="extra-small" style={{ width: 8, height: 8 }} />
               Action required
@@ -376,6 +379,7 @@ export default function ConnectorsPage() {
       className={`bg-white dark:bg-[#141414] ${tab === 'gallery' ? 'h-screen overflow-hidden flex flex-col' : 'min-h-screen'}`}
       onClick={() => setOpenMenu(null)}
     >
+      <Suspense><TourOverlay /></Suspense>
 
       {/* ── Page header ───────────────────────────────────────────── */}
       <div className="shrink-0 pt-0 pb-0 px-4 sm:px-8 lg:px-12 bg-white dark:bg-[#141414] z-10">
