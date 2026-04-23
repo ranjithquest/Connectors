@@ -127,15 +127,25 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+          # Remove untracked files that would block the gh-pages checkout
+          rm -f public/branches.json
+
           # Switch to gh-pages branch (create orphan if it doesn't exist)
           git fetch origin gh-pages 2>/dev/null && git checkout gh-pages || (git checkout --orphan gh-pages && git rm -rf . --quiet)
 
           if [ "$DEPLOYDIR" = "." ]; then
             # main: replace root content but preserve feature branch subdirs.
-            # Feature branch dirs are top-level dirs that don't exist in the new build output.
+            # Feature branch dirs are owner-prefixed subdirs (e.g. ranjith/, aatman/)
+            # identified by containing a slash when fully qualified — at the top level
+            # they appear as single-segment dirs whose names look like usernames.
             mkdir -p /tmp/feature-save
             for d in */; do
               d="${d%/}"
+              # Only preserve dirs that exist as owner/feature paths on the remote
+              # (i.e. skip known build artifact dirs: node_modules, out, public, .next, etc.)
+              case "$d" in
+                node_modules|out|public|.next|.git) continue ;;
+              esac
               if [ -d "$d" ] && [ ! -e "/tmp/deploy-out/out/$d" ]; then
                 echo "Preserving feature branch dir: $d"
                 cp -r "$d" /tmp/feature-save/
@@ -169,7 +179,7 @@ jobs:
 
           git add -A
           git diff --cached --quiet && echo "Nothing to commit" || git commit -m "Deploy ${{ github.ref_name }}"
-          git push origin gh-pages
+          git push --force origin gh-pages
 
       - name: Print preview URL
         run: echo "Preview URL ${{ steps.path.outputs.previewurl }}"
