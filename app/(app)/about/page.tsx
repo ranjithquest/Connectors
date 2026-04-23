@@ -74,6 +74,7 @@ function FeaturesGrid({ features, currentBranch, ownerSlug, search, onSearch, on
 
   function renderGrid(cards: Feature[]) {
     return (
+      <>
       <style>{`
         .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
         @media (max-width: 900px) { .features-grid { grid-template-columns: repeat(2, 1fr); } }
@@ -277,6 +278,7 @@ function FeaturesGrid({ features, currentBranch, ownerSlug, search, onSearch, on
           );
         })}
       </div>
+      </>
     );
   }
 
