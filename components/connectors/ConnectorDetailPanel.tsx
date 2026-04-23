@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { ChartHoverCard } from '@fluentui/react-charting';
 import type { Connector, DiagnosticIssue } from '@/lib/types';
 import {
-  ActionButton, CommandBarButton, Pivot, PivotItem, PrimaryButton, DefaultButton,
+  CommandBarButton, Pivot, PivotItem,
   Stack, Text, Link, Separator, IconButton, AnimationStyles,
 } from '@fluentui/react';
 import { mergeStyles } from '@fluentui/merge-styles';
@@ -358,7 +358,7 @@ export default function ConnectorDetailPanel({ connector, onClose, onEdit }: Con
   const updatedAt = connector.lastSyncAt
     ? new Date(connector.lastSyncAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
     : '—';
-  const isADO = connector.connectorType === 'ADO';
+  const isADO = connector.connectorType === 'ADO' || connector.id === 'miro';
   const showHealthSection = isADO || connector.id === 'hr-policies';
   const isHRPolicies = connector.id === 'hr-policies';
 
@@ -624,7 +624,7 @@ export default function ConnectorDetailPanel({ connector, onClose, onEdit }: Con
 
         {/* ── Footer ── */}
         <DrawerFooter style={{ padding: '0 32px', height: 64, display: 'flex', alignItems: 'center' }}>
-          <PrimaryButton onClick={onEdit}>Edit</PrimaryButton>
+          <Button appearance="primary" onClick={onEdit}>Edit</Button>
         </DrawerFooter>
       </OverlayDrawer>
     </FluentProvider>

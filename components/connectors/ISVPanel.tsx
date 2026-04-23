@@ -1,14 +1,14 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { PrimaryButton, DefaultButton, Pivot, PivotItem, AnimationStyles } from '@fluentui/react';
+import { Pivot, PivotItem, AnimationStyles } from '@fluentui/react';
 import { mergeStyles } from '@fluentui/merge-styles';
 
 const slideInClass = mergeStyles(AnimationStyles.slideDownIn10);
 import { ChromeCloseIcon } from '@fluentui/react-icons-mdl2';
 import type { ConnectorCatalogItem } from '@/lib/gallery-data';
 import { OverlayDrawer, DrawerBody } from '@fluentui/react-drawer';
-import { FluentProvider, webLightTheme, webDarkTheme, Skeleton, SkeletonItem } from '@fluentui/react-components';
+import { FluentProvider, webLightTheme, webDarkTheme, Skeleton, SkeletonItem, Button } from '@fluentui/react-components';
 
 // ─── Detail data types ────────────────────────────────────────────────────────
 
@@ -231,7 +231,7 @@ export default function ISVPanel({ connector, onAdd, onClose }: ISVPanelProps) {
                   <p className="text-[14px] font-semibold text-[#242424] dark:text-[#d6d6d6] mb-3">Support</p>
                   <p className="text-[14px] text-[#424242] dark:text-[#adadad] mb-3">Have more questions?</p>
                   <div>
-                    <DefaultButton href={detail.supportUrl} target="_blank" rel="noreferrer">{detail.supportLabel ?? 'Go to support'}</DefaultButton>
+                    <Button as="a" href={detail.supportUrl} target="_blank" rel="noreferrer">{detail.supportLabel ?? 'Go to support'}</Button>
                   </div>
                 </div>
               </div>
@@ -251,7 +251,7 @@ export default function ISVPanel({ connector, onAdd, onClose }: ISVPanelProps) {
             </FluentProvider>
           ) : (
             <div className={`flex items-center gap-4 w-full ${slideInClass}`}>
-              <PrimaryButton onClick={() => { onClose(); onAdd(connector.name); }}>Add</PrimaryButton>
+              <Button appearance="primary" onClick={() => { onClose(); onAdd(connector.name); }}>Add</Button>
               <p className="text-[12px] text-[#616161] dark:text-[#adadad] leading-4">
                 By using this Copilot connector, you agree to the{' '}
                 <a href="https://www.microsoft.com/licensing/terms" target="_blank" rel="noreferrer" className="text-[#0078d4] hover:underline">Terms of use</a>

@@ -221,8 +221,8 @@ export default function ConnectorsPage() {
   // Connections-tab state
   const [connectors, setConnectors] = useState<Connector[]>(CONNECTORS);
   const [search, setSearch] = useState('');
-  const [sortKey, setSortKey] = useState<SortKey>('connectorType');
-  const [sortAsc, setSortAsc] = useState(true);
+  const [sortKey, setSortKey] = useState<SortKey>('lastSyncAt');
+  const [sortAsc, setSortAsc] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [selectedConnector, setSelectedConnector] = useState<Connector | null>(null);
   const [editConnector, setEditConnector] = useState<Connector | null>(null);

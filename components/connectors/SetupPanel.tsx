@@ -14,9 +14,9 @@ function useDarkMode(): boolean {
   }, []);
   return dark;
 }
-import { PrimaryButton, DefaultButton, TextField, Dropdown, Toggle, Link, Text, AnimationStyles } from '@fluentui/react';
+import { TextField, Dropdown, Toggle, Link, Text, AnimationStyles, Spinner, SpinnerSize } from '@fluentui/react';
 import { mergeStyles } from '@fluentui/merge-styles';
-import { FluentProvider, webLightTheme, webDarkTheme, Skeleton, SkeletonItem } from '@fluentui/react-components';
+import { FluentProvider, webLightTheme, webDarkTheme, Skeleton, SkeletonItem, Button } from '@fluentui/react-components';
 
 const slideInClass = mergeStyles(AnimationStyles.slideDownIn10);
 import type { IDropdownOption } from '@fluentui/react';
@@ -581,6 +581,19 @@ const SETUP_CONFIGS: Record<string, ConnectorSetupConfig> = {
     hasRolloutToggle: true,
     installNote: null,
   },
+  'miro': {
+    instanceSection: {
+      heading: 'Provide basic information about your URL',
+      fieldLabel: 'Company (Organization) ID',
+      placeholder: 'Miro company id example: 3458764625687941342',
+    },
+    authHeading: 'Authenticate your Miro instance',
+    authOptions: [
+      { key: 'oauth2', text: 'OAuth 2.0' },
+    ],
+    hasRolloutToggle: true,
+    installNote: null,
+  },
 };
 
 
@@ -612,6 +625,9 @@ export default function SetupPanel({ connectorType, onClose, onCreated }: SetupP
   const [authMethod, setAuthMethod] = useState<string | null>(null);
   const [basicUsername, setBasicUsername] = useState('');
   const [basicPassword, setBasicPassword] = useState('');
+  const [clientId, setClientId] = useState('');
+  const [clientSecret, setClientSecret] = useState('');
+  const [authorizing, setAuthorizing] = useState(false);
   const [instanceUrl, setInstanceUrl] = useState('');
   const [rolloutLimited, setRolloutLimited] = useState(false);
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
@@ -710,14 +726,14 @@ export default function SetupPanel({ connectorType, onClose, onCreated }: SetupP
           </div>
           {/* Footer */}
           <div style={{ borderTop: `1px solid ${isDark ? '#3d3d3d' : '#e1e1e1'}`, padding: '0 32px', height: 64, flexShrink: 0, background: isDark ? '#212121' : '#fff', display: 'flex', alignItems: 'center' }}>
-            <DefaultButton
+            <Button
               onClick={onClose}
-              styles={isDark ? { root: { background: '#212121', color: '#f5f5f5', borderColor: '#616161', selectors: { ':hover': { background: '#383838' } } } } : {}}
-            >Done</DefaultButton>
+              style={isDark ? { background: '#212121', color: '#f5f5f5', borderColor: '#616161' } : {}}
+            >Done</Button>
           </div>
           <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
         </DrawerBody>
-      ) : showAdvanced ? <AdvancedSetupPanel connectorType={connectorType} onClose={onClose} embedded /> : (
+      ) : showAdvanced ? <AdvancedSetupPanel connectorType={connectorType} onClose={onClose} onSwitchToSimple={() => setShowAdvanced(false)} embedded /> : (
       <DrawerBody style={{ padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
 
         {/* Content row */}
@@ -873,6 +889,47 @@ export default function SetupPanel({ connectorType, onClose, onCreated }: SetupP
                       />
                     </div>
                   )}
+
+                  {/* OAuth 2.0 Client ID + Secret — Miro */}
+                  {authMethod === 'oauth2' && catalogItem.id === 'miro' && (
+                    <div className={`flex flex-col gap-3 mt-3 ${slideInClass}`}>
+                      <div className="flex gap-4">
+                        <TextField
+                          label="Client ID"
+                          required
+                          value={clientId}
+                          onChange={(_, v) => { setClientId(v ?? ''); markChanged(); }}
+                          onFocus={() => handleFieldFocus('auth')}
+                          onBlur={handleFieldBlur}
+                          styles={{ root: { flex: 1 }, ...darkFieldStyles }}
+                        />
+                        <TextField
+                          label="Client secret"
+                          required
+                          type="password"
+                          canRevealPassword
+                          value={clientSecret}
+                          onChange={(_, v) => { setClientSecret(v ?? ''); markChanged(); }}
+                          onFocus={() => handleFieldFocus('auth')}
+                          onBlur={handleFieldBlur}
+                          styles={{ root: { flex: 1 }, ...darkFieldStyles }}
+                        />
+                      </div>
+                      <div>
+                        <Button
+                          appearance="primary"
+                          disabled={!clientId.trim() || !clientSecret.trim() || authorizing}
+                          style={{ borderRadius: 4, minWidth: 100 }}
+                          onClick={() => {
+                            setAuthorizing(true);
+                            setTimeout(() => setAuthorizing(false), 3000);
+                          }}
+                        >
+                          {authorizing ? <Spinner size={SpinnerSize.small} /> : 'Authorize'}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Install-app note — connector-specific */}
@@ -1007,7 +1064,8 @@ export default function SetupPanel({ connectorType, onClose, onCreated }: SetupP
           ) : (
             <>
               <div className="flex items-center gap-3">
-                <PrimaryButton
+                <Button
+                  appearance="primary"
                   disabled={!hasChanges}
                   onClick={() => {
             setCreating(true);
@@ -1035,14 +1093,14 @@ export default function SetupPanel({ connectorType, onClose, onCreated }: SetupP
               });
             }, 2500);
           }}
-                  styles={isDark ? { root: { background: '#479ef5', color: '#000', border: 'none', selectors: { ':hover': { background: '#62abf5' }, ':disabled': { background: '#2a3a4a', color: '#555', border: 'none' } } } } : {}}
-                >Create</PrimaryButton>
+                  style={isDark ? { background: '#479ef5', color: '#000', border: 'none' } : {}}
+                >Create</Button>
               </div>
               <div className="flex items-center gap-3">
-                <PrimaryButton disabled styles={{ root: isDark ? { background: '#2a3a4a', color: '#555', border: 'none' } : { background: '#ededed', color: '#a1a1a1', border: 'none' } }}>
+                <Button disabled style={isDark ? { background: '#2a3a4a', color: '#555', border: 'none' } : { background: '#ededed', color: '#a1a1a1', border: 'none' }}>
                   Save and close
-                </PrimaryButton>
-                <DefaultButton onClick={onClose} styles={isDark ? { root: { background: '#212121', color: '#f5f5f5', borderColor: '#616161', selectors: { ':hover': { background: '#383838', color: '#f5f5f5' } } } } : {}}>Cancel</DefaultButton>
+                </Button>
+                <Button onClick={onClose} style={isDark ? { background: '#212121', color: '#f5f5f5', borderColor: '#616161' } : {}}>Cancel</Button>
               </div>
             </>
           )}

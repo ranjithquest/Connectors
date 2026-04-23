@@ -4,10 +4,24 @@ import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
+function featureNameFromBranch(branch: string): string {
+  const slug = branch.split('/').slice(1).join('/');
+  return slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
 export default function TopNav() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const [currentBranch, setCurrentBranch] = useState('');
+
+  useEffect(() => {
+    setMounted(true);
+    fetch('/api/current-branch/').then(r => r.json()).then(d => {
+      const b = d.branch ?? '';
+      if (b && b !== 'main') setCurrentBranch(b);
+    }).catch(() => {});
+  }, []);
+
   const isDark = mounted && theme === 'dark';
 
   return (
@@ -16,9 +30,9 @@ export default function TopNav() {
       <Link href="/about" className="w-12 h-[48px] flex items-center justify-center text-white hover:bg-white/10 transition-colors flex-shrink-0" aria-label="App launcher">
         <WaffleIcon style={{ fontSize: 22 }} />
       </Link>
-      <span className="text-[16px] font-semibold text-white whitespace-nowrap pl-2 pr-6">
+      <Link href="/about" className="text-[16px] font-semibold text-white whitespace-nowrap pl-2 pr-6 hover:text-white/80 transition-colors">
         Microsoft 365 admin center
-      </span>
+      </Link>
 
       {/* Center: search — hidden below md, fluid on md+ */}
       <div className="hidden md:flex flex-1 justify-center px-2 md:px-4 min-w-0">

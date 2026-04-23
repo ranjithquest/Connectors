@@ -41,6 +41,62 @@ jobs:
             echo "previewurl=https://studious-adventure-j17vp6o.pages.github.io/${SLUG}/connectors" >> $GITHUB_OUTPUT
           fi
 
+      - name: Generate branches.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          node -e "
+          const https = require('https');
+          const query = JSON.stringify({ query: \`{
+            repository(owner: \"gim-home\", name: \"connectors\") {
+              refs(refPrefix: \"refs/heads/\", first: 100, orderBy: {field: TAG_COMMIT_DATE, direction: DESC}) {
+                nodes {
+                  name
+                  target {
+                    ... on Commit { committedDate }
+                  }
+                }
+              }
+            }
+          }\` });
+          const req = https.request({
+            hostname: 'api.github.com',
+            path: '/graphql',
+            method: 'POST',
+            headers: {
+              'Authorization': 'bearer ' + process.env.GITHUB_TOKEN,
+              'Content-Type': 'application/json',
+              'User-Agent': 'connector-admin-build'
+            }
+          }, res => {
+            let body = '';
+            res.on('data', c => body += c);
+            res.on('end', () => {
+              const json = JSON.parse(body);
+              const SKIP = /^(main|gh-pages|dependabot\/|copilot\/)/;
+              const BASE = 'https://studious-adventure-j17vp6o.pages.github.io';
+              const nodes = json.data?.repository?.refs?.nodes ?? [];
+              const features = nodes
+                .filter(n => !SKIP.test(n.name))
+                .map(n => {
+                  const parts = n.name.split('/');
+                  const slug = parts.slice(1).join('/');
+                  const name = slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                  const date = n.target?.committedDate ?? '';
+                  return {
+                    name, branch: n.name, owner: parts[0],
+                    lastModified: date ? new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '',
+                    previewUrl: BASE + '/' + n.name + '/connectors'
+                  };
+                });
+              require('fs').writeFileSync('public/branches.json', JSON.stringify({ features }));
+              console.log('Wrote', features.length, 'branches to public/branches.json');
+            });
+          });
+          req.write(query);
+          req.end();
+          "
+
       - name: Build
         run: npm run build
         env:

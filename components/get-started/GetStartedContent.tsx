@@ -246,21 +246,36 @@ export default function GetStartedContent() {
           <p style={{ fontSize: 20, fontWeight: 400, color: '#242424', lineHeight: '28px', margin: '0 0 28px' }}>
             Quickly prototype specs into concepts, share with stakeholders, validate with customers, and deliver high‑quality production‑ready outcomes.
           </p>
-          <a
-            href="https://studious-adventure-j17vp6o.pages.github.io/connectors/"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: 8,
-              padding: '10px 20px', borderRadius: 4, fontSize: 14, fontWeight: 600,
-              background: '#0078d4', color: '#ffffff', textDecoration: 'none',
-              transition: 'background 0.15s',
-            }}
-            onMouseOver={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#106ebe'; }}
-            onMouseOut={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#0078d4'; }}
-          >
-            Open the app ↗
-          </a>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <a
+              href="https://studious-adventure-j17vp6o.pages.github.io/connectors/"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                padding: '10px 20px', borderRadius: 4, fontSize: 14, fontWeight: 600,
+                background: '#0078d4', color: '#ffffff', textDecoration: 'none',
+                transition: 'background 0.15s',
+              }}
+              onMouseOver={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#106ebe'; }}
+              onMouseOut={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#0078d4'; }}
+            >
+              Open the app ↗
+            </a>
+            <a
+              href="/about"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                padding: '10px 20px', borderRadius: 4, fontSize: 14, fontWeight: 600,
+                background: '#ffffff', color: '#323130', textDecoration: 'none',
+                border: '1px solid #d1d1d1', transition: 'background 0.15s',
+              }}
+              onMouseOver={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#f3f2f1'; }}
+              onMouseOut={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#ffffff'; }}
+            >
+              View features
+            </a>
+          </div>
         </div>
       </div>
 

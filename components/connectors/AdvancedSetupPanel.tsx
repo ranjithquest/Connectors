@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ChartHoverCard } from '@fluentui/react-charting';
-import { PrimaryButton, ActionButton, DefaultButton, Dialog, DialogType, DialogFooter, TextField, Dropdown, ChoiceGroup, Toggle, Checkbox as FluentV8Checkbox, NormalPeoplePicker, Pivot, PivotItem, AnimationStyles, CommandBar } from '@fluentui/react';
+import { Dialog, DialogType, DialogFooter, TextField, Dropdown, ChoiceGroup, Toggle, Checkbox as FluentV8Checkbox, NormalPeoplePicker, Pivot, PivotItem, AnimationStyles, CommandBar } from '@fluentui/react';
 import { mergeStyles } from '@fluentui/merge-styles';
 
 const slideInClass = mergeStyles(AnimationStyles.slideDownIn10);
@@ -11,7 +11,7 @@ import type { Connector, AuthMethod, UserCriteriaType, DiagnosticIssue, IssueSou
 import { CONNECTOR_CATALOG } from '@/lib/gallery-data';
 import SetupGuideRail, { type GuideSection } from './SetupGuideRail';
 import {
-  ChromeCloseIcon, EditIcon, OpenPaneMirroredIcon,
+  ChromeCloseIcon, EditIcon, OpenPaneMirroredIcon, SettingsIcon,
   ChevronDownIcon, ChevronUpIcon, ChevronLeftIcon, ChevronRightIcon, CheckMarkIcon, InfoIcon, BackIcon,
   OpenInNewWindowIcon, NavigateBackIcon, DiagnosticIcon,
   StatusCircleCheckmarkIcon, ErrorBadgeIcon, StatusCircleSyncIcon,
@@ -885,9 +885,9 @@ function ActionFocusView({ issue, onBack, detectedSyncLabel, onNavigateToField, 
               {(isResolved || (appliedRows && appliedRows.size > 0)) && (
                 <Text size={100} style={{ color: tokens.colorNeutralForeground4, cursor: onGoToResolved ? 'pointer' : 'default', textDecoration: onGoToResolved ? 'underline' : 'none' }} onClick={onGoToResolved}>Resolved</Text>
               )}
-              <DefaultButton onClick={onPrev} disabled={!onPrev} styles={{ root: { minWidth: 0, padding: '0 8px', height: 28, border: 'none', background: 'transparent' }, rootHovered: { background: 'transparent' } }}>Back</DefaultButton>
+              <Button appearance="subtle" size="small" onClick={onPrev} disabled={!onPrev} style={{ minWidth: 0, padding: '0 8px', height: 28 }}>Back</Button>
               {onNext
-                ? <DefaultButton onClick={onNext} styles={{ root: { minWidth: 0, padding: '0 8px', height: 28 } }}>Next</DefaultButton>
+                ? <Button size="small" onClick={onNext} style={{ minWidth: 0, padding: '0 8px', height: 28 }}>Next</Button>
                 : <Button appearance="subtle" size="small" icon={<ChevronRightIcon style={{ fontSize: 12 }} />} disabled />
               }
             </div>
@@ -1356,9 +1356,10 @@ export function ActionRail({ connector, onNavigateToField, onFocusedChange, back
           {/* Buttons — 16px below stat row, 24px above pills */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalS, marginBottom: 24 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS }}>
-              <PrimaryButton onClick={handleFixNext} disabled={syncState !== 'idle'}>Resolve</PrimaryButton>
-              <ActionButton
-                iconProps={{ iconName: 'Refresh' }}
+              <Button appearance="primary" onClick={handleFixNext} disabled={syncState !== 'idle'}>Resolve</Button>
+              <Button
+                appearance="subtle"
+                icon={<RefreshIcon style={{ fontSize: 14 }} />}
                 disabled={syncState === 'syncing'}
                 onClick={() => {
                   if (syncState === 'saving') return;
@@ -1366,7 +1367,7 @@ export function ActionRail({ connector, onNavigateToField, onFocusedChange, back
                 }}
               >
                 {syncState !== 'idle' ? 'Stop syncing' : 'Sync changes'}
-              </ActionButton>
+              </Button>
             </div>
             {syncState !== 'idle' && (
               <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS }}>
@@ -1439,13 +1440,13 @@ export function ActionRail({ connector, onNavigateToField, onFocusedChange, back
                 <Text size={200} weight="semibold" style={{ color: tokens.colorNeutralForeground3, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   Fixed, pending sync · {pendingSync.length}
                 </Text>
-                <DefaultButton
+                <Button
                   onClick={() => handleSyncIssues(pendingSync.map(i => i.id))}
                   disabled={syncState !== 'idle'}
-                  styles={{ root: { minWidth: 0, height: 26, padding: '0 10px', fontSize: 12 } }}
+                  style={{ minWidth: 0, height: 26, padding: '0 10px', fontSize: 12 }}
                 >
                   {syncState !== 'idle' ? `Syncing — ${formatSyncElapsed(syncElapsed)}` : `Sync ${pendingSync.length} fix${pendingSync.length !== 1 ? 'es' : ''}`}
-                </DefaultButton>
+                </Button>
               </div>
               <div className="flex flex-col gap-3">
                 {pendingSync.map((issue) => (
@@ -1479,8 +1480,8 @@ export function ActionRail({ connector, onNavigateToField, onFocusedChange, back
         modalProps={{ isBlocking: false }}
       >
         <DialogFooter>
-          <PrimaryButton onClick={() => setSyncDialogOpen(false)}>Sync now</PrimaryButton>
-          <DefaultButton onClick={() => setSyncDialogOpen(false)}>Cancel</DefaultButton>
+          <Button appearance="primary" onClick={() => setSyncDialogOpen(false)}>Sync now</Button>
+          <Button onClick={() => setSyncDialogOpen(false)}>Cancel</Button>
         </DialogFooter>
       </Dialog>
     </div>
@@ -1829,6 +1830,7 @@ interface AdvancedSetupPanelProps {
   connectorType?: string;
   existingConnector?: Connector;
   onClose: () => void;
+  onSwitchToSimple?: () => void;
   initialFieldFocus?: { tab: string; fieldId: string };
   embedded?: boolean;
 }
@@ -1841,7 +1843,7 @@ const AUTH_OPTIONS = [
 const SETUP_TABS = ['Setup', 'Users', 'Content', 'Sync'] as const;
 type SetupTab = typeof SETUP_TABS[number];
 
-export default function AdvancedSetupPanel({ connectorType, existingConnector, onClose, initialFieldFocus, embedded }: AdvancedSetupPanelProps) {
+export default function AdvancedSetupPanel({ connectorType, existingConnector, onClose, onSwitchToSimple, initialFieldFocus, embedded }: AdvancedSetupPanelProps) {
   const isEdit = !!existingConnector;
   const [typeName, setTypeName] = useState(existingConnector?.connectorType ?? connectorType ?? 'ServiceNow Knowledge');
 
@@ -1961,6 +1963,9 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
   const [authMethod, setAuthMethod] = useState<AuthMethod>(existingConnector?.authMethod ?? 'none');
   const [basicUsername, setBasicUsername] = useState(existingConnector?.basicUsername ?? '');
   const [basicPassword, setBasicPassword] = useState(existingConnector?.basicPassword ?? '');
+  const [clientId, setClientId] = useState('');
+  const [clientSecret, setClientSecret] = useState('');
+  const [authorizing, setAuthorizing] = useState(false);
   const credentialsUsernameRef = React.useRef<HTMLInputElement>(null);
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const allPeople = [
@@ -2042,7 +2047,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
             </div>
             {/* Footer */}
             <div style={{ borderTop: `1px solid ${isDarkMode ? '#3d3d3d' : '#e1e1e1'}`, padding: '0 32px', height: 64, flexShrink: 0, background: isDarkMode ? '#212121' : '#fff', display: 'flex', alignItems: 'center' }}>
-              <DefaultButton onClick={onClose}>Done</DefaultButton>
+              <Button onClick={onClose}>Done</Button>
             </div>
             <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
           </>
@@ -2100,17 +2105,18 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
 
                   {/* Save / Cancel */}
                   <div className="flex items-center gap-2">
-                    <PrimaryButton
+                    <Button
+                      appearance="primary"
                       onClick={() => { setTypeName(editName); setEditingHeader(false); setGuidanceHighlight(undefined); markChanged(); }}
                     >
                       Save
-                    </PrimaryButton>
-                    <PrimaryButton
+                    </Button>
+                    <Button
                       onClick={() => { setEditName(existingConnector?.connectorType || typeName); setEditIconPreview(null); setEditingHeader(false); setGuidanceHighlight(undefined); }}
-                      styles={{ root: { background: 'white', border: '1px solid #8a8886', color: '#323130', selectors: { ':hover': { background: '#f3f2f1' } } } }}
+                      style={{ background: 'white', border: '1px solid #8a8886', color: '#323130' }}
                     >
                       Cancel
-                    </PrimaryButton>
+                    </Button>
                   </div>
                 </div>
 
@@ -2132,12 +2138,14 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
               </div>
             ) : (
               /* ── View mode: normal header ── */
-              <div className="flex items-center gap-5 pb-6">
+              <div className="relative flex items-center gap-5 pb-6">
                 <ConnectorIcon src={editIconPreview ?? resolvedLogoUrl} name={typeName} size={72} />
                 <div className="flex flex-col gap-1">
                   <h1 className="text-[22px] font-bold text-[#323130] leading-7">{typeName}</h1>
-                  {isEdit && displayName && (
+                  {isEdit && displayName ? (
                     <p className="text-[14px] text-[#605e5c]">{displayName}</p>
+                  ) : !isEdit && (
+                    <p className="text-[14px] text-[#605e5c]">Advanced setup</p>
                   )}
                   <button
                     onClick={() => {
@@ -2153,6 +2161,15 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                     <span className="text-[#0078d4]">Edit source name &amp; icon</span>
                   </button>
                 </div>
+                {!isEdit && onSwitchToSimple && (
+                  <button
+                    onClick={onSwitchToSimple}
+                    className="absolute bottom-0 right-0 flex items-center gap-1.5 px-3 py-1 text-[13px] text-[#424242] rounded hover:bg-[#f3f2f1] transition-colors"
+                  >
+                    <SettingsIcon style={{ fontSize: 14 }} className="text-[#424242]" />
+                    Simple setup
+                  </button>
+                )}
               </div>
             )}
 
@@ -2221,8 +2238,8 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                 />
               </div>
 
-              {/* User criteria — ServiceNow only */}
-              {typeName !== 'ADO' && (
+              {/* User criteria — ServiceNow only (not ADO, not Miro) */}
+              {typeName !== 'ADO' && catalogItem?.id !== 'miro' && (
                 <div ref={(el) => { fieldRefs.current['user-criteria'] = el; }}>
                   <p className="text-[14px] font-semibold text-[#323130] mb-1">User criteria setup in ServiceNow</p>
                   <ChoiceGroup
@@ -2237,64 +2254,123 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                 </div>
               )}
 
-              {/* Instance URL */}
+              {/* Instance URL / Miro Company ID */}
               <div ref={(el) => { fieldRefs.current['instance-url'] = el; }}>
-                <p className="text-[14px] font-semibold text-[#323130] mb-1">Provide basic information about your {typeName === 'ADO' ? 'ADO' : 'ServiceNow'} instance</p>
-                <TextField
-                  label="Instance URL"
-                  required
-                  prefix="https://"
-                  value={instanceUrl.replace(/^https?:\/\//, '')}
-                  onChange={(_, v) => { setInstanceUrl(v ? `https://${v}` : ''); markChanged(); }}
-                  onFocus={() => { setGuidanceHighlight('instance-url'); if (!suppressGuidanceSwitch.current) { setRightRailTab('guide'); setHealthFocused(false); setHealthBackTrigger(n => n + 1); } }}
-                  placeholder="example.servicenow.com"
-                  styles={{
-                    root: { width: '100%' },
-                    ...(isDarkMode ? {
-                      prefix: { background: '#3d3d3d', color: '#c8c6c4', borderColor: '#616161' },
-                      field: { background: '#212121', color: '#f5f5f5' },
-                      fieldGroup: { borderColor: '#616161', background: '#212121', selectors: { ':hover': { borderColor: '#adadad' } } },
-                    } : {}),
-                  }}
-                />
+                {catalogItem?.id === 'miro' ? (
+                  <>
+                    <p className="text-[14px] font-semibold text-[#323130] mb-1">Provide basic information about your URL</p>
+                    <TextField
+                      label="Company (Organization) ID"
+                      required
+                      value={instanceUrl}
+                      onChange={(_, v) => { setInstanceUrl(v ?? ''); markChanged(); }}
+                      onFocus={() => { setGuidanceHighlight('instance-url'); if (!suppressGuidanceSwitch.current) { setRightRailTab('guide'); setHealthFocused(false); setHealthBackTrigger(n => n + 1); } }}
+                      placeholder="Miro company id example: 3458764625687941342"
+                      styles={{ root: { width: '100%' } }}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <p className="text-[14px] font-semibold text-[#323130] mb-1">Provide basic information about your {typeName === 'ADO' ? 'ADO' : 'ServiceNow'} instance</p>
+                    <TextField
+                      label="Instance URL"
+                      required
+                      prefix="https://"
+                      value={instanceUrl.replace(/^https?:\/\//, '')}
+                      onChange={(_, v) => { setInstanceUrl(v ? `https://${v}` : ''); markChanged(); }}
+                      onFocus={() => { setGuidanceHighlight('instance-url'); if (!suppressGuidanceSwitch.current) { setRightRailTab('guide'); setHealthFocused(false); setHealthBackTrigger(n => n + 1); } }}
+                      placeholder="example.servicenow.com"
+                      styles={{
+                        root: { width: '100%' },
+                        ...(isDarkMode ? {
+                          prefix: { background: '#3d3d3d', color: '#c8c6c4', borderColor: '#616161' },
+                          field: { background: '#212121', color: '#f5f5f5' },
+                          fieldGroup: { borderColor: '#616161', background: '#212121', selectors: { ':hover': { borderColor: '#adadad' } } },
+                        } : {}),
+                      }}
+                    />
+                  </>
+                )}
               </div>
 
               {/* Authentication */}
               <div ref={(el) => { fieldRefs.current['auth-types'] = el; }} className={`transition-colors duration-500 rounded-[4px] -mx-2 px-2 ${fieldHighlight === 'auth-types' ? 'bg-[#eff6ff]' : ''}`}>
-                <p className="text-[14px] font-semibold text-[#323130] mb-1">Authenticate your {typeName === 'ADO' ? 'ADO' : 'ServiceNow'} instance</p>
-                <Dropdown
-                  label="Authentication type"
-                  required
-                  selectedKey={authMethod === 'none' ? null : authMethod}
-                  placeholder="Select a method"
-                  options={AUTH_OPTIONS.map(o => ({ key: o.value, text: o.label })) as IDropdownOption[]}
-                  onChange={(_, opt) => { if (opt) { setAuthMethod(opt.key as AuthMethod); markChanged(); autoApplyForField('auth-types'); } }}
-                  onFocus={() => { setGuidanceHighlight('auth-types'); if (!suppressGuidanceSwitch.current) { setRightRailTab('guide'); setHealthFocused(false); setHealthBackTrigger(n => n + 1); } }}
-                  styles={{ root: { width: '100%' } }}
-                />
+                <p className="text-[14px] font-semibold text-[#323130] mb-1">Authenticate your {catalogItem?.id === 'miro' ? 'Miro' : typeName === 'ADO' ? 'ADO' : 'ServiceNow'} instance</p>
 
-                {/* Basic Auth credential inputs */}
-                {authMethod === 'basic' && (
-                  <div ref={(el) => { fieldRefs.current['auth-credentials'] = el; }} className={`flex flex-col gap-3 mt-3 transition-colors duration-500 rounded-[4px] -mx-2 px-2 py-1 ${fieldHighlight === 'auth-credentials' ? 'bg-[#eff6ff]' : ''}`}>
+                {catalogItem?.id === 'miro' ? (
+                  /* Miro: OAuth 2.0 fixed, Client ID + Secret + Authorize */
+                  <div className="flex flex-col gap-3">
                     <TextField
-                      label="Username"
-                      required
-                      componentRef={credentialsUsernameRef as React.RefObject<any>}
-                      value={basicUsername}
-                      onChange={(_, v) => { setBasicUsername(v ?? ''); markChanged(); autoApplyForField('auth-credentials'); }}
-                      placeholder="e.g. svc-copilot@contoso.com"
+                      label="Authentication type"
+                      readOnly
+                      value="OAuth 2.0"
                       styles={{ root: { width: '100%' } }}
                     />
-                    <TextField
-                      label="Password"
-                      required
-                      type="password"
-                      canRevealPassword
-                      value={basicPassword}
-                      onChange={(_, v) => { setBasicPassword(v ?? ''); markChanged(); autoApplyForField('auth-credentials'); }}
-                      styles={{ root: { width: '100%' } }}
-                    />
+                    <div className="flex gap-4">
+                      <TextField
+                        label="Client ID"
+                        required
+                        value={clientId}
+                        onChange={(_, v) => { setClientId(v ?? ''); markChanged(); }}
+                        styles={{ root: { flex: 1 } }}
+                      />
+                      <TextField
+                        label="Client secret"
+                        required
+                        type="password"
+                        canRevealPassword
+                        value={clientSecret}
+                        onChange={(_, v) => { setClientSecret(v ?? ''); markChanged(); }}
+                        styles={{ root: { flex: 1 } }}
+                      />
+                    </div>
+                    <div>
+                      <Button
+                        appearance="primary"
+                        disabled={!clientId.trim() || !clientSecret.trim() || authorizing}
+                        style={{ borderRadius: 4, minWidth: 100 }}
+                        onClick={() => { setAuthorizing(true); setTimeout(() => setAuthorizing(false), 3000); }}
+                      >
+                        {authorizing ? <Spinner size="extra-tiny" /> : 'Authorize'}
+                      </Button>
+                    </div>
                   </div>
+                ) : (
+                  <>
+                    <Dropdown
+                      label="Authentication type"
+                      required
+                      selectedKey={authMethod === 'none' ? null : authMethod}
+                      placeholder="Select a method"
+                      options={AUTH_OPTIONS.map(o => ({ key: o.value, text: o.label })) as IDropdownOption[]}
+                      onChange={(_, opt) => { if (opt) { setAuthMethod(opt.key as AuthMethod); markChanged(); autoApplyForField('auth-types'); } }}
+                      onFocus={() => { setGuidanceHighlight('auth-types'); if (!suppressGuidanceSwitch.current) { setRightRailTab('guide'); setHealthFocused(false); setHealthBackTrigger(n => n + 1); } }}
+                      styles={{ root: { width: '100%' } }}
+                    />
+                    {/* Basic Auth credential inputs */}
+                    {authMethod === 'basic' && (
+                      <div ref={(el) => { fieldRefs.current['auth-credentials'] = el; }} className={`flex flex-col gap-3 mt-3 transition-colors duration-500 rounded-[4px] -mx-2 px-2 py-1 ${fieldHighlight === 'auth-credentials' ? 'bg-[#eff6ff]' : ''}`}>
+                        <TextField
+                          label="Username"
+                          required
+                          componentRef={credentialsUsernameRef as React.RefObject<any>}
+                          value={basicUsername}
+                          onChange={(_, v) => { setBasicUsername(v ?? ''); markChanged(); autoApplyForField('auth-credentials'); }}
+                          placeholder="e.g. svc-copilot@contoso.com"
+                          styles={{ root: { width: '100%' } }}
+                        />
+                        <TextField
+                          label="Password"
+                          required
+                          type="password"
+                          canRevealPassword
+                          value={basicPassword}
+                          onChange={(_, v) => { setBasicPassword(v ?? ''); markChanged(); autoApplyForField('auth-credentials'); }}
+                          styles={{ root: { width: '100%' } }}
+                        />
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -2527,7 +2603,8 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
         {/* Footer — full width across panel */}
         <div className="border-t border-[#e1e1e1] dark:border-[#3d3d3d] px-8 py-4 flex items-center justify-between flex-shrink-0 bg-white dark:bg-[#212121] z-10">
           <div className="flex items-center gap-3">
-            <PrimaryButton
+            <Button
+              appearance="primary"
               disabled={!hasChanges}
               onClick={() => {
                 if (isEdit && hasChanges) { setHasChanges(false); setValidateDone(false); }
@@ -2535,10 +2612,10 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
               }}
             >
               {isEdit ? 'Save' : 'Create'}
-            </PrimaryButton>
+            </Button>
           </div>
           <div className="flex items-center gap-4">
-            <DefaultButton onClick={onClose}>Cancel</DefaultButton>
+            <Button onClick={onClose}>Cancel</Button>
           </div>
         </div>
         </>

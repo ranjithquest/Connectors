@@ -39,7 +39,26 @@ git remote get-url gim-connectors
 - Extract the GitHub username from the remote URL (e.g. `https://ranjithravi_microsoft:...@github.com/...` → `ranjithravi_microsoft`) as `OWNER_SLUG`
 - Derive `OWNER_DISPLAY_NAME` from `OWNER_SLUG` by stripping `_microsoft` suffix and title-casing (e.g. `ranjithravi_microsoft` → `Ranjithravi`)
 
-## Step 2 — Ask: same feature or new?
+## Step 2 — Validate branch name format
+
+**Before asking anything**, check that `CURRENT_BRANCH` follows the `owner/feature` format (i.e. contains exactly one `/` and the part before it looks like a username).
+
+If the branch does **not** contain a `/` (e.g. `Intranet---Bookmarked-URLs`, `my-feature`):
+
+> "Your current branch **`<CURRENT_BRANCH>`** doesn't include a username prefix, so it won't appear correctly on the about page.
+>
+> I'll rename it to **`<OWNER_SLUG>/<CURRENT_BRANCH_SLUG>`** — is that okay? Or would you like a different feature name?"
+
+If the user confirms, run:
+```bash
+git branch -m <CURRENT_BRANCH> <OWNER_SLUG>/<feature-slug>
+git push gim-connectors :<CURRENT_BRANCH>   # delete old remote branch if it exists
+```
+Then update `CURRENT_BRANCH` to the new name and continue.
+
+---
+
+## Step 2b — Ask: same feature or new?
 
 Check if `CURRENT_BRANCH` is a feature branch (i.e. not `main` or detached `HEAD`).
 
@@ -151,7 +170,7 @@ If yes, wait ~3 minutes and check the URL is reachable.
 
 ## Rules
 - Always branch off `main` for new features — never commit directly to `main`
-- Branch format is `<owner>/<feature>` — no `bp/` prefix
+- Branch format is strictly `<owner>/<feature>` — branches without a `/` will not appear on the about page and must be renamed before publishing
 - Always push to `gim-connectors` remote — never to `origin`
 - Never push directly to `main` — feature branches are standalone previews only
 - If a new branch with that name already exists, append a short timestamp suffix
