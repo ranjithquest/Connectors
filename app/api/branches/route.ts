@@ -25,10 +25,10 @@ const BRANCH_META: Record<string, {
 
 const FILLER = /^(fix|update|add|remove|improve|refactor|tweak|clean|bump|wip|misc|minor|merge|revert)\b/i;
 
-function getBranchDescription(branch: string): string {
+function getBranchDescription(branch: string, remote = 'origin'): string {
   try {
     const log = execSync(
-      `git log gim-connectors/main..gim-connectors/${branch} --format="%s" --no-merges`,
+      `git log ${remote}/main..${remote}/${branch} --format="%s" --no-merges`,
       { cwd: REPO_ROOT, timeout: 5000 }
     ).toString().trim();
     if (!log) return '';
@@ -60,11 +60,20 @@ function ownerFromBranch(branch: string): string {
   return branch.split('/')[0];
 }
 
+function resolveRemote(): string {
+  try {
+    execSync('git remote get-url gim-connectors', { cwd: REPO_ROOT });
+    return 'gim-connectors';
+  } catch {
+    return 'origin';
+  }
+}
+
 export async function GET() {
   try {
-    const remote = execSync('git remote get-url gim-connectors', { cwd: REPO_ROOT }).toString().trim();
-    execSync('git fetch gim-connectors --quiet', { cwd: REPO_ROOT, timeout: 15000 });
-    const lsRemote = execSync('git ls-remote --heads gim-connectors', { cwd: REPO_ROOT, timeout: 10000 }).toString();
+    const remote = resolveRemote();
+    execSync(`git fetch ${remote} --quiet`, { cwd: REPO_ROOT, timeout: 15000 });
+    const lsRemote = execSync(`git ls-remote --heads ${remote}`, { cwd: REPO_ROOT, timeout: 10000 }).toString();
 
     const branches = lsRemote
       .trim()
@@ -79,7 +88,7 @@ export async function GET() {
     const features = branches.map(({ sha, branch }) => {
       let rawDate = '';
       try {
-        rawDate = execSync(`git log -1 --format="%ci" "gim-connectors/${branch}"`, { cwd: REPO_ROOT }).toString().trim();
+        rawDate = execSync(`git log -1 --format="%ci" "${remote}/${branch}"`, { cwd: REPO_ROOT }).toString().trim();
         if (!rawDate) rawDate = execSync(`git log -1 --format="%ci" ${sha}`, { cwd: REPO_ROOT }).toString().trim();
       } catch { /* ignore */ }
 
@@ -94,7 +103,7 @@ export async function GET() {
         lastModified: rawDate ? formatDate(rawDate) : '',
         _rawDate: rawDate,
         previewUrl: `${BASE}/${branch}/connectors`,
-        description: getBranchDescription(branch) || null,
+        description: getBranchDescription(branch, remote) || null,
         decks: meta.decks ?? [],
         walkthroughs: meta.walkthroughs ?? [],
       };

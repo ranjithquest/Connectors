@@ -101,8 +101,8 @@ function FeaturesGrid({ features, currentBranch, ownerSlug, search, onSearch, on
 
               {/* Left: thumbnail — directly clickable */}
               <a
-                href={f.previewUrl ?? (isActive ? '/connectors' : undefined)}
-                target={f.previewUrl ? '_blank' : undefined}
+                href={isActive ? '/connectors' : (f.previewUrl ?? undefined)}
+                target={!isActive && f.previewUrl ? '_blank' : undefined}
                 rel="noopener noreferrer"
                 onClick={e => { if (!f.previewUrl && !isActive) e.preventDefault(); }}
                 style={{
@@ -231,6 +231,15 @@ function FeaturesGrid({ features, currentBranch, ownerSlug, search, onSearch, on
                       </div>
                     ) : (
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                        {isActive && f.previewUrl && (
+                          <a href={f.previewUrl} target="_blank" rel="noopener noreferrer"
+                            onClick={e => e.stopPropagation()}
+                            style={{
+                              fontSize: 12, fontWeight: 600, color: '#0078d4', textDecoration: 'none',
+                              background: '#deeffe', borderRadius: 4, padding: '4px 12px',
+                              border: '1px solid #b3d7f5',
+                            }}>🔗 Preview</a>
+                        )}
                         {decks.map((d, i) => (
                           <a key={i} href={d.url} target="_blank" rel="noopener noreferrer"
                             onClick={e => e.stopPropagation()}
