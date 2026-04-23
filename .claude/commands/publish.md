@@ -115,13 +115,27 @@ Set `TARGET_BRANCH` = `<owner-slug>/<feature-slug>`
 
 ## Step 4 — Commit all changes
 
-```bash
-git add -A
-git commit -m "feat: <FEATURE_NAME or branch description>
+Before committing, run `git diff --staged` and `git status` to understand what has changed. Then write a commit message that describes the actual changes made in this session — not just the feature name. Be specific: mention components modified, behaviours added/changed, and anything removed.
+
+Format:
+```
+feat: <short summary of what changed>
+
+Changes:
+- <specific change 1>
+- <specific change 2>
+- <specific change 3>
+...
 
 Feature: <FEATURE_NAME>
 Owner: <OWNER_DISPLAY_NAME>
-Date: <today's date>"
+Date: <today's date>
+```
+
+Run:
+```bash
+git add -A
+git commit -m "<message above>"
 ```
 
 If there are no uncommitted changes (clean working tree), skip the commit and just push.
