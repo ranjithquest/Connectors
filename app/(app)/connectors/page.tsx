@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
-import { SearchBox, CommandBar, ICommandBarItemProps, Pivot, PivotItem, Breadcrumb, IBreadcrumbItem, Text } from '@fluentui/react';
+import { SearchBox, CommandBar, ICommandBarItemProps, Pivot, PivotItem, Text } from '@fluentui/react';
 import {
   DataGrid, DataGridHeader, DataGridHeaderCell, DataGridBody, DataGridRow, DataGridCell,
   createTableColumn, TableColumnDefinition, Badge, Tooltip, PresenceBadge, FluentProvider, webLightTheme, webDarkTheme,
@@ -383,18 +383,11 @@ export default function ConnectorsPage() {
 
       {/* ── Page header ───────────────────────────────────────────── */}
       <div className="shrink-0 pt-0 pb-0 px-4 sm:px-8 lg:px-12 bg-white dark:bg-[#141414] z-10">
-        <Breadcrumb
-          items={[
-            { text: 'Home', key: 'home', onClick: () => router.push('/') },
-            { text: 'Connectors', key: 'connectors', isCurrentItem: true },
-          ] as IBreadcrumbItem[]}
-          styles={{
-            root: { margin: '0 0 11px' },
-            item: { fontSize: 12, color: isDark ? '#c8c6c4' : undefined },
-            itemLink: { fontSize: 12, color: isDark ? '#c8c6c4' : undefined, selectors: { ':hover': { color: isDark ? '#f5f5f5' : undefined, background: 'transparent' } } },
-            chevron: { color: isDark ? '#8a8886' : undefined },
-          }}
-        />
+        <nav style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: isDark ? '#c8c6c4' : '#605e5c', marginBottom: 11 }}>
+          <span onClick={() => router.push('/')} style={{ cursor: 'pointer', color: isDark ? '#c8c6c4' : '#605e5c' }} onMouseOver={e => (e.currentTarget.style.color = isDark ? '#f5f5f5' : '#0078d4')} onMouseOut={e => (e.currentTarget.style.color = isDark ? '#c8c6c4' : '#605e5c')}>Home</span>
+          <span style={{ opacity: 0.5 }}>›</span>
+          <span style={{ color: isDark ? '#f5f5f5' : '#323130' }}>Connectors</span>
+        </nav>
         <Text
           variant="xxLarge"
           styles={{ root: { fontSize: 28, fontWeight: 700, lineHeight: 'normal', display: 'block', marginBottom: 27, color: isDark ? '#f5f5f5' : undefined } }}

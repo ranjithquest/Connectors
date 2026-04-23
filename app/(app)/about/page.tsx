@@ -74,7 +74,17 @@ function FeaturesGrid({ features, currentBranch, ownerSlug, search, onSearch, on
 
   function renderGrid(cards: Feature[]) {
     return (
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+      <style>{`
+        .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        @media (max-width: 900px) { .features-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 600px) { .features-grid { grid-template-columns: 1fr; } }
+        .feature-tile { display: flex; flex-direction: row; }
+        @media (max-width: 600px) { .feature-tile { flex-direction: column; } }
+        .feature-thumb { width: 180px; flex-shrink: 0; }
+        @media (max-width: 900px) { .feature-thumb { width: 120px; } }
+        @media (max-width: 600px) { .feature-thumb { width: 100%; height: 100px; } }
+      `}</style>
+      <div className="features-grid">
         {cards.map((f, idx) => {
           // TEST ONLY — inject fake decks & walkthroughs on first tile
           if (idx === 0) f = { ...f, decks: [{ label: 'Concept v1', url: '#' }, { label: 'Stakeholder Review', url: '#' }], walkthroughs: [{ label: 'Setup flow', url: '#' }, { label: 'Error resolution', url: '#' }] };
@@ -86,6 +96,7 @@ function FeaturesGrid({ features, currentBranch, ownerSlug, search, onSearch, on
           const walkthroughs = f.walkthroughs ?? (f.previewUrl ? [{ label: 'Walkthrough', url: f.previewUrl.replace('/connectors', '/deck') }] : []);
           return (
             <div key={f.branch}
+              className="feature-tile"
               onMouseEnter={() => setHoveredBranch(f.branch)}
               onMouseLeave={() => setHoveredBranch(null)}
               style={{
@@ -93,8 +104,6 @@ function FeaturesGrid({ features, currentBranch, ownerSlug, search, onSearch, on
                 border: isActive ? '2px solid #0078d4' : '1px solid #e1e1e1',
                 overflow: 'hidden',
                 background: '#fff',
-                display: 'flex',
-                flexDirection: 'row',
                 boxShadow: isActive ? '0 0 0 1px #0078d4' : '0 1px 3px rgba(0,0,0,0.06)',
                 minHeight: 96,
               }}>
@@ -105,8 +114,9 @@ function FeaturesGrid({ features, currentBranch, ownerSlug, search, onSearch, on
                 target={!isActive && f.previewUrl ? '_blank' : undefined}
                 rel="noopener noreferrer"
                 onClick={e => { if (!f.previewUrl && !isActive) e.preventDefault(); }}
+                className="feature-thumb"
                 style={{
-                  width: 180, flexShrink: 0, position: 'relative', display: 'block',
+                  flexShrink: 0, position: 'relative', display: 'block',
                   background, textDecoration: 'none', overflow: 'hidden',
                   cursor: f.previewUrl || isActive ? 'pointer' : 'default',
                 }}
