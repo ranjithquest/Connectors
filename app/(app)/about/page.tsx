@@ -409,8 +409,11 @@ export default function AboutPage() {
       if (!res.ok) { setCreateError(data.error ?? 'Failed to create branch'); setCreating(false); return; }
       setShowDialog(false);
       setFeatureName('');
+      // Re-fetch branch lists + current branch so the new feature lights up as Active immediately.
       loadBranches();
-      alert(`Branch "${data.branch}" created. Check it out in your terminal to start working.`);
+      fetch('/api/current-branch/').then(r => r.json()).then(d => { setCurrentBranch(d.branch ?? ''); setOwnerSlug(d.ownerSlug ?? ''); }).catch(() => {});
+      fetch('/api/local-branches/').then(r => r.json()).then(d => setLocalBranches(d.branches ?? [])).catch(() => {});
+      alert(`Branch "${data.branch}" created and checked out. You're now on it — start working.`);
     } catch {
       setCreateError('Network error — is the dev server running?');
       setCreating(false);
