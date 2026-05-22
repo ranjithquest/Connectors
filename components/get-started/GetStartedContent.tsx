@@ -260,7 +260,7 @@ export default function GetStartedContent() {
               onMouseOver={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#106ebe'; }}
               onMouseOut={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#0078d4'; }}
             >
-              Open the app ↗
+              View ↗
             </a>
             <a
               href="/about"
@@ -273,7 +273,22 @@ export default function GetStartedContent() {
               onMouseOver={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#f3f2f1'; }}
               onMouseOut={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#ffffff'; }}
             >
-              View features
+              View all features
+            </a>
+            <a
+              href={REPO_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                padding: '10px 20px', borderRadius: 4, fontSize: 14, fontWeight: 600,
+                background: '#ffffff', color: '#323130', textDecoration: 'none',
+                border: '1px solid #d1d1d1', transition: 'background 0.15s',
+              }}
+              onMouseOver={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#f3f2f1'; }}
+              onMouseOut={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#ffffff'; }}
+            >
+              View repo ↗
             </a>
           </div>
         </div>

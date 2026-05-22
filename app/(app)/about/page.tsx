@@ -19,7 +19,10 @@ type Feature = {
   description?: string;
   decks?: NamedLink[];
   walkthroughs?: NamedLink[];
+  needsPublish?: boolean;
 };
+
+type LocalBranch = { name: string; needsPublish: boolean };
 
 function toBranchSlug(name: string) {
   return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -51,10 +54,34 @@ function initials(name: string) {
   return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
 }
 
-function FeaturesGrid({ features, currentBranch, ownerSlug, search, onSearch, onNewFeature }: { features: Feature[]; currentBranch?: string; ownerSlug?: string; search: string; onSearch: (v: string) => void; onNewFeature: () => void }) {
+function FeaturesGrid({ features, currentBranch, ownerSlug, localBranches, search, onSearch, onNewFeature }: { features: Feature[]; currentBranch?: string; ownerSlug?: string; localBranches: LocalBranch[]; search: string; onSearch: (v: string) => void; onNewFeature: () => void }) {
   const [hoveredBranch, setHoveredBranch] = useState<string | null>(null);
   const [expandedBranch, setExpandedBranch] = useState<string | null>(null);
-  const isUnpublished = currentBranch && currentBranch !== 'main' && !features.some(f => f.branch === currentBranch);
+
+  // Only show the dedicated "Features of your local" section when the user has cloned the repo
+  // and is actively working on more than one feature locally. Otherwise (0–1 local branches) the
+  // local branch — if any — is folded back into the regular feature grid.
+  const showLocalSection = localBranches.length > 1;
+  const localBranchNames = localBranches.map(b => b.name);
+
+  const localCards: Feature[] = showLocalSection
+    ? localBranches.map(b => {
+        const match = features.find(f => f.branch === b.name);
+        if (match) return { ...match, needsPublish: b.needsPublish };
+        return {
+          branch: b.name,
+          owner: b.name.includes('/') ? b.name.split('/')[0] : (ownerSlug ?? ''),
+          name: featureNameFromSlug(b.name.includes('/') ? b.name.split('/').slice(1).join('/') : b.name),
+          lastModified: '',
+          previewUrl: null,
+          needsPublish: b.needsPublish,
+        };
+      })
+    : [];
+
+  // When the local section is hidden, surface any unpublished current branch in the regular list
+  // so the user can still see it.
+  const isUnpublished = !showLocalSection && currentBranch && currentBranch !== 'main' && !features.some(f => f.branch === currentBranch) && !localBranchNames.includes(currentBranch);
   const unpublishedCard: Feature | null = isUnpublished ? {
     branch: currentBranch!,
     owner: currentBranch!.split('/')[0],
@@ -63,12 +90,15 @@ function FeaturesGrid({ features, currentBranch, ownerSlug, search, onSearch, on
     previewUrl: null,
   } : null;
 
-  const publishedFeatures = unpublishedCard ? [unpublishedCard, ...features] : features;
-  const myCards = publishedFeatures.filter(f => ownerSlug && f.owner === ownerSlug);
-  const otherCards = publishedFeatures.filter(f => !ownerSlug || f.owner !== ownerSlug);
+  // Remote features that aren't already represented in the local section.
+  const localBranchSet = new Set(showLocalSection ? localBranchNames : []);
+  const remainingFeatures = unpublishedCard ? [unpublishedCard, ...features] : features;
+  const remoteOnly = remainingFeatures.filter(f => !localBranchSet.has(f.branch));
+  const myCards = remoteOnly.filter(f => ownerSlug && f.owner === ownerSlug);
+  const otherCards = remoteOnly.filter(f => !ownerSlug || f.owner !== ownerSlug);
 
 
-  if (myCards.length === 0 && otherCards.length === 0) {
+  if (localCards.length === 0 && myCards.length === 0 && otherCards.length === 0) {
     return <p style={{ fontSize: 14, color: '#605e5c', paddingTop: 16 }}>No features found.</p>;
   }
 
@@ -162,7 +192,18 @@ function FeaturesGrid({ features, currentBranch, ownerSlug, search, onSearch, on
               <div style={{ flex: 1, padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
                 {/* Title + date */}
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-                  <span style={{ fontSize: 15, fontWeight: 700, color: '#1b1a19' }}>{f.name}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 15, fontWeight: 700, color: '#1b1a19' }}>{f.name}</span>
+                    {f.needsPublish && (
+                      <span style={{
+                        fontSize: 11, fontWeight: 600, color: '#8a6e00',
+                        background: '#fff4ce', border: '1px solid #f4e2a0',
+                        borderRadius: 4, padding: '1px 8px', lineHeight: '16px',
+                      }} title="You have local changes that haven't been published yet. Run /publish in Claude.">
+                        Changes not published
+                      </span>
+                    )}
+                  </div>
                   {f.lastModified && (
                     <span style={{ fontSize: 12, color: '#a19f9d', flexShrink: 0 }}>{f.lastModified}</span>
                   )}
@@ -282,13 +323,11 @@ function FeaturesGrid({ features, currentBranch, ownerSlug, search, onSearch, on
     );
   }
 
-  const activeCard = currentBranch ? [...myCards, ...otherCards].filter(f => f.branch === currentBranch) : [];
-  const restCards = [...myCards, ...otherCards].filter(f => f.branch !== currentBranch);
+  const restCards = [...myCards, ...otherCards];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
-      {activeCard.length > 0 && renderGrid(activeCard)}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '8px 0 16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <SearchBox
           placeholder="Search features or people"
           value={search}
@@ -298,7 +337,22 @@ function FeaturesGrid({ features, currentBranch, ownerSlug, search, onSearch, on
         />
         <Button onClick={onNewFeature}>New feature</Button>
       </div>
-      {restCards.length > 0 && renderGrid(restCards)}
+      {localCards.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <h2 style={{ fontSize: 13, fontWeight: 600, color: '#605e5c', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>
+            Features on your local
+          </h2>
+          {renderGrid(localCards)}
+        </div>
+      )}
+      {restCards.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <h2 style={{ fontSize: 13, fontWeight: 600, color: '#605e5c', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>
+            Published features
+          </h2>
+          {renderGrid(restCards)}
+        </div>
+      )}
     </div>
   );
 }
@@ -309,6 +363,7 @@ export default function AboutPage() {
   const [loadingBranches, setLoadingBranches] = useState(true);
   const [currentBranch, setCurrentBranch] = useState('');
   const [ownerSlug, setOwnerSlug] = useState('');
+  const [localBranches, setLocalBranches] = useState<LocalBranch[]>([]);
   const [search, setSearch] = useState('');
   const [showDialog, setShowDialog] = useState(false);
   const [featureName, setFeatureName] = useState('');
@@ -327,7 +382,11 @@ export default function AboutPage() {
 
   useEffect(() => {
     loadBranches();
-    fetch('/api/current-branch/').then(r => r.json()).then(d => { setCurrentBranch(d.branch ?? ''); setOwnerSlug(d.ownerSlug ?? ''); }).catch(() => {});
+    const isHosted = typeof window !== 'undefined' && !window.location.hostname.includes('localhost');
+    if (!isHosted) {
+      fetch('/api/current-branch/').then(r => r.json()).then(d => { setCurrentBranch(d.branch ?? ''); setOwnerSlug(d.ownerSlug ?? ''); }).catch(() => {});
+      fetch('/api/local-branches/').then(r => r.json()).then(d => setLocalBranches(d.branches ?? [])).catch(() => {});
+    }
   }, []);
 
   const filtered = allFeatures.filter(f =>
@@ -411,7 +470,7 @@ export default function AboutPage() {
       <div className="px-6 sm:px-10 pb-12">
         {loadingBranches
           ? <p style={{ fontSize: 14, color: '#605e5c', paddingTop: 16 }}>Loading features…</p>
-          : <FeaturesGrid features={filtered} currentBranch={currentBranch} ownerSlug={currentBranch ? currentBranch.split('/')[0] : ownerSlug} search={search} onSearch={setSearch} onNewFeature={() => setShowDialog(true)} />
+          : <FeaturesGrid features={filtered} currentBranch={currentBranch} ownerSlug={currentBranch ? currentBranch.split('/')[0] : ownerSlug} localBranches={localBranches} search={search} onSearch={setSearch} onNewFeature={() => setShowDialog(true)} />
         }
       </div>
 

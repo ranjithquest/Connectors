@@ -33,9 +33,9 @@ function getBranchDescription(branch: string, remote = 'origin'): string {
     ).toString().trim();
     if (!log) return '';
     const subjects = log.split('\n').filter(Boolean);
-    // Prefer the first meaningful commit (branch purpose); fall back to latest
+    // Prefer the first meaningful commit (branch purpose); fall back to the oldest commit.
     const meaningful = subjects.find(s => !FILLER.test(s.trim())) ?? subjects[subjects.length - 1];
-    // Strip conventional commit prefix (feat:, feat(scope):, fix:, etc.) then capitalise
+    // Strip conventional commit prefix (feat:, feat(scope):, fix:, etc.) then capitalise.
     return meaningful.trim()
       .replace(/^[a-z]+(\([^)]+\))?:\s*/i, '')
       .replace(/^./, c => c.toUpperCase())
@@ -57,7 +57,9 @@ function featureNameFromSlug(slug: string): string {
 }
 
 function ownerFromBranch(branch: string): string {
-  return branch.split('/')[0];
+  // For owner/feature branches, the owner is the part before the first slash.
+  // For flat branches (e.g. "Salesforce-ME-ID"), there's no clear owner, so fall back to '—'.
+  return branch.includes('/') ? branch.split('/')[0] : '—';
 }
 
 function resolveRemote(): string {
@@ -83,7 +85,7 @@ export async function GET() {
         const [sha, ref] = line.split('\t');
         return { sha, branch: ref.replace('refs/heads/', '') };
       })
-      .filter(({ branch }) => !SKIP.test(branch) && branch.includes('/'));
+      .filter(({ branch }) => !SKIP.test(branch));
 
     const features = branches.map(({ sha, branch }) => {
       let rawDate = '';
@@ -92,8 +94,8 @@ export async function GET() {
         if (!rawDate) rawDate = execSync(`git log -1 --format="%ci" ${sha}`, { cwd: REPO_ROOT }).toString().trim();
       } catch { /* ignore */ }
 
-      const parts = branch.split('/');
-      const featureSlug = parts.slice(1).join('/');
+      // Owner/feature branches put the slug after the first slash. Flat branches use the whole name.
+      const featureSlug = branch.includes('/') ? branch.split('/').slice(1).join('/') : branch;
 
       const meta = BRANCH_META[branch] ?? {};
       return {
