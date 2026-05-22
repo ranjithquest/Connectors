@@ -229,6 +229,8 @@ export default function ConnectorsPage() {
   const [openToAuth, setOpenToAuth] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
 
   // Gallery-tab state
   const [gallerySearch, setGallerySearch] = useState('');
@@ -374,6 +376,10 @@ export default function ConnectorsPage() {
 
   const showRecommended = galleryFilter !== 'recommended' && !activeCategory && !gallerySearch && recommended.length > 0;
 
+  if (!mounted) {
+    return <div className="min-h-screen bg-white dark:bg-[#141414]" />;
+  }
+
   return (
     <div
       className={`bg-white dark:bg-[#141414] ${tab === 'gallery' ? 'h-screen overflow-hidden flex flex-col' : 'min-h-screen'}`}
@@ -382,7 +388,7 @@ export default function ConnectorsPage() {
       <Suspense><TourOverlay /></Suspense>
 
       {/* ── Page header ───────────────────────────────────────────── */}
-      <div className="shrink-0 pt-0 pb-0 px-4 sm:px-8 lg:px-12 bg-white dark:bg-[#141414] z-10">
+      <div className="shrink-0 pt-5 pb-0 px-4 sm:px-8 lg:px-12 bg-white dark:bg-[#141414] z-10">
         <nav style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: isDark ? '#c8c6c4' : '#605e5c', marginBottom: 11 }}>
           <span onClick={() => router.push('/')} style={{ cursor: 'pointer', color: isDark ? '#c8c6c4' : '#605e5c' }} onMouseOver={e => (e.currentTarget.style.color = isDark ? '#f5f5f5' : '#0078d4')} onMouseOut={e => (e.currentTarget.style.color = isDark ? '#c8c6c4' : '#605e5c')}>Home</span>
           <span style={{ opacity: 0.5 }}>›</span>
