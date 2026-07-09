@@ -2412,7 +2412,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
           ? ((idx === 0 && failureStage >= 1) || (idx === 2 && failureStage >= 3))
           : false;
 
-        let label = step;
+        let label: string = step;
         if (isFailed && idx === 0) {
           label = 'Test authentication failed';
         } else if (isFailed && idx === 2) {
@@ -2438,7 +2438,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
           : validationState === 'validating' && idx < validationStepIndex;
       const isFailed = validationState === 'failed' && (idx === 0 || idx === 2);
 
-      let label = step;
+      let label: string = step;
       if (isFailed && idx === 0) {
         label = 'Test authentication failed';
       } else if (isFailed && idx === 2) {

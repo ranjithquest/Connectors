@@ -784,7 +784,7 @@ export default function SetupPanel({ connectorType, onClose, onCreated }: SetupP
         ? ((idx === 0 && failureStage >= 1) || (idx === 2 && failureStage >= 3))
         : (validationHasErrors && ((idx === 0 && validationFailureSequenceStep >= 1) || (idx === 2 && validationFailureSequenceStep >= 3)));
 
-      let label = step;
+      let label: string = step;
       if (isFailed && idx === 0) {
         label = 'Test authentication failed';
       } else if (isFailed && idx === 2) {
