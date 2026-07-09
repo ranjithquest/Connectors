@@ -2,29 +2,159 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches:
-      - main
+
+permissions:
+  contents: write
+
+concurrency:
+  group: deploy-${{ github.ref_name }}
+  cancel-in-progress: true
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
 
-      - name: Setup Node.js
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch all branches
+        run: git fetch origin '+refs/heads/*:refs/remotes/origin/*'
+
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: 24
+          cache: npm
 
       - name: Install dependencies
         run: npm ci
 
+      - name: Set deploy path
+        id: path
+        run: |
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            echo "basepath=" >> $GITHUB_OUTPUT
+            echo "deploydir=." >> $GITHUB_OUTPUT
+            echo "previewurl=https://studious-adventure-j17vp6o.pages.github.io/connectors" >> $GITHUB_OUTPUT
+          else
+            # Use branch name as-is (lowercased) — e.g. aatman/new-icon-edit → aatman/new-icon-edit
+            SLUG=$(echo "${{ github.ref_name }}" | tr '[:upper:]' '[:lower:]')
+            echo "basepath=/${SLUG}" >> $GITHUB_OUTPUT
+            echo "deploydir=${SLUG}" >> $GITHUB_OUTPUT
+            echo "previewurl=https://studious-adventure-j17vp6o.pages.github.io/${SLUG}/connectors" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate branches.json
+        run: node scripts/generate-branches-json.js
+
+      - name: Hide local-only API routes for export
+        run: |
+          if [ -d app/api ]; then
+            mv app/api /tmp/connector-admin-app-api
+          fi
+
       - name: Build
         run: npm run build
+        env:
+          NEXT_PUBLIC_BASE_PATH: ${{ steps.path.outputs.basepath }}
+          STATIC_EXPORT: 'true'
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./out
+      - name: Restore local-only API routes
+        if: always()
+        run: |
+          if [ -d /tmp/connector-admin-app-api ]; then
+            mv /tmp/connector-admin-app-api app/api
+          fi
+
+      - name: Deploy to gh-pages branch
+        run: |
+          DEPLOYDIR="${{ steps.path.outputs.deploydir }}"
+
+          if [ "$DEPLOYDIR" != "." ]; then
+            # Feature branch: move _next inside deploydir so assets resolve correctly
+            mkdir -p "out/${DEPLOYDIR}"
+            mv out/_next "out/${DEPLOYDIR}/_next"
+            # Copy any public files (favicon, logos, etc.) into the deploydir
+            for item in out/*; do
+              name=$(basename "$item")
+              # Skip _next (already moved) and the deploydir folder itself
+              if [ "$name" != "_next" ] && [ "$name" != "$(echo "$DEPLOYDIR" | cut -d/ -f1)" ]; then
+                cp -r "$item" "out/${DEPLOYDIR}/"
+              fi
+            done
+          fi
+
+          # Save built output to temp before switching branches
+          mkdir -p /tmp/deploy-out/out
+          cp -r out/. /tmp/deploy-out/out/
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Remove untracked files that would block the gh-pages checkout
+          rm -f public/branches.json
+
+          # Switch to gh-pages branch (create orphan if it doesn't exist)
+          git fetch origin gh-pages 2>/dev/null && git checkout gh-pages || (git checkout --orphan gh-pages && git rm -rf . --quiet)
+
+          if [ "$DEPLOYDIR" = "." ]; then
+            # main: replace root content but preserve feature branch subdirs.
+            # Feature branch dirs are owner-prefixed subdirs (e.g. ranjith/, aatman/)
+            # identified by containing a slash when fully qualified — at the top level
+            # they appear as single-segment dirs whose names look like usernames.
+            mkdir -p /tmp/feature-save
+            for d in */; do
+              d="${d%/}"
+              # Only preserve dirs that exist as owner/feature paths on the remote
+              # (i.e. skip known build artifact dirs: node_modules, out, public, .next, etc.)
+              case "$d" in
+                node_modules|out|public|.next|.git) continue ;;
+              esac
+              if [ -d "$d" ] && [ ! -e "/tmp/deploy-out/out/$d" ]; then
+                echo "Preserving feature branch dir: $d"
+                cp -r "$d" /tmp/feature-save/
+              fi
+            done
+            git rm -rf . --quiet 2>/dev/null || true
+            cp -r /tmp/deploy-out/out/. .
+            # Restore preserved feature branch dirs
+            if [ "$(ls /tmp/feature-save 2>/dev/null)" ]; then
+              cp -r /tmp/feature-save/. .
+            fi
+          else
+            # Feature branch: only update that contributor's subfolder
+            rm -rf "${DEPLOYDIR}"
+            mkdir -p "${DEPLOYDIR}"
+            cp -r "/tmp/deploy-out/out/${DEPLOYDIR}/." "${DEPLOYDIR}/"
+          fi
+
+          # Remove build artifacts left over in the working directory — these
+          # are not git-tracked so git rm won't catch them, but git add -A would
+          # pick them up and they exceed GitHub's 100MB file size limit.
+          rm -rf node_modules .next
+
+          # Disable Jekyll so GitHub Pages serves _next/ static assets correctly
+          touch .nojekyll
+
+          # Add root index.html redirect if it doesn't exist
+          if [ ! -f index.html ]; then
+            echo '<meta http-equiv="refresh" content="0; url=/connectors">' > index.html
+          fi
+
+          git add -A
+          git diff --cached --quiet && echo "Nothing to commit" || git commit -m "Deploy ${{ github.ref_name }}"
+          git push --force origin gh-pages
+
+      - name: Print preview URL
+        run: echo "Preview URL ${{ steps.path.outputs.previewurl }}"
+
+      - name: Post preview URL as commit comment
+        if: github.ref_name != 'main'
+        run: |
+          curl -s -X POST \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/commits/${{ github.sha }}/comments" \
+            -d "{\"body\": \"✅ **Preview deployed!**\\n\\n🔗 ${{ steps.path.outputs.previewurl }}\\n\\nShare this link with your stakeholders for review.\"}"

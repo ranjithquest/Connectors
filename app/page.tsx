@@ -1,5 +1,10 @@
-import { redirect } from 'next/navigation';
+'use client';
+import { useEffect } from 'react';
 
-export default function Home() {
-  redirect('/connectors');
+export default function RootPage() {
+  useEffect(() => {
+    const base = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
+    window.location.replace(base + '/connectors/');
+  }, []);
+  return null;
 }

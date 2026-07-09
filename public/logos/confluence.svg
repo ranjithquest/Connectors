@@ -1,0 +1,22 @@
+<svg preserveAspectRatio="none" width="100%" height="100%" overflow="visible" style="display: block;" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="mark-contained-gradient-white-confluence 1">
+<g clip-path="url(#clip0_12203_84940)">
+<path id="Vector" d="M48 0H0V48H48V0Z" fill="var(--fill-0, #0052CC)"/>
+<path id="Vector_2" d="M13.0197 30.06C12.7797 30.48 12.4797 30.9 12.2997 31.32C12.1197 31.68 12.1797 32.16 12.5397 32.34L17.4597 35.4C17.8197 35.64 18.2997 35.52 18.4797 35.16C18.6597 34.8 18.8997 34.38 19.1997 33.96C21.1797 30.72 23.0997 31.14 26.6397 32.82L31.4997 35.16C31.8597 35.34 32.3397 35.16 32.5197 34.8L34.8597 29.52C35.0397 29.16 34.8597 28.68 34.4997 28.5C33.4797 28.02 31.4397 27.06 29.5797 26.16C22.9797 22.86 17.3397 23.04 13.0197 30.06Z" fill="url(#paint0_linear_12203_84940)"/>
+<path id="Vector_3" d="M35.0997 17.9998C35.3397 17.5798 35.6397 17.1598 35.8197 16.7398C35.9997 16.3798 35.9397 15.8999 35.5797 15.7199L30.6597 12.6599C30.2997 12.4199 29.8197 12.5399 29.6397 12.8999C29.4597 13.2599 29.2197 13.6799 28.9197 14.0999C26.9397 17.3398 25.0197 16.9198 21.4797 15.2398L16.6197 12.8999C16.2597 12.7199 15.7797 12.8999 15.5997 13.2599L13.2597 18.5399C13.0797 18.8999 13.2597 19.3798 13.6197 19.5598C14.6397 20.0398 16.6797 20.9999 18.5397 21.8999C25.1397 25.2599 30.7797 25.0199 35.0997 17.9998Z" fill="url(#paint1_linear_12203_84940)"/>
+</g>
+</g>
+<defs>
+<linearGradient id="paint0_linear_12203_84940" x1="34.7709" y1="36.9255" x2="19.8789" y2="28.3683" gradientUnits="userSpaceOnUse">
+<stop stop-color="white" stop-opacity="0.5"/>
+<stop offset="1" stop-color="white"/>
+</linearGradient>
+<linearGradient id="paint1_linear_12203_84940" x1="13.3358" y1="11.155" x2="28.2279" y2="19.7122" gradientUnits="userSpaceOnUse">
+<stop stop-color="white" stop-opacity="0.5"/>
+<stop offset="1" stop-color="white"/>
+</linearGradient>
+<clipPath id="clip0_12203_84940">
+<rect width="48" height="48" rx="4" fill="white"/>
+</clipPath>
+</defs>
+</svg>

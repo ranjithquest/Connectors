@@ -1,0 +1,628 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { ChartHoverCard } from '@fluentui/react-charting';
+import type { Connector, DiagnosticIssue } from '@/lib/types';
+import {
+  CommandBarButton, Pivot, PivotItem,
+  Stack, Text, Link, Separator, IconButton, AnimationStyles,
+} from '@fluentui/react';
+import { mergeStyles } from '@fluentui/merge-styles';
+
+const slideInClass = mergeStyles(AnimationStyles.slideDownIn10);
+import { InfoIcon, SyncIcon, ChevronDownIcon, StatusCircleCheckmarkIcon, StatusCircleInnerIcon } from '@fluentui/react-icons-mdl2';
+import { DismissRegular } from '@fluentui/react-icons';
+import {
+  FluentProvider, webLightTheme, webDarkTheme,
+  Text as FText, Button, tokens, Badge, ToggleButton,
+  MessageBar, MessageBarBody, MessageBarTitle, MessageBarActions,
+  Card, CardHeader, Divider,
+  Skeleton, SkeletonItem, Spinner,
+} from '@fluentui/react-components';
+import {
+  OverlayDrawer,
+  DrawerBody,
+  DrawerFooter,
+} from '@fluentui/react-drawer';
+import { ConnectorStatusCard, IssueCard, getSyncCycleLabel, ActionStats } from './AdvancedSetupPanel';
+
+interface ConnectorDetailPanelProps {
+  connector: Connector;
+  onClose: () => void;
+  onEdit?: () => void;
+}
+
+type TabId = 'details' | 'statistics' | 'error' | 'index-browser';
+
+const TABS: { id: TabId; label: string }[] = [
+  { id: 'details', label: 'Details' },
+  { id: 'statistics', label: 'Statistics' },
+  { id: 'error', label: 'Error' },
+  { id: 'index-browser', label: 'Index browser' },
+];
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function syncEventMetrics(ev: { id: string; itemsIndexed: number }) {
+  const seed = ev.id.split('').reduce((s, c) => s + c.charCodeAt(0), 0);
+  const users = 18 + (seed % 12);
+  const groups = 3 + (seed % 6);
+  const memberships = groups * (4 + (seed % 5));
+  return { items: ev.itemsIndexed, users, groups, memberships };
+}
+
+function syncStatusDot(status: string) {
+  const map: Record<string, string> = {
+    success: '#107c10', partial: '#835b00', failed: '#a80000', running: '#0078d4',
+  };
+  return map[status] ?? '#605e5c';
+}
+
+function formatConnectionId(connector: Connector): string {
+  const hash = connector.id.replace(/-/g, '').slice(-8).toUpperCase();
+  return `${connector.displayName.replace(/\s/g, '')}${hash}`;
+}
+
+function getItemErrors(connector: Connector): number {
+  return connector.syncHistory.reduce((sum, e) => sum + e.errorCount, 0);
+}
+
+function getConnectionStats(connector: Connector) {
+  const totalIndexed = connector.syncHistory.reduce((sum, e) => sum + e.itemsIndexed, 0);
+  const itemsLabel = totalIndexed > 1000000
+    ? `${(totalIndexed / 1000000).toFixed(1)}M`
+    : totalIndexed > 1000 ? `${Math.round(totalIndexed / 1000)}k` : `${totalIndexed}`;
+  const seed = connector.id.charCodeAt(0) + connector.id.charCodeAt(1);
+  const users = 20 + (seed % 80);
+  const groups = 3 + (seed % 20);
+  const memberships = groups * (4 + (seed % 8));
+  return [
+    { label: 'Items indexed', value: itemsLabel, color: '#b68a00' },
+    { label: 'Users indexed', value: `${users}k`, color: '#637cef' },
+    { label: 'Groups indexed', value: `${groups}k`, color: '#9971c5' },
+    { label: 'Group memberships indexed', value: `${memberships}k`, color: '#00a3a5' },
+  ];
+}
+
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+function ConnectorLogo({ connectorType, logoUrl }: { connectorType: string; logoUrl?: string }) {
+  if (logoUrl) {
+    return (
+      <img src={logoUrl} alt={connectorType} style={{ width: 72, height: 72, flexShrink: 0, objectFit: 'contain', borderRadius: 8 }} />
+    );
+  }
+  const initials = connectorType.split(' ').slice(0, 2).map((w) => w[0]).join('');
+  return (
+    <div style={{ width: 72, height: 72, flexShrink: 0, borderRadius: 1000, background: '#4f6bed', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <span style={{ fontSize: 28, fontWeight: 600, color: '#fff', lineHeight: '36px' }}>{initials}</span>
+    </div>
+  );
+}
+
+function StatBar({ label, value, color, isDark }: { label: string; value: string; color: string; isDark?: boolean }) {
+  return (
+    <ChartHoverCard
+      Legend={label}
+      YValue={value}
+      color={color}
+      styles={{
+        calloutContentRoot: { background: 'transparent', boxShadow: 'none', border: 'none' },
+        calloutlegendText: { color: isDark ? '#c8c6c4' : '#605e5c' },
+      }}
+    />
+  );
+}
+
+function MetaRow({ col1Label, col1Value, col2Label, col2Value, col1Extra, isDark }: {
+  col1Label: string; col1Value: React.ReactNode; col2Label: string; col2Value: React.ReactNode; col1Extra?: React.ReactNode; isDark?: boolean;
+}) {
+  const labelClr = isDark ? '#f5f5f5' : '#323130';
+  const valueClr = isDark ? '#adadad' : '#484644';
+  return (
+    <Stack horizontal tokens={{ childrenGap: 24 }}>
+      <Stack tokens={{ childrenGap: 3 }} styles={{ root: { width: 198 } }}>
+        <Text styles={{ root: { fontWeight: '600', fontSize: 14, color: labelClr } }}>{col1Label}</Text>
+        <Text styles={{ root: { fontSize: 14, color: valueClr } }}>{col1Value}</Text>
+        {col1Extra}
+      </Stack>
+      <Stack tokens={{ childrenGap: 3 }} styles={{ root: { flex: 1 } }}>
+        <Text styles={{ root: { fontWeight: '600', fontSize: 14, color: labelClr } }}>{col2Label}</Text>
+        <Text styles={{ root: { fontSize: 14, color: valueClr } }}>{col2Value}</Text>
+      </Stack>
+    </Stack>
+  );
+}
+
+// ── Last sync accordion ───────────────────────────────────────────────────────
+
+
+// ── ADO health section ────────────────────────────────────────────────────────
+
+
+function ADOHealthSection({ connector, isDark, onEdit, lastSyncOpen, setLastSyncOpen }: {
+  connector: Connector; isDark: boolean; onEdit?: () => void;
+  lastSyncOpen: boolean; setLastSyncOpen: (v: boolean) => void;
+}) {
+  const activeIssues = connector.issues.filter((i) => !i.resolvedAt).sort((a, b) => a.rank - b.rank);
+  const blockers    = activeIssues.filter((i) => i.severity === 'blocker');
+  const warnings    = activeIssues.filter((i) => i.severity === 'warning');
+  const suggestions = activeIssues.filter((i) => i.severity === 'suggestion');
+  const hasProblems = blockers.length > 0 || warnings.length > 0;
+
+  // Action Required → issues open by default; Syncing/Healthy → sync accordion open by default
+  const [issuesExpanded, setIssuesExpanded] = useState(hasProblems);
+
+  // Live elapsed timer — only ticks when syncing
+  const isSyncing = connector.healthStatus === 'pending';
+  const syncStart = connector.syncHistory[0]?.startedAt ?? null;
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    if (!isSyncing || !syncStart) return;
+    const startMs = new Date(syncStart).getTime();
+    const tick = () => setElapsed(Math.floor((Date.now() - startMs) / 1000));
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [isSyncing, syncStart]);
+
+  const formatElapsed = (s: number) => {
+    const d = Math.floor(s / 86400);
+    const h = Math.floor((s % 86400) / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    if (d > 0) return `${d}d ${h}h ${m}m ${sec}s`;
+    if (h > 0) return `${h}h ${m}m ${sec}s`;
+    if (m > 0) return `${m}m ${sec}s`;
+    return `${sec}s`;
+  };
+
+  const lastRun = connector.syncHistory[0] ?? null;
+  const lastRunMetrics_ = lastRun ? (() => {
+    const m = syncEventMetrics(lastRun);
+    return [
+      { label: 'Items indexed',             value: m.items.toLocaleString(), color: '#b68a00' },
+      { label: 'Users indexed',             value: String(m.users),          color: '#637cef' },
+      { label: 'Groups indexed',            value: String(m.groups),         color: '#9971c5' },
+      { label: 'Group memberships indexed', value: String(m.memberships),    color: '#00a3a5' },
+    ];
+  })() : [];
+  const syncDate = lastRun ? new Date(lastRun.startedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+  const syncTime = lastRun ? new Date(lastRun.startedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
+  const syncRelativeLabel = lastRun ? (() => {
+    const diff = Math.max(0, Date.now() - new Date(lastRun.startedAt).getTime());
+    const mins = Math.floor(diff / 60000);
+    const hrs = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    if (days >= 1) return `${days}d ago`;
+    if (hrs >= 1) return `${hrs} hr${hrs > 1 ? 's' : ''}`;
+    return `${mins} min`;
+  })() : '';
+
+  const cardBg     = isDark ? '#1e1e1e' : '#faf9f8';
+  const cardBorder = isDark ? '#3d3d3d' : '#edebe9';
+  const divider    = isDark ? '#3d3d3d' : '#edebe9';
+
+  const blockersAndWarnings = activeIssues.filter((i) => i.severity === 'blocker' || i.severity === 'warning');
+  const metrics: { label: string; count: number; color: string }[] = [];
+  if (blockersAndWarnings.length) metrics.push({ label: `Blocker${blockersAndWarnings.length !== 1 ? 's' : ''}`, count: blockersAndWarnings.length, color: '#a80000' });
+  if (suggestions.length) metrics.push({ label: `Suggestion${suggestions.length !== 1 ? 's' : ''}`, count: suggestions.length, color: '#c87e00' });
+
+  return (
+    <FluentProvider theme={isDark ? webDarkTheme : webLightTheme} style={{ background: 'transparent' }}>
+
+      <div>
+
+        {/* ── Row 1+2: Connection Active + Sync details accordion ── */}
+        <Stack
+          horizontal
+          verticalAlign="center"
+          horizontalAlign="space-between"
+          onClick={() => setLastSyncOpen(!lastSyncOpen)}
+          styles={{
+            root: {
+              cursor: 'pointer',
+              padding: '24px 0 8px 0',
+              selectors: { ':hover': { backgroundColor: isDark ? '#2a2a2a' : '#f3f2f1' } },
+            },
+          }}
+        >
+          <Stack horizontal verticalAlign="center" tokens={{ childrenGap: 6 }}>
+            {isSyncing
+              ? <Spinner size="extra-tiny" style={{ flexShrink: 0 }} />
+              : <StatusCircleInnerIcon style={{ fontSize: 12, color: '#107c10', flexShrink: 0 }} />
+            }
+            <FText size={300}>{connector.healthStatus === 'pending' ? 'Syncing' : 'Active'}</FText>
+          </Stack>
+          <Stack horizontal verticalAlign="center" tokens={{ childrenGap: 8 }}>
+            {lastRun && (
+              <FText size={200} style={{ color: tokens.colorNeutralForeground3, fontSize: 12 }}>
+                {isSyncing ? formatElapsed(elapsed) : `Synced on ${syncDate} · ${syncTime}`}
+              </FText>
+            )}
+            <IconButton
+              iconProps={{ iconName: lastSyncOpen ? 'ChevronUp' : 'ChevronDown' }}
+              styles={{ root: { width: 24, height: 24, color: isDark ? '#8a8886' : '#605e5c' }, icon: { fontSize: 11 } }}
+              onClick={(e) => { e.stopPropagation(); setLastSyncOpen(!lastSyncOpen); }}
+            />
+          </Stack>
+        </Stack>
+
+        {lastSyncOpen && lastRun && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 0', paddingTop: 16, paddingBottom: 12 }}>
+            {lastRunMetrics_.map((m) => (
+              <ChartHoverCard key={m.label} Legend={m.label} YValue={m.value} color={m.color} styles={{ calloutContentRoot: { background: 'transparent', boxShadow: 'none', border: 'none' } }} />
+            ))}
+          </div>
+        )}
+
+        <Separator />
+
+        {/* ── Actions accordion (Fluent v8) ── */}
+        <Stack
+          horizontal
+          verticalAlign="center"
+          horizontalAlign="space-between"
+          onClick={() => setIssuesExpanded((v) => !v)}
+          styles={{
+            root: {
+              cursor: 'pointer',
+              padding: '8px 0 16px 0',
+              selectors: { ':hover': { backgroundColor: isDark ? '#2a2a2a' : '#f3f2f1' } },
+            },
+          }}
+        >
+          <FText weight="semibold" size={400} style={{ color: isDark ? '#f5f5f5' : '#323130' }}>
+            Actions{activeIssues.length > 0 ? ` (${activeIssues.length})` : ''}
+          </FText>
+          <IconButton
+            iconProps={{ iconName: issuesExpanded ? 'ChevronUp' : 'ChevronDown' }}
+            styles={{ root: { width: 24, height: 24, color: isDark ? '#8a8886' : '#605e5c' }, icon: { fontSize: 11 } }}
+            onClick={(e) => { e.stopPropagation(); setIssuesExpanded((v) => !v); }}
+          />
+        </Stack>
+
+        {issuesExpanded && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalM, padding: '4px 0 12px 0' }}>
+            {!hasProblems ? null : (
+              <>
+                <ToggleButton
+                  shape="circular"
+                  size="small"
+                  checked
+                  style={{ marginBottom: 4, pointerEvents: 'none', alignSelf: 'flex-start' }}
+                  icon={
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      width: 18, height: 18, borderRadius: '50%', fontSize: 10, fontWeight: 700,
+                      backgroundColor: 'rgba(0,0,0,0.08)',
+                      color: tokens.colorNeutralForeground2,
+                    }}>{activeIssues.length}</span>
+                  }
+                >
+                  Needs action
+                </ToggleButton>
+                {activeIssues.map((issue) => (
+                  <IssueCard
+                    key={issue.id}
+                    issue={issue}
+                    expanded={false}
+                    onToggle={() => onEdit?.()}
+                    detectedSyncLabel={getSyncCycleLabel(issue.detectedAt, connector.syncHistory)}
+                    onFix={() => onEdit?.()}
+                  />
+                ))}
+              </>
+            )}
+          </div>
+        )}
+
+      </div>
+
+    </FluentProvider>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
+
+export default function ConnectorDetailPanel({ connector, onClose, onEdit }: ConnectorDetailPanelProps) {
+  const [activeTab, setActiveTab] = useState<TabId>('details');
+  const [copied, setCopied] = useState(false);
+  const [isDark, setIsDark] = useState(false);
+  const hasActiveProblems = connector.issues.filter((i) => !i.resolvedAt).some((i) => i.severity === 'blocker' || i.severity === 'warning');
+  // Syncing → open sync accordion by default; Action Required → close it (issues accordion opens instead)
+  const [lastSyncOpen, setLastSyncOpen] = useState(!hasActiveProblems);
+  const [authBannerDismissed, setAuthBannerDismissed] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const t = setTimeout(() => setLoading(false), 500);
+    return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    const update = () => setIsDark(document.documentElement.classList.contains('dark'));
+    update();
+    const observer = new MutationObserver(update);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
+
+  const connectionId = formatConnectionId(connector);
+  const itemErrors = getItemErrors(connector);
+  const cabStats = getConnectionStats(connector);
+  const updatedAt = connector.lastSyncAt
+    ? new Date(connector.lastSyncAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+    : '—';
+  const isADO = connector.connectorType === 'ADO' || connector.id === 'miro' || connector.id === 'hr-benefits';
+  const showHealthSection = isADO || connector.id === 'hr-policies';
+  const isHRPolicies = connector.id === 'hr-policies';
+
+  const lastModified = connector.lastSyncAt
+    ? (() => {
+        const diff = Date.now() - new Date(connector.lastSyncAt).getTime();
+        const mins = Math.floor(diff / 60000);
+        if (mins < 60) return `${mins} minutes ago`;
+        const hrs = Math.floor(mins / 60);
+        if (hrs < 24) return `${hrs} hour${hrs !== 1 ? 's' : ''} ago`;
+        return `${Math.floor(hrs / 24)} days ago`;
+      })()
+    : '—';
+
+  const panelBg = isDark ? '#212121' : '#ffffff';
+
+  const labelStyle = { root: { fontWeight: '600', fontSize: 14, color: isDark ? '#f5f5f5' : '#323130' } };
+  const valueStyle = { root: { fontSize: 14, color: isDark ? '#adadad' : '#484644' } };
+
+  return (
+    <FluentProvider theme={isDark ? webDarkTheme : webLightTheme}>
+      <OverlayDrawer
+        open
+        onOpenChange={(_, { open }) => { if (!open) onClose(); }}
+        position="end"
+        size="medium"
+        style={{ width: 474, top: 48, height: 'calc(100% - 48px)', backgroundColor: panelBg, padding: 0, display: 'flex', flexDirection: 'column' }}
+      >
+        {/* ── Custom header (close + persona + pivot) ── */}
+        <div style={{ flexShrink: 0, backgroundColor: panelBg, width: '100%', boxSizing: 'border-box' }}>
+          {/* Close button row */}
+          <Stack horizontal horizontalAlign="end" verticalAlign="center" styles={{ root: { height: 48, padding: '0 8px' } }}>
+            <IconButton
+              iconProps={{ iconName: 'Cancel' }}
+              onClick={onClose}
+              styles={{ root: { color: isDark ? '#ffffff' : '#000000', backgroundColor: 'transparent' }, rootHovered: { backgroundColor: isDark ? '#3d3d3d' : '#f3f2f1' } }}
+            />
+          </Stack>
+          {/* Persona + actions */}
+          <Stack styles={{ root: { padding: '16px 32px 0' } }} tokens={{ childrenGap: 0 }}>
+            {loading ? (
+              <FluentProvider theme={isDark ? webDarkTheme : webLightTheme} style={{ background: 'transparent' }}>
+                <div style={{ display: 'flex', gap: tokens.spacingHorizontalL, alignItems: 'flex-start', paddingBottom: 48 }}>
+                  <Skeleton><SkeletonItem shape="circle" size={72} style={{ flexShrink: 0 }} /></Skeleton>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10, paddingTop: tokens.spacingVerticalXS }}>
+                    <Skeleton><SkeletonItem size={20} style={{ width: '60%' }} /></Skeleton>
+                    <Skeleton><SkeletonItem size={16} style={{ width: '40%' }} /></Skeleton>
+                    <div style={{ display: 'flex', gap: tokens.spacingHorizontalS, paddingTop: tokens.spacingVerticalXS }}>
+                      <Skeleton><SkeletonItem size={32} style={{ width: 120, borderRadius: 2 }} /></Skeleton>
+                      <Skeleton><SkeletonItem size={32} style={{ width: 80, borderRadius: 2 }} /></Skeleton>
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: tokens.spacingHorizontalXS, marginLeft: -9 }}>
+                  {TABS.map((t) => (
+                    <Skeleton key={t.id}><SkeletonItem size={16} style={{ width: 60, borderRadius: 2 }} /></Skeleton>
+                  ))}
+                </div>
+              </FluentProvider>
+            ) : (
+              <div className={slideInClass}>
+                <Stack horizontal tokens={{ childrenGap: 16 }} verticalAlign="start" styles={{ root: { paddingBottom: 48 } }}>
+                  <ConnectorLogo connectorType={connector.connectorType} logoUrl={connector.logoUrl} />
+                  <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
+                    <div style={{ height: 34, position: 'relative', width: '100%' }}>
+                      <Text styles={{ root: { position: 'absolute', top: -4, left: 0, right: 0, fontWeight: 700, fontSize: 20, lineHeight: '28px', color: isDark ? '#f5f5f5' : '#000000', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }}>
+                        {connector.connectorType}
+                      </Text>
+                    </div>
+                    <div style={{ height: 30, position: 'relative', width: '100%' }}>
+                      <Text styles={{ root: { position: 'absolute', top: -6, left: 0, right: 0, fontSize: 14, lineHeight: '20px', color: isDark ? '#adadad' : '#323130', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }}>
+                        {connector.displayName}
+                      </Text>
+                    </div>
+                    <div style={{ height: 16, position: 'relative', width: '100%', overflow: 'visible' }}>
+                      <div style={{ position: 'absolute', top: -8, left: -8, display: 'flex' }}>
+                        <CommandBarButton
+                          split={!connector.healthStatus.includes('pending')}
+                          text={connector.healthStatus === 'pending' ? 'Stop sync' : 'Start full sync'}
+                          iconProps={{ iconName: connector.healthStatus === 'pending' ? 'Stop' : 'Sync' }}
+                          menuProps={connector.healthStatus === 'pending' ? undefined : { items: [{ key: 'incremental', text: 'Incremental sync' }] }}
+                          styles={{
+                            root: { height: 32, padding: '0 8px', ...(isDark ? { background: 'transparent' } : {}) },
+                            label: { fontSize: 14, ...(isDark ? { color: '#ffffff' } : {}) },
+                            icon: isDark ? { color: '#ffffff' } : {},
+                            menuIcon: isDark ? { color: '#ffffff' } : {},
+                            rootHovered: isDark ? { background: '#3d3d3d' } : {},
+                            splitButtonMenuButton: isDark ? { background: 'transparent' } : {},
+                            splitButtonMenuButtonExpanded: isDark ? { background: '#3d3d3d' } : {},
+                          }}
+                        />
+                        <CommandBarButton
+                          text="Delete"
+                          iconProps={{ iconName: 'Delete' }}
+                          styles={{
+                            root: { height: 32, padding: '0 8px', ...(isDark ? { background: 'transparent' } : {}) },
+                            label: { fontSize: 14, ...(isDark ? { color: '#ffffff' } : {}) },
+                            icon: isDark ? { color: '#ffffff' } : {},
+                            rootHovered: isDark ? { background: '#3d3d3d' } : {},
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </Stack>
+                <div style={{ marginTop: -18, marginLeft: -9 }}>
+                  <Pivot
+                    selectedKey={activeTab}
+                    onLinkClick={(item) => item?.props.itemKey && setActiveTab(item.props.itemKey as TabId)}
+                    styles={{
+                      root: { display: 'flex' },
+                      link: { fontSize: 14, height: 40, padding: '0 8px', color: isDark ? '#adadad' : undefined, selectors: { ':hover': { color: isDark ? '#f5f5f5' : undefined, backgroundColor: isDark ? '#2d2d2d' : undefined } } },
+                      linkIsSelected: { fontSize: 14, height: 40, padding: '0 8px', color: isDark ? '#f5f5f5' : undefined, selectors: { '::before': { backgroundColor: isDark ? '#479ef5' : undefined } } },
+                    }}
+                  >
+                    {TABS.map((tab) => (
+                      <PivotItem key={tab.id} itemKey={tab.id} headerText={tab.label} />
+                    ))}
+                  </Pivot>
+                </div>
+              </div>
+            )}
+          </Stack>
+        </div>
+
+        {/* ── Scrollable body ── */}
+        <DrawerBody style={{ padding: 0 }}>
+        {loading ? (
+          <FluentProvider theme={isDark ? webDarkTheme : webLightTheme} style={{ background: 'transparent' }}>
+            <div style={{ padding: '16px 32px 32px', display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalXXL }}>
+              {/* Meta rows */}
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <Skeleton><SkeletonItem size={12} style={{ width: '30%' }} /></Skeleton>
+                  <Skeleton><SkeletonItem size={16} style={{ width: i % 2 === 0 ? '55%' : '75%' }} /></Skeleton>
+                </div>
+              ))}
+              {/* Stat bars */}
+              {[0, 1].map((row) => (
+                <div key={row} style={{ display: 'flex', gap: tokens.spacingHorizontalS }}>
+                  {[0, 1].map((col) => (
+                    <div key={col} style={{ flex: 1, display: 'flex', gap: tokens.spacingHorizontalS, alignItems: 'flex-end' }}>
+                      <Skeleton><SkeletonItem style={{ width: 3, height: 48, borderRadius: 2 }} /></Skeleton>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalXS }}>
+                        <Skeleton><SkeletonItem size={12} style={{ width: 80 }} /></Skeleton>
+                        <Skeleton><SkeletonItem size={24} style={{ width: 60 }} /></Skeleton>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+              {/* More meta rows */}
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} style={{ display: 'flex', gap: tokens.spacingHorizontalXXL }}>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <Skeleton><SkeletonItem size={12} style={{ width: '50%' }} /></Skeleton>
+                    <Skeleton><SkeletonItem size={16} style={{ width: '70%' }} /></Skeleton>
+                  </div>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <Skeleton><SkeletonItem size={12} style={{ width: '50%' }} /></Skeleton>
+                    <Skeleton><SkeletonItem size={16} style={{ width: '60%' }} /></Skeleton>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </FluentProvider>
+        ) : (
+      <Stack
+        tokens={{ childrenGap: 20 }}
+        styles={{ root: { padding: '16px 32px 32px', display: activeTab === 'details' ? 'flex' : 'none' } }}
+        className={slideInClass}
+      >
+
+{/* Health section — ADO only */}
+        {showHealthSection && (
+          <ADOHealthSection
+            connector={connector}
+            isDark={isDark}
+            onEdit={onEdit}
+            lastSyncOpen={lastSyncOpen}
+            setLastSyncOpen={setLastSyncOpen}
+          />
+        )}
+
+        {/* Connection ID */}
+        <Stack tokens={{ childrenGap: 4 }}>
+          <Text styles={labelStyle}>Connection ID</Text>
+          <Stack horizontal verticalAlign="center" tokens={{ childrenGap: 4 }}>
+            <Text styles={valueStyle}>{connectionId}</Text>
+            <IconButton
+              iconProps={{ iconName: 'Copy' }}
+              title={copied ? 'Copied!' : 'Copy'}
+              onClick={() => {
+                navigator.clipboard.writeText(connectionId).catch(() => {});
+                setCopied(true);
+                setTimeout(() => setCopied(false), 1500);
+              }}
+              styles={{ root: { width: 20, height: 20 }, icon: { fontSize: 11, color: '#0078d4' } }}
+            />
+          </Stack>
+        </Stack>
+
+        {/* Connection stats — non-ADO only */}
+        {!showHealthSection && (
+          <Stack tokens={{ childrenGap: 8 }}>
+            <Stack horizontal horizontalAlign="space-between" verticalAlign="center">
+              <Stack horizontal verticalAlign="center" tokens={{ childrenGap: 6 }}>
+                <Text styles={labelStyle}>Connection stats</Text>
+                <InfoIcon style={{ fontSize: 10, color: '#605e5c' }} />
+                <Text variant="xSmall" styles={{ root: { color: '#484644' } }}>Updated at {updatedAt}</Text>
+              </Stack>
+              <Link styles={{ root: { fontSize: 14 } }}>
+                <Stack horizontal verticalAlign="center" tokens={{ childrenGap: 4 }}>
+                  <SyncIcon style={{ fontSize: 11 }} />
+                  <span>Refresh</span>
+                </Stack>
+              </Link>
+            </Stack>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 0', paddingTop: 8, paddingBottom: 4 }}>
+              {cabStats.map((s) => (
+                <StatBar key={s.label} label={s.label} value={s.value} color={s.color} isDark={isDark} />
+              ))}
+            </div>
+          </Stack>
+        )}
+
+
+        {/* Description */}
+        <Stack tokens={{ childrenGap: 4 }}>
+          <Text styles={labelStyle}>Description</Text>
+          <Text styles={valueStyle}>
+            {`Connector for ${connector.connectorType} — providing search and Copilot access to ${connector.displayName} content.`}
+          </Text>
+          <Link styles={{ root: { fontSize: 14 } }}>Edit description</Link>
+        </Stack>
+
+        {/* Metadata row 1 */}
+        <MetaRow
+          col1Label="Item errors" col1Value={String(itemErrors)}
+          col2Label="User and groups errors" col2Value="—"
+          isDark={isDark}
+        />
+
+        {/* Metadata row 2 */}
+        <MetaRow
+          col1Label="Data source" col1Value={connector.instanceUrl.replace(/^https?:\/\//, '')}
+          col2Label="Permissions" col2Value="Visible only to people with access to this data source"
+          isDark={isDark}
+        />
+
+        {/* Metadata row 3 */}
+        <MetaRow
+          col1Label="Schema"
+          col1Value="19 properties added"
+          col1Extra={<Link styles={{ root: { fontSize: 14 } }}>Edit schema</Link>}
+          col2Label="Last modified at"
+          col2Value={lastModified}
+          isDark={isDark}
+        />
+      </Stack>
+        )}
+        </DrawerBody>
+
+        {/* ── Footer ── */}
+        <DrawerFooter style={{ padding: '0 32px', height: 64, display: 'flex', alignItems: 'center' }}>
+          <Button appearance="primary" onClick={onEdit}>Edit</Button>
+        </DrawerFooter>
+      </OverlayDrawer>
+    </FluentProvider>
+  );
+}
