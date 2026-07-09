@@ -1,8 +1,8 @@
 import type { Connector, DiagnosticIssue, GuideStepData, RecommendedActionStep, SyncEvent } from './types';
 
 const saveAndRetryStep: RecommendedActionStep = {
-  label: 'Save and retry sync',
-  description: 'Click Save, then trigger a manual sync to verify the fix.',
+  label: 'Sync now or later',
+  description: 'Save and sync now, or complete all actions and sync later.',
 };
 
 const snGuideSteps: GuideStepData[] = [
@@ -30,12 +30,18 @@ const snIssues: DiagnosticIssue[] = [
     copilotImpact: 'May result in the removal of existing indexed data and loss of visibility in Copilot.',
     recommendedActions: [
       {
+        id: 'ra-1b', label: 'Check password change in Source', where: 'servicenow',
+        steps: [
+          { label: 'Review password rotation policy for the service account', description: 'Open the ServiceNow service account and confirm expiry, rotation, and reset policy settings.', tab: 'ServiceNow' },
+          { label: 'Check if the password was reset or rotated recently', description: 'Check account history or admin logs for recent password resets, lockouts, or identity-provider password changes.', tab: 'ServiceNow' },
+        ],
+      },
+      {
         id: 'ra-1a', label: 'Re-authenticate the connector', where: 'connector',
         steps: [
-          { label: 'Update Auth credentials', description: 'Go to Setup → Authentication and enter the updated username and password for your service account.', tab: 'Setup', fieldId: 'auth-credentials' },
-          { label: 'Ensure you are logged into your data source in a private or incognito window', description: 'Open a private/incognito browser window and sign in to confirm the account is active and credentials are correct.' },
-          { label: 'Re-authenticate in MAC window', description: 'Navigate to Microsoft Admin Center → Search & Intelligence → Connectors, open this connector, and re-enter the credentials in the Setup tab.' },
-          saveAndRetryStep,
+          { label: 'Ensure you are logged into your data source in a private or incognito window', description: 'Sign in using a private/incognito window to verify the service account is active and credentials work.' },
+          { label: 'Update Auth credentials', description: 'In Setup → Authentication, enter the latest service-account username and password.', tab: 'Setup' },
+          { label: 'Sync now or later', description: 'Save and sync now, or complete all actions and sync later.' },
         ],
       },
     ],
@@ -69,7 +75,7 @@ const snIssues: DiagnosticIssue[] = [
           { label: 'FTE use this formula', description: 'The current connector is configured with the FTE formula. Review it in the Users tab → User mapping formula.', tab: 'Users', fieldId: 'user-mapping' },
           { label: 'Create new user mapping formula for Non FTEs', description: 'Add a new formula to cover non-FTE accounts using the vendor_* prefix format, e.g. vendor_user@contoso.com.', tab: 'Users', fieldId: 'user-mapping' },
           { label: 'Connector limitation — create a new connector for non-FTEs', description: 'Only one mapping formula is supported per connector. If FTEs and non-FTEs require different formulas, create a separate connector for non-FTEs and configure it with the non-FTE formula.' },
-          { label: 'Sync changes now or later', description: 'You can sync changes for this issue now or complete all actions first and sync at the end.' },
+          { label: 'Sync now or later', description: 'Save and sync now, or complete all actions and sync later.' },
         ],
       },
     ],
@@ -102,7 +108,7 @@ const snIssues: DiagnosticIssue[] = [
         steps: [
           { label: 'Go to data source, change the data sync limit to 25 as per our connector (recommended)', description: 'Log in to your data source admin and update the data sync rate limit to 25 requests per minute to match the connector setting.' },
           { label: 'Or change it in this connector based on what data source has', description: 'If you cannot change the data source limit, go to the Sync tab → Sync data rate and lower it to match the limit set by your data source.', tab: 'Sync', fieldId: 'sync-data-rate' },
-          { label: 'Sync changes now or later', description: 'You can sync changes for this issue now or complete all actions first and sync at the end.' },
+          { label: 'Sync now or later', description: 'Save and sync now, or complete all actions and sync later.' },
         ],
       },
     ],
@@ -230,12 +236,12 @@ const confluenceGuideSteps: GuideStepData[] = [
 
 export const CONNECTORS: Connector[] = [
   {
-    id: 'miro',
-    displayName: 'Miro',
-    connectorType: 'Miro',
-    logoUrl: 'https://res.cdn.office.net/admincenter/admin-content/admin/images/udt/catalog_list/miro_catalogue2.png',
+    id: 'hr-benefits',
+    displayName: 'HR Benefits',
+    connectorType: 'HR Web',
+    logoUrl: '/8ea55b65f2f4f34a4a05e79ddc164a85f0b2572d.png',
     userCriteriaType: 'simple',
-    instanceUrl: 'https://miro.com/app/dashboard/',
+    instanceUrl: 'https://contoso.service-now.com',
     authMethod: 'basic',
     basicUsername: 'svc-copilot@contoso.com',
     basicPassword: 'P@ssw0rd!',
@@ -286,23 +292,5 @@ export const CONNECTORS: Connector[] = [
     syncHistory: jiraSyncHistory,
     createdAt: '2026-03-17T10:00:00Z',
     lastSyncAt: '2026-03-22T09:15:00Z',
-  },
-  {
-    id: 'hr-benefits',
-    displayName: 'HR Benefits',
-    connectorType: 'HR Web',
-    logoUrl: '/8ea55b65f2f4f34a4a05e79ddc164a85f0b2572d.png',
-    userCriteriaType: 'simple',
-    instanceUrl: 'https://contoso.atlassian.net/wiki',
-    authMethod: 'basic',
-    healthStatus: 'healthy',
-    blockerCount: 0,
-    warningCount: 0,
-    suggestionCount: 0,
-    issues: [],
-    guideSteps: confluenceGuideSteps,
-    syncHistory: [],
-    createdAt: '2026-03-17T10:00:00Z',
-    lastSyncAt: '2026-03-02T14:20:00Z',
   },
 ];

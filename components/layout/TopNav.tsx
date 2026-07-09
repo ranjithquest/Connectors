@@ -4,6 +4,20 @@ import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
+async function fetchJson<T>(url: string): Promise<T | null> {
+  const response = await fetch(url);
+  if (!response.ok) return null;
+
+  const contentType = response.headers.get('content-type') ?? '';
+  if (!contentType.includes('application/json')) return null;
+
+  try {
+    return await response.json() as T;
+  } catch {
+    return null;
+  }
+}
+
 function featureNameFromBranch(branch: string): string {
   const slug = branch.split('/').slice(1).join('/');
   return slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
@@ -16,10 +30,15 @@ export default function TopNav() {
 
   useEffect(() => {
     setMounted(true);
-    fetch('/api/current-branch/').then(r => r.json()).then(d => {
-      const b = d.branch ?? '';
-      if (b && b !== 'main') setCurrentBranch(b);
-    }).catch(() => {});
+    const isHosted = typeof window !== 'undefined' && !window.location.hostname.includes('localhost');
+    if (isHosted) return;
+
+    fetchJson<{ branch?: string }>('/api/current-branch/')
+      .then((data) => {
+        const branch = data?.branch ?? '';
+        if (branch && branch !== 'main') setCurrentBranch(branch);
+      })
+      .catch(() => {});
   }, []);
 
   const isDark = mounted && theme === 'dark';

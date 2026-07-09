@@ -20,9 +20,12 @@ import { FluentProvider, webLightTheme, webDarkTheme, Skeleton, SkeletonItem, Bu
 
 const slideInClass = mergeStyles(AnimationStyles.slideDownIn10);
 import type { IDropdownOption } from '@fluentui/react';
-import { EditIcon, SettingsIcon, CompletedSolidIcon, InfoIcon, ChromeCloseIcon, OpenPaneMirroredIcon } from '@fluentui/react-icons-mdl2';
+import { EditIcon, SettingsIcon, CompletedSolidIcon, InfoIcon, ChromeCloseIcon, OpenPaneMirroredIcon, StatusErrorFullIcon } from '@fluentui/react-icons-mdl2';
 import { CONNECTOR_CATALOG } from '@/lib/gallery-data';
-import AdvancedSetupPanel from './AdvancedSetupPanel';
+import type { Connector } from '@/lib/types';
+import { CONNECTION_VALIDATION_STEPS, createSetupEditIssues } from '@/lib/connection-flow';
+import ConnectionConfirmationView, { type ConnectionConfirmationStep } from './ConnectionConfirmationView';
+import SetupEditPanel from './SetupEditPanel';
 import SetupGuideRail, { type GuideSection } from './SetupGuideRail';
 import { OverlayDrawer, DrawerBody } from '@fluentui/react-drawer';
 
@@ -34,14 +37,14 @@ function ConnectorIcon({ src, name, size }: { src?: string | null; name: string;
   const fontSize = size <= 32 ? 10 : size <= 48 ? 13 : 16;
   if (src && !failed) {
     return (
-      <div className="flex-shrink-0 overflow-hidden bg-white" style={{ width: size, height: size, borderRadius: 8 }}>
+      <div className="flex-shrink-0 overflow-hidden bg-white" style={{ width: size, height: size, borderRadius: 4 }}>
         <img src={src} alt={name} className="w-full h-full object-contain" onError={() => setFailed(true)} />
       </div>
     );
   }
   return (
     <div className="flex-shrink-0 flex items-center justify-center text-white font-semibold bg-[#0d2137]"
-      style={{ width: size, height: size, borderRadius: 8, fontSize }}>
+      style={{ width: size, height: size, borderRadius: 4, fontSize }}>
       {initials}
     </div>
   );
@@ -653,9 +656,50 @@ export default function SetupPanel({ connectorType, onClose, onCreated }: SetupP
     return () => ro.disconnect();
   }, []);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [openSetupEditMode, setOpenSetupEditMode] = useState(false);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [created, setCreated] = useState(false);
+  const [createProgressStep, setCreateProgressStep] = useState(0);
+  const [validationCompletedAt, setValidationCompletedAt] = useState<string | null>(null);
+  const [validationHasErrors, setValidationHasErrors] = useState(false);
+  const [validationFailureSequenceStep, setValidationFailureSequenceStep] = useState(0);
+  const [showActionableErrors, setShowActionableErrors] = useState(false);
+  const [actionableErrors, setActionableErrors] = useState<Array<{ title: string; description: string }>>([]);
+
+  const formatValidationCompletedAt = React.useCallback((value: string | null) => {
+    if (!value) return null;
+    const completedAt = new Date(value);
+    if (Number.isNaN(completedAt.getTime())) return null;
+    const timePart = completedAt.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+    const datePart = completedAt.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+    return `Completed at ${timePart}, ${datePart}`;
+  }, []);
+
+  const formatValidationTimestamp = React.useCallback((value: string | null) => {
+    if (!value) return null;
+    const completedAt = new Date(value);
+    if (Number.isNaN(completedAt.getTime())) return null;
+    const timePart = completedAt.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+    const datePart = completedAt.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+    return `${timePart}, ${datePart}`;
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(() => setLoading(false), 500);
@@ -682,6 +726,108 @@ export default function SetupPanel({ connectorType, onClose, onCreated }: SetupP
   const needsInstance = config.instanceSection !== null;
   const hasCredentials = authMethod !== 'basic' || (basicUsername.trim().length > 0 && basicPassword.trim().length > 0);
   const canCreate = displayName.trim().length > 0 && authMethod !== null && hasCredentials && (!needsInstance || instanceUrl.trim().length > 0) && privacyAccepted;
+  const shouldShowActionableErrors = catalogItem?.showActionableErrorsOnValidationFailure ?? false;
+  const validationStillActive = createProgressStep <= 3 || validationHasErrors;
+
+  const [setupEditValidationIssue, setupEditContentIssue] = React.useMemo(
+    () => createSetupEditIssues(validationCompletedAt),
+    [validationCompletedAt],
+  );
+
+  const setupEditConnector = React.useMemo<Connector>(() => ({
+    id: `setup-edit-${catalogItem.id}`,
+    displayName,
+    connectorType: catalogItem.name,
+    logoUrl: catalogItem.logoUrl,
+    userCriteriaType: 'simple',
+    instanceUrl,
+    authMethod: (authMethod ?? 'none') as Connector['authMethod'],
+    basicUsername,
+    basicPassword,
+    healthStatus: 'error',
+    blockerCount: 2,
+    warningCount: 0,
+    suggestionCount: 0,
+    issues: [setupEditValidationIssue, setupEditContentIssue],
+    guideSteps: [],
+    syncHistory: [],
+    createdAt: new Date().toISOString(),
+    userCreated: true,
+  }), [
+    authMethod,
+    basicPassword,
+    basicUsername,
+    catalogItem.id,
+    catalogItem.logoUrl,
+    catalogItem.name,
+    displayName,
+    instanceUrl,
+    setupEditContentIssue,
+    setupEditValidationIssue,
+  ]);
+
+  const confirmationSteps = React.useMemo<ConnectionConfirmationStep[]>(() => {
+    return CONNECTION_VALIDATION_STEPS.map((step, idx) => {
+      const isFailureMode = shouldShowActionableErrors && (validationHasErrors || createProgressStep >= 1);
+      const failureStage = validationHasErrors ? validationFailureSequenceStep : 0;
+      const activeStep = createProgressStep >= 1 && createProgressStep <= 3 ? createProgressStep - 1 : -1;
+      const failureActiveStep = validationHasErrors && shouldShowActionableErrors && validationFailureSequenceStep < 3
+        ? validationFailureSequenceStep
+        : -1;
+      const isCompleted = isFailureMode
+        ? (idx === 1 && failureStage >= 2)
+        : (createProgressStep >= 4 || idx < activeStep);
+      const isActive = isFailureMode
+        ? ((idx === 0 && failureStage === 0) || (idx === 1 && failureStage === 1) || (idx === 2 && failureStage === 2))
+        : ((idx === activeStep && !validationHasErrors) || idx === failureActiveStep);
+      const isFailed = isFailureMode
+        ? ((idx === 0 && failureStage >= 1) || (idx === 2 && failureStage >= 3))
+        : (validationHasErrors && ((idx === 0 && validationFailureSequenceStep >= 1) || (idx === 2 && validationFailureSequenceStep >= 3)));
+
+      let label = step;
+      if (isFailed && idx === 0) {
+        label = 'Test authentication failed';
+      } else if (isFailed && idx === 2) {
+        label = 'Configuration validation failed';
+      } else if (isCompleted) {
+        label = idx === 0 ? 'Authentication complete' : idx === 1 ? 'Content preview complete' : 'Configuration validation complete';
+      }
+
+      return {
+        key: step,
+        label,
+        status: isFailed ? 'error' : isActive ? 'active' : isCompleted ? 'success' : 'idle',
+      };
+    });
+  }, [createProgressStep, shouldShowActionableErrors, validationFailureSequenceStep, validationHasErrors]);
+
+  const confirmationMeta = React.useMemo(() => {
+    if (validationHasErrors) {
+      if (shouldShowActionableErrors && validationFailureSequenceStep < 3) {
+        return '8 Mins remaining...';
+      }
+
+      return shouldShowActionableErrors
+        ? ''
+        : (formatValidationTimestamp(validationCompletedAt)
+          ? `Validation failed at ${formatValidationTimestamp(validationCompletedAt)}`
+          : 'Validation failed');
+    }
+
+    if (createProgressStep >= 4) {
+      return formatValidationCompletedAt(validationCompletedAt) ?? 'Completed';
+    }
+
+    if (createProgressStep >= 1 && createProgressStep <= 3) {
+      return '8 Mins remaining...';
+    }
+
+    return 'Validation has not started';
+  }, [createProgressStep, formatValidationCompletedAt, shouldShowActionableErrors, validationCompletedAt, validationFailureSequenceStep, validationHasErrors]);
+
+  const confirmationHelper = ((createProgressStep >= 1 && createProgressStep <= 3 && !validationHasErrors) || (validationHasErrors && shouldShowActionableErrors && validationFailureSequenceStep < 3))
+    ? 'Validation running in the background. You may close this panel.'
+    : null;
 
   return (
       <OverlayDrawer
@@ -691,49 +837,63 @@ export default function SetupPanel({ connectorType, onClose, onCreated }: SetupP
         className="connector-panel-drawer"
         style={{ top: 48, height: 'calc(100% - 48px)', padding: 0, display: 'flex', flexDirection: 'column', backgroundColor: isDark ? '#212121' : '#ffffff' }}
       >
-      {creating ? (
+      {creating && !showActionableErrors ? (
         <DrawerBody style={{ padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
-          <div className={`flex-1 overflow-y-auto bg-white dark:bg-[#212121] ${slideInClass}`} style={{ padding: '48px 48px 24px' }}>
-            {/* Heading */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
-              <CompletedSolidIcon style={{ fontSize: 20, color: created ? '#107c10' : '#c8c6c4' }} />
-              <span style={{ fontSize: 28, fontWeight: 700, lineHeight: '36px', color: isDark ? '#f5f5f5' : '#000000' }}>
-                {created ? 'Success' : 'Creating connection...'}
-              </span>
-            </div>
-            {/* Rows — no outer border, just dividers */}
-            <div style={{ maxWidth: 640, display: 'flex', flexDirection: 'column', gap: 0 }}>
-              {/* Row 1: Created connection */}
-              <div style={{ display: 'flex', alignItems: 'center', height: 48, gap: 16, borderBottom: `1px solid ${isDark ? '#3d3d3d' : '#e1e1e1'}` }}>
-                <div style={{ width: 219, display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                  <CompletedSolidIcon style={{ fontSize: 16, color: created ? '#107c10' : '#c8c6c4', flexShrink: 0 }} />
-                  <span style={{ fontSize: 14, lineHeight: '20px', color: isDark ? '#f5f5f5' : '#000000' }}>Created connection</span>
-                </div>
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <ConnectorIcon src={catalogItem?.logoUrl} name={catalogItem?.name ?? displayName} size={24} />
-                  <span style={{ fontSize: 14, fontWeight: 600, lineHeight: '20px', color: isDark ? '#f5f5f5' : '#323130' }}>{displayName}</span>
-                </div>
+          <ConnectionConfirmationView
+            title="Creating connection"
+            actionLabel="Creating connection"
+            displayName={displayName}
+            connectorName={catalogItem?.name ?? displayName}
+            logoUrl={catalogItem?.logoUrl}
+            isDarkMode={isDark}
+            containerClassName={slideInClass}
+            actionStatus={createProgressStep === 4 && !validationHasErrors ? 'active' : createProgressStep >= 5 && !validationHasErrors ? 'success' : created ? 'success' : 'idle'}
+            actionDimmed={validationStillActive && createProgressStep < 5}
+            validationStatus={validationHasErrors && shouldShowActionableErrors && validationFailureSequenceStep < 3 ? 'active' : validationHasErrors ? 'error' : createProgressStep >= 1 && createProgressStep <= 3 ? 'active' : createProgressStep >= 4 ? 'success' : 'idle'}
+            validationSteps={confirmationSteps}
+            validationMetaText={confirmationMeta}
+            validationHelperText={confirmationHelper}
+            validationFooterContent={validationHasErrors && (!shouldShowActionableErrors || validationFailureSequenceStep >= 3) ? (
+              <div style={{ marginTop: 12, marginBottom: 8, maxWidth: 640 }}>
+                {formatValidationTimestamp(validationCompletedAt) && (
+                  <span style={{ display: 'block', marginBottom: 8, fontSize: 14, lineHeight: '20px', color: isDark ? '#adadad' : '#484644' }}>
+                    {`Validation failed at ${formatValidationTimestamp(validationCompletedAt)}`}
+                  </span>
+                )}
+                <span style={{ display: 'block', marginBottom: 10, fontSize: 13, lineHeight: '18px', color: isDark ? '#adadad' : '#484644' }}>
+                  Please check and resolve the validation errors before syncing data.
+                </span>
+                <Button
+                  appearance="primary"
+                  onClick={() => {
+                    setShowActionableErrors(true);
+                    setCreating(false);
+                    setOpenSetupEditMode(true);
+                    setShowAdvanced(true);
+                  }}
+                  style={isDark ? { background: '#479ef5', color: '#000', border: 'none', fontSize: 13 } : { fontSize: 13 }}
+                >Back to edit settings</Button>
               </div>
-              {/* Row 2: Indexing data */}
-              <div style={{ display: 'flex', alignItems: 'center', padding: '0', minHeight: 48, gap: 16, borderBottom: `1px solid ${isDark ? '#3d3d3d' : '#e1e1e1'}` }}>
-                <div style={{ width: 219, display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                  <div style={{ width: 16, height: 16, flexShrink: 0, borderRadius: '50%', border: `2px solid ${isDark ? '#3d3d3d' : '#e1e1e1'}`, borderTopColor: '#0078d4', animation: 'spin 0.8s linear infinite' }} />
-                  <span style={{ fontSize: 14, lineHeight: '20px', color: isDark ? (created ? '#f5f5f5' : '#707070') : (created ? '#000000' : '#a19f9d') }}>Indexing data</span>
-                </div>
-                <span style={{ fontSize: 14, lineHeight: '20px', color: isDark ? '#adadad' : '#000000' }}>This may take a while and will continue to run in the background</span>
-              </div>
-            </div>
-          </div>
-          {/* Footer */}
-          <div style={{ borderTop: `1px solid ${isDark ? '#3d3d3d' : '#e1e1e1'}`, padding: '0 32px', height: 64, flexShrink: 0, background: isDark ? '#212121' : '#fff', display: 'flex', alignItems: 'center' }}>
-            <Button
-              onClick={onClose}
-              style={isDark ? { background: '#212121', color: '#f5f5f5', borderColor: '#616161' } : {}}
-            >Done</Button>
-          </div>
-          <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+            ) : undefined}
+            syncStatus={validationHasErrors ? 'idle' : createProgressStep >= 5 ? 'active' : 'idle'}
+            syncDimmed={validationStillActive || (createProgressStep >= 4 && createProgressStep < 5)}
+            syncText="This may take a while and will continue to run in the background"
+            closeLabel="Done"
+            onClose={onClose}
+          />
         </DrawerBody>
-      ) : showAdvanced ? <AdvancedSetupPanel connectorType={connectorType} onClose={onClose} onSwitchToSimple={() => setShowAdvanced(false)} embedded /> : (
+      ) : showAdvanced ? (
+        <SetupEditPanel
+          connectorType={connectorType}
+          existingConnector={openSetupEditMode ? setupEditConnector : undefined}
+          onClose={onClose}
+          onSwitchToSimple={() => {
+            setShowAdvanced(false);
+            setOpenSetupEditMode(false);
+          }}
+          embedded
+        />
+      ) : (
       <DrawerBody style={{ padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
 
         {/* Content row */}
@@ -770,7 +930,10 @@ export default function SetupPanel({ connectorType, onClose, onCreated }: SetupP
                         </button>
                         {/* Advanced setup — below edit link on small screens only */}
                         <button
-                          onClick={() => { setShowAdvanced(true); }}
+                          onClick={() => {
+                            setOpenSetupEditMode(false);
+                            setShowAdvanced(true);
+                          }}
                           className="flex lg:hidden items-center gap-1.5 text-[13px] mt-0.5 w-fit text-[#424242] dark:text-[#adadad] hover:opacity-80"
                         >
                           <SettingsIcon style={{ fontSize: 13 }} className="text-[#424242] dark:text-[#adadad]" />
@@ -780,7 +943,10 @@ export default function SetupPanel({ connectorType, onClose, onCreated }: SetupP
                     </div>
                     {/* Advanced setup — absolute bottom-right on large screens */}
                     <button
-                      onClick={() => { setShowAdvanced(true); }}
+                      onClick={() => {
+                        setOpenSetupEditMode(false);
+                        setShowAdvanced(true);
+                      }}
                       className="hidden lg:flex absolute bottom-0 right-0 items-center gap-1.5 px-3 py-1 text-[13px] text-[#424242] dark:text-[#adadad] rounded hover:bg-[#f3f2f1] dark:hover:bg-[#292929] transition-colors"
                     >
                       <SettingsIcon style={{ fontSize: 14 }} className="text-[#424242] dark:text-[#adadad]" />
@@ -874,6 +1040,7 @@ export default function SetupPanel({ connectorType, onClose, onCreated }: SetupP
                         onFocus={() => handleFieldFocus('auth')}
                         onBlur={handleFieldBlur}
                         placeholder="e.g. svc-copilot@contoso.com"
+                        iconProps={basicUsername.trim() ? { iconName: 'CompletedSolid', style: { color: '#107c10' } } : undefined}
                         styles={{ root: { width: '100%' }, ...darkFieldStyles }}
                       />
                       <TextField
@@ -885,8 +1052,22 @@ export default function SetupPanel({ connectorType, onClose, onCreated }: SetupP
                         onChange={(_, v) => { setBasicPassword(v ?? ''); markChanged(); }}
                         onFocus={() => handleFieldFocus('auth')}
                         onBlur={handleFieldBlur}
+                        iconProps={basicPassword.trim() ? { iconName: 'CompletedSolid', style: { color: '#107c10' } } : undefined}
                         styles={{ root: { width: '100%' }, ...darkFieldStyles }}
                       />
+                      <div>
+                        <Button
+                          appearance="primary"
+                          disabled={!basicUsername.trim() || !basicPassword.trim() || authorizing}
+                          style={{ borderRadius: 4, minWidth: 100 }}
+                          onClick={() => {
+                            setAuthorizing(true);
+                            setTimeout(() => setAuthorizing(false), 3000);
+                          }}
+                        >
+                          {authorizing ? <Spinner size={SpinnerSize.small} /> : 'Authorize'}
+                        </Button>
+                      </div>
                     </div>
                   )}
 
@@ -978,7 +1159,7 @@ export default function SetupPanel({ connectorType, onClose, onCreated }: SetupP
           </div>
 
           {/* Expand button — narrow panel only, hidden when rail is open */}
-          {!railOpen && !panelWide && <button
+          {!railOpen && !panelWide && !showActionableErrors && <button
             onClick={() => setRailOpen(true)}
             style={{
               position: 'absolute', top: 12, right: 16, zIndex: 50,
@@ -993,7 +1174,7 @@ export default function SetupPanel({ connectorType, onClose, onCreated }: SetupP
           </button>}
 
           {/* Guide rail overlay — narrow panel only */}
-          {railOpen && !panelWide && (
+          {railOpen && !panelWide && !showActionableErrors && (
             <div style={{
               position: 'absolute', top: 0, right: 0, bottom: 0,
               width: 360, zIndex: 40, display: 'flex', flexDirection: 'column',
@@ -1015,7 +1196,7 @@ export default function SetupPanel({ connectorType, onClose, onCreated }: SetupP
           )}
 
           {/* Guide rail — static side column when panel is wide enough */}
-          {loading && panelWide ? (
+          {!showActionableErrors && (loading && panelWide ? (
             <div style={{ display: 'flex', flexDirection: 'column', minWidth: 280, maxWidth: 360, width: '30%', borderLeft: '1px solid #e1e1e1' }}>
               <div style={{ padding: '54px 24px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
                 <FluentProvider theme={isDark ? webDarkTheme : webLightTheme} style={{ background: 'transparent', width: '70%' }}>
@@ -1036,9 +1217,9 @@ export default function SetupPanel({ connectorType, onClose, onCreated }: SetupP
             </div>
           ) : panelWide ? (
             <GuideRail activeSection={activeSection} open={railOpen} onToggle={() => setRailOpen(v => !v)} />
-          ) : null}
+          ) : null)}
           {/* Re-open button when rail is collapsed on wide panels */}
-          {!railOpen && panelWide && (
+          {!railOpen && panelWide && !showActionableErrors && (
             <button
               onClick={() => setRailOpen(true)}
               style={{ position: 'absolute', top: 12, right: 16, zIndex: 50, padding: '4px 10px', borderRadius: 4, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: '#0078d4', cursor: 'pointer' }}
@@ -1046,6 +1227,41 @@ export default function SetupPanel({ connectorType, onClose, onCreated }: SetupP
               <OpenPaneMirroredIcon style={{ fontSize: 14 }} />
               Guide
             </button>
+          )}
+          {/* Error action rail — shown when resolving validation errors */}
+          {showActionableErrors && (
+            <div style={{ width: 256, flexShrink: 0, borderLeft: `1px solid ${isDark ? '#3d3d3d' : '#e1e1e1'}`, background: isDark ? '#1f1f1f' : '#faf9f8', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              {/* Rail header */}
+              <div style={{ padding: '0 16px', height: 48, flexShrink: 0, display: 'flex', alignItems: 'center', borderBottom: `1px solid ${isDark ? '#3d3d3d' : '#e1e1e1'}` }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: isDark ? '#f5f5f5' : '#323130', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Actions</span>
+              </div>
+              {/* Rail content */}
+              <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
+                {/* Authentication failed card */}
+                <div style={{ borderRadius: 4, border: `1px solid ${isDark ? '#5a2020' : '#f1c5c5'}`, background: isDark ? '#2a1a1a' : '#fff8f8', padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {/* Needs action badge */}
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, width: 'fit-content', padding: '2px 7px', borderRadius: 3, background: isDark ? '#3d1e1e' : '#fce8e8' }}>
+                    <StatusErrorFullIcon style={{ fontSize: 10, color: '#a4373a' }} />
+                    <span style={{ fontSize: 10, fontWeight: 700, color: '#a4373a', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Needs action</span>
+                  </div>
+                  {/* Title */}
+                  <span style={{ fontSize: 13, fontWeight: 600, lineHeight: '18px', color: isDark ? '#f5f5f5' : '#323130' }}>
+                    Authentication failed
+                  </span>
+                  {/* Description */}
+                  <span style={{ fontSize: 12, lineHeight: '16px', color: isDark ? '#adadad' : '#605e5c' }}>
+                    This will not allow the connection to index data from the source.
+                  </span>
+                  {/* Divider + what to do */}
+                  <div style={{ borderTop: `1px solid ${isDark ? '#3d3d3d' : '#e8e8e8'}`, paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: isDark ? '#adadad' : '#605e5c', textTransform: 'uppercase', letterSpacing: '0.04em' }}>What to do</span>
+                    <span style={{ fontSize: 12, lineHeight: '16px', color: isDark ? '#adadad' : '#605e5c' }}>
+                      Check your authentication credentials and update them in the form, then click Create again.
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
         </div>
 
@@ -1069,29 +1285,77 @@ export default function SetupPanel({ connectorType, onClose, onCreated }: SetupP
                   disabled={!hasChanges}
                   onClick={() => {
             setCreating(true);
-            setTimeout(() => {
-              setCreated(true);
-              onCreated?.({
-                id: `user-${Date.now()}`,
-                displayName,
-                connectorType,
-                logoUrl: catalogItem?.logoUrl,
-                userCriteriaType: 'simple',
-                instanceUrl,
-                authMethod: (authMethod ?? 'oauth2') as import('@/lib/types').AuthMethod,
-                basicUsername,
-                basicPassword,
-                healthStatus: 'pending',
-                blockerCount: 0,
-                warningCount: 0,
-                suggestionCount: 0,
-                issues: [],
-                guideSteps: [],
-                syncHistory: [],
-                createdAt: new Date().toISOString(),
-                userCreated: true,
-              });
-            }, 2500);
+            setCreated(false);
+            setCreateProgressStep(1);
+            setValidationCompletedAt(null);
+                setValidationHasErrors(false);
+                setValidationFailureSequenceStep(0);
+                setShowActionableErrors(false);
+                setActionableErrors([]);
+
+            setTimeout(() => setCreateProgressStep(2), 1400);
+            setTimeout(() => setCreateProgressStep(3), 2800);
+
+            if (shouldShowActionableErrors) {
+              setTimeout(() => {
+                setValidationHasErrors(true);
+                setValidationFailureSequenceStep(0);
+                setActionableErrors([{
+                  title: 'Authentication failed',
+                  description: 'This will not allow the connection to index data from the source.'
+                }]);
+              }, 1400);
+
+              setTimeout(() => {
+                setValidationFailureSequenceStep(1);
+              }, 2800);
+
+              setTimeout(() => {
+                setValidationFailureSequenceStep(2);
+              }, 4200);
+
+              setTimeout(() => {
+                setValidationFailureSequenceStep(3);
+                setValidationCompletedAt(new Date().toISOString());
+              }, 5600);
+            } else {
+              setTimeout(() => {
+                setValidationCompletedAt(new Date().toISOString());
+                setCreateProgressStep(4);
+              }, 4200);
+
+              setTimeout(() => {
+                setCreateProgressStep(5);
+              }, 4600);
+
+              setTimeout(() => {
+                setCreateProgressStep(6);
+              }, 5000);
+
+              setTimeout(() => {
+                setCreated(true);
+                onCreated?.({
+                  id: `user-${Date.now()}`,
+                  displayName,
+                  connectorType,
+                  logoUrl: catalogItem?.logoUrl,
+                  userCriteriaType: 'simple',
+                  instanceUrl,
+                  authMethod: (authMethod ?? 'oauth2') as import('@/lib/types').AuthMethod,
+                  basicUsername,
+                  basicPassword,
+                  healthStatus: 'pending',
+                  blockerCount: 0,
+                  warningCount: 0,
+                  suggestionCount: 0,
+                  issues: [],
+                  guideSteps: [],
+                  syncHistory: [],
+                  createdAt: new Date().toISOString(),
+                  userCreated: true,
+                });
+              }, 5600);
+            }
           }}
                   style={isDark ? { background: '#479ef5', color: '#000', border: 'none' } : {}}
                 >Create</Button>

@@ -1,5 +1,7 @@
 # Connector Admin — Project Instructions
 
+> Note: This file is kept for backward compatibility. The canonical project instructions for GitHub Copilot and coding assistants are in `.github/copilot-instructions.md`.
+
 ## Component Library
 This project uses the **Admin Controls** library as the **first priority** component library.
 
@@ -57,14 +59,14 @@ When a user provides a product spec or asks to generate a concept, follow this w
 > Never push spec-generated or experimental code directly to `main`.
 
 ## Figma Plugins
-Before working on any design implementation from Figma, check that the user has the following MCP plugins installed in Claude Code:
+Before working on any design implementation from Figma, check that the user has the following MCP tools/extensions available in their coding assistant environment:
 
 - **Figma** — for reading Figma designs, extracting layout, components, and tokens
 - **Playwright** — for browser automation and visual testing
 
 If either plugin is not installed, ask the user to install them before proceeding:
-- Figma plugin: available via the Claude Code MCP marketplace or settings
-- Playwright plugin: available via the Claude Code MCP marketplace or settings
+- Figma plugin/tool: available via the assistant's extension or MCP settings
+- Playwright plugin/tool: available via the assistant's extension or MCP settings
 
 Do not attempt to implement a Figma design without the Figma plugin active — guessing at design details leads to inaccurate implementations.
 
@@ -81,3 +83,10 @@ For any charts or data visualisation, follow the **Fluent UI Charting** design l
   - No bar fills behind lines unless explicitly needed
   - Tooltips: white card, `#e1e1e1` border, 4px radius, `#323130` text
   - Legend: small colored square (12×12px, 2px border-radius), 12px Segoe UI `#323130` text, 8px gap between square and label, 16px gap between items, horizontal layout below chart
+
+## Connection Save And Sync Behavior
+For connector configuration changes in this project:
+
+- Users may save changes incrementally after each edit, or batch multiple edits and save once.
+- Saving connector details does not immediately change Copilot data behavior.
+- Changes are reflected in Copilot only after the connector is synced.

@@ -9,6 +9,7 @@ export type ConnectorCatalogItem = {
   logoInitials: string;
   logoUrl?: string;
   logoBg?: string;
+  showActionableErrorsOnValidationFailure?: boolean;
 };
 
 export const CATEGORIES = [
@@ -52,7 +53,7 @@ export const CONNECTOR_CATALOG: ConnectorCatalogItem[] = [
   // Content management systems (Recommended)
   { id: 'confluence-cloud', name: 'Confluence Cloud', publisher: 'Microsoft', description: 'Collaborative documentation and knowledge sharing.', category: 'Content management systems', recommended: true, logoColor: '#0052CC', logoInitials: 'CF', logoUrl: '/logos/confluence.svg', logoBg: '#ffffff' },
   { id: 'enterprise-websites-cloud', name: 'Enterprise websites Cloud', publisher: 'Microsoft', description: 'Internal websites and intranet owned by your organization.', category: 'Content management systems', recommended: true, logoColor: '#107C10', logoInitials: 'EW', logoUrl: '/logos/enterprise-websites.svg', logoBg: '#ffffff' },
-  { id: 'servicenow-knowledge', name: 'ServiceNow Knowledge', publisher: 'Microsoft', description: 'IT service management knowledge articles.', category: 'Content management systems', recommended: true, logoColor: '#62D84E', logoInitials: 'SK', logoUrl: '/logos/servicenow.svg', logoBg: '#ffffff' },
+  { id: 'servicenow-knowledge', name: 'ServiceNow Knowledge', publisher: 'Microsoft', description: 'IT service management knowledge articles.', category: 'Content management systems', recommended: true, logoColor: '#62D84E', logoInitials: 'SK', logoUrl: '/logos/servicenow.svg', logoBg: '#ffffff', showActionableErrorsOnValidationFailure: true },
 
   // Content management systems
   { id: 'adobe-experience-manager-assets', name: 'Adobe Experience Manager Assets', publisher: 'Microsoft', description: 'Manage digital assets across your organization.', category: 'Content management systems', logoColor: '#FF0000', logoInitials: 'AA', logoUrl: `${CDN}/adobe_catalogue2.png`, logoBg: '#ffffff' },

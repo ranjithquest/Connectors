@@ -1,6 +1,8 @@
+const isStaticExport = process.env.STATIC_EXPORT === 'true';
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
+  ...(isStaticExport ? { output: 'export' } : {}),
   trailingSlash: true,
   basePath: process.env.NEXT_PUBLIC_BASE_PATH || '',
   images: {

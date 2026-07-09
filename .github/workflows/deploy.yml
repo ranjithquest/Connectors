@@ -49,10 +49,24 @@ jobs:
       - name: Generate branches.json
         run: node scripts/generate-branches-json.js
 
+      - name: Hide local-only API routes for export
+        run: |
+          if [ -d app/api ]; then
+            mv app/api /tmp/connector-admin-app-api
+          fi
+
       - name: Build
         run: npm run build
         env:
           NEXT_PUBLIC_BASE_PATH: ${{ steps.path.outputs.basepath }}
+          STATIC_EXPORT: 'true'
+
+      - name: Restore local-only API routes
+        if: always()
+        run: |
+          if [ -d /tmp/connector-admin-app-api ]; then
+            mv /tmp/connector-admin-app-api app/api
+          fi
 
       - name: Deploy to gh-pages branch
         run: |

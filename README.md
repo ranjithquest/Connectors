@@ -10,18 +10,46 @@ This project mirrors the look and feel of the M365 Admin Center and is pre-wired
 
 Choose the path that fits your setup:
 
-- [With Claude Code (recommended)](#with-claude-code-recommended)
-- [Without Claude Code (manual)](#without-claude-code-manual)
+- [With GitHub Copilot (recommended)](#with-github-copilot-recommended)
+- [Manual setup (without Copilot)](#manual-setup-without-copilot)
 
 ---
 
-## With Claude Code (recommended)
+## Figma MCP and Shared Skills
 
-Claude Code automates setup, branching, publishing, and handoff via slash commands.
+This repo now includes project-level Figma MCP setup and shared Figma skills so collaborators can use the same design workflows after cloning.
+
+### What is included
+- `.mcp.json` at the repo root with a `figma` MCP server entry
+- Shared skills in `.github/skills/` (team-visible)
+- Shared skills in `.claude/skills/` (repo-local Claude tooling)
+
+### Team onboarding after clone
+1. Open this repo in VS Code.
+2. Ensure your MCP client picks up `.mcp.json`.
+3. Authenticate the Figma MCP server in your client if prompted.
+4. Restart the editor/chat session once if tools or skills do not appear immediately.
+
+### Skills added
+- `figma-code-connect`
+- `figma-create-new-file`
+- `figma-generate-design`
+- `figma-generate-diagram`
+- `figma-generate-library`
+- `figma-swiftui`
+- `figma-use`
+- `figma-use-figjam`
+- `figma-use-slides`
+
+---
+
+## With GitHub Copilot (recommended)
+
+GitHub Copilot is the default AI workflow for this repo.
 
 ### 1. Prerequisites
 - [VS Code](https://code.visualstudio.com/)
-- [Claude Code VS Code extension](https://marketplace.visualstudio.com/items?itemName=anthropic.claude-code)
+- [GitHub Copilot VS Code extension](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot)
 - [Node.js 20+](https://nodejs.org/)
 - [Git](https://git-scm.com/)
 
@@ -36,23 +64,26 @@ git clone https://github.com/gim-home/Connectors.git
 
 **File → Open Folder → select `Connectors`**
 
-VS Code will prompt you to install the recommended **Claude Code** extension if you don't have it yet.
+VS Code will prompt you to install the recommended **GitHub Copilot** extension if you don't have it yet.
 
-### 4. Run `/setup`
-Open the Claude Code chat panel and type:
+### 4. Run setup
+Open a terminal in VS Code and run:
+```bash
+./setup.sh
 ```
-/setup
-```
-Claude will install dependencies, start the app, and set up your GitHub push access. Done.
+This installs dependencies, starts the app, and configures GitHub push access.
 
 ### 5. Prototype and publish
-- Tell Claude what you want to build — it creates a branch and builds it
-- When ready to share: `/publish` → you get a preview URL
-- When approved: `/handoff` → cherry-picks approved files into `main`
+- Build your feature on a feature branch
+- When ready to share, run:
+```bash
+./publish.sh
+```
+- When approved, cherry-pick or selectively checkout only approved files into `main`
 
 ---
 
-## Without Claude Code (manual)
+## Manual setup (without Copilot)
 
 ### 1. Prerequisites
 - [Node.js 20+](https://nodejs.org/)
@@ -163,7 +194,8 @@ lib/
   gallery-data.ts               # Connector catalog (type, logo, config schema)
   types.ts                      # Shared TypeScript types
 
-.claude/commands/               # Claude skills: /setup, /publish, /walkthrough, /handoff
+.github/copilot-instructions.md # Project-wide GitHub Copilot instructions
+.claude/commands/               # Legacy Claude command scripts (optional)
 public/
   logos/                        # Connector logo PNGs/SVGs
 ```

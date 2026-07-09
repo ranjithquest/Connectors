@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useMemo, useEffect, Suspense } from 'react';
-import { useRouter } from 'next/navigation';
-import { SearchBox, CommandBar, ICommandBarItemProps, Pivot, PivotItem, Text } from '@fluentui/react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { SearchBox, Pivot, PivotItem, Text, CommandBar, type ICommandBarItemProps } from '@fluentui/react';
 import {
   DataGrid, DataGridHeader, DataGridHeaderCell, DataGridBody, DataGridRow, DataGridCell,
   createTableColumn, TableColumnDefinition, Badge, Tooltip, PresenceBadge, FluentProvider, webLightTheme, webDarkTheme,
-  Skeleton, SkeletonItem,
+  Skeleton, SkeletonItem, Button, Tag, Menu, MenuTrigger, MenuPopover, MenuList, MenuItem,
+  Table, TableHeader, TableHeaderCell as FluentTableHeaderCell, TableRow as FluentTableRow,
 } from '@fluentui/react-components';
 import { CONNECTORS } from '@/lib/mock-data';
 import type { Connector } from '@/lib/types';
@@ -30,7 +31,7 @@ function StatusBadge({ status, blockerCount }: { status: string; blockerCount: n
     return (
       <span className="flex items-center gap-1.5 text-[13px] text-[#a80000]">
         <PresenceBadge status="busy" size="small" />
-        Action required
+        3 Needs action
       </span>
     );
   }
@@ -123,6 +124,27 @@ function formatLastSync(date?: string): string {
 
 type SortKey = 'displayName' | 'connectorType' | 'healthStatus' | 'lastSyncAt';
 
+function StructureFilterChip({ label, options }: { label: string; options: string[] }) {
+  return (
+    <Menu positioning="below-start">
+      <MenuTrigger disableButtonEnhancement>
+        <Button appearance="outline" shape="circular" size="small">
+          {label}
+        </Button>
+      </MenuTrigger>
+      <MenuPopover>
+        <MenuList>
+          {options.map((option) => (
+            <MenuItem key={`${label}-${option}`}>
+              {option}
+            </MenuItem>
+          ))}
+        </MenuList>
+      </MenuPopover>
+    </Menu>
+  );
+}
+
 // ── Gallery-tab helpers ───────────────────────────────────────────────────────
 
 function GalleryLogo({ color, initials, logoUrl, logoBg }: { color: string; initials: string; logoUrl?: string; logoBg?: string }) {
@@ -212,8 +234,11 @@ function SectionGrid({ connectors, onAdd, onSelect, selectedId }: {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
-export default function ConnectorsPage() {
+function ConnectorsPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const tourParam = searchParams.get('tour');
+  const showWalkthroughTag = Boolean(tourParam);
 
   // Tab state
   const [tab, setTab] = useState<'connections' | 'gallery'>('connections');
@@ -230,13 +255,46 @@ export default function ConnectorsPage() {
   const [isDark, setIsDark] = useState(false);
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1280);
   useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  const gridSize = windowWidth < 900 ? 'small' : 'medium';
 
   // Gallery-tab state
   const [gallerySearch, setGallerySearch] = useState('');
   const [galleryFilter, setGalleryFilter] = useState<'all' | 'recommended'>('all');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [setupType, setSetupType] = useState<string | null>(null);
+
+  const commandItems: ICommandBarItemProps[] = [
+    {
+      key: 'addConnection',
+      text: 'Add Connection',
+      iconProps: { iconName: 'Add' },
+      onClick: () => {
+        setTab('gallery');
+      },
+    },
+    {
+      key: 'refreshConnections',
+      text: 'Refresh',
+      iconProps: { iconName: 'Refresh' },
+      onClick: () => {},
+    },
+  ];
+
+  const commandFarItems: ICommandBarItemProps[] = [
+    {
+      key: 'chooseColumns',
+      text: 'Choose columns',
+      iconProps: { iconName: 'ColumnOptions' },
+      onClick: () => {},
+    },
+  ];
   const [selectedGalleryConnector, setSelectedGalleryConnector] = useState<ConnectorCatalogItem | null>(null);
 
   useEffect(() => {
@@ -278,14 +336,22 @@ export default function ConnectorsPage() {
     [filtered, sortKey, sortAsc]
   );
 
+  const columnSizingOptions = {
+    connectorType: { minWidth: 620, defaultWidth: 760 },
+    displayName: { minWidth: 180, defaultWidth: 220 },
+    healthStatus: { minWidth: 180, defaultWidth: 220 },
+    type: { minWidth: 120, defaultWidth: 150 },
+    lastSyncAt: { minWidth: 180, defaultWidth: 220 },
+  };
+
   const columns: TableColumnDefinition<Connector>[] = [
     createTableColumn<Connector>({
       columnId: 'connectorType',
-      renderHeaderCell: () => 'Source name',
+      renderHeaderCell: () => <span className="font-semibold">Connection name</span>,
       renderCell: (item) => (
-        <div className="flex items-center gap-2 min-w-0 w-full relative group/row">
+        <div className="flex items-center gap-2 min-w-0 w-full relative pr-10">
           <ConnectionsLogo type={item.connectorType} logoUrl={item.logoUrl} />
-          <span className="text-[14px] truncate">{item.connectorType}</span>
+          <span className="text-[14px] truncate">{item.displayName}</span>
           {(item.blockerCount + item.warningCount) > 0 && (
             <button
               className="flex items-center gap-1.5 text-[12px] text-[#a80000] flex-shrink-0 ml-3 hover:underline cursor-pointer bg-transparent border-none p-0"
@@ -294,18 +360,18 @@ export default function ConnectorsPage() {
               data-tour={item.id === 'azure-devops' ? 'connector-row-azure-devops' : undefined}
             >
               <PresenceBadge status="busy" size="extra-small" style={{ width: 8, height: 8 }} />
-              Action required
+              3 Needs action
             </button>
           )}
           <button
-            className="absolute right-0 opacity-0 group-hover/row:opacity-100 w-7 h-7 flex items-center justify-center rounded hover:bg-[#edebe9] dark:hover:bg-[#333333] text-[#605e5c] dark:text-[#adadad] transition-all"
+            className="absolute right-1 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded hover:bg-[#edebe9] dark:hover:bg-[#333333] text-[#605e5c] dark:text-[#adadad] transition-all"
             onClick={(e) => { e.stopPropagation(); setOpenMenu(openMenu === item.id ? null : item.id); }}
           >
             <MoreVerticalIcon style={{ fontSize: 16 }} />
           </button>
           {openMenu === item.id && (
             <div
-              className="absolute right-0 top-10 bg-white dark:bg-[#292929] border border-[#e1e1e1] dark:border-[#444444] rounded-[4px] shadow-[0px_4px_8px_rgba(0,0,0,0.14)] z-50 w-44"
+              className="absolute right-1 top-[calc(50%+20px)] bg-white dark:bg-[#292929] border border-[#e1e1e1] dark:border-[#444444] rounded-[4px] shadow-[0px_4px_8px_rgba(0,0,0,0.14)] z-50 w-44"
               onClick={(e) => { e.stopPropagation(); setOpenMenu(null); }}
             >
               <button
@@ -326,24 +392,29 @@ export default function ConnectorsPage() {
     }),
     createTableColumn<Connector>({
       columnId: 'displayName',
-      renderHeaderCell: () => (
-        <div className="flex items-center gap-1">
-          <span>Connection name</span>
-          <InfoIcon style={{ fontSize: 12 }} className="opacity-60" />
-        </div>
-      ),
-      renderCell: (item) => <span className="text-[14px] truncate">{item.displayName}</span>,
+      renderHeaderCell: () => 'Display name',
+      renderCell: (item) => <span className="text-[14px] truncate">{item.connectorType}</span>,
       compare: (a, b) => a.displayName.localeCompare(b.displayName),
     }),
     createTableColumn<Connector>({
       columnId: 'healthStatus',
-      renderHeaderCell: () => 'Connection State',
+      renderHeaderCell: () => 'Connection state',
       renderCell: (item) => <StatusBadge status={item.healthStatus} blockerCount={0} />,
       compare: (a, b) => a.healthStatus.localeCompare(b.healthStatus),
     }),
     createTableColumn<Connector>({
+      columnId: 'type',
+      renderHeaderCell: () => 'Type',
+      renderCell: () => (
+        <Tag shape="rounded" appearance="filled" size="small">
+          Synced
+        </Tag>
+      ),
+      compare: () => 0,
+    }),
+    createTableColumn<Connector>({
       columnId: 'lastSyncAt',
-      renderHeaderCell: () => 'Last sync',
+      renderHeaderCell: () => 'Last sync time',
       renderCell: (item) => (
         item.healthStatus === 'pending' && item.syncHistory?.[0]?.startedAt
           ? <SyncingElapsedCell startedAt={item.syncHistory[0].startedAt} />
@@ -400,6 +471,23 @@ export default function ConnectorsPage() {
         >
           Connectors
         </Text>
+        {showWalkthroughTag && (
+          <div style={{ marginBottom: 18 }}>
+            <span style={{
+              display: 'inline-flex',
+              gap: 6,
+              alignItems: 'center',
+              fontSize: 12,
+              fontWeight: 600,
+              color: '#107c10',
+              background: '#dff6dd',
+              borderRadius: 999,
+              padding: '6px 12px',
+            }}>
+              ▶ Walkthrough
+            </span>
+          </div>
+        )}
         <Pivot
           selectedKey={tab}
           onLinkClick={(item) => {
@@ -429,69 +517,57 @@ export default function ConnectorsPage() {
             </p>
           </div>
 
-          {/* ── Command bar ───────────────────────────────────────────── */}
+          {/* ── Toolbar ───────────────────────────────────────────── */}
           <div className="px-4 sm:px-8 lg:px-12">
-            <CommandBar
-              items={[
-                {
-                  key: 'add',
-                  text: 'Add connection',
-                  iconProps: { iconName: 'Add' },
-                  onClick: () => setTab('gallery'),
-                  buttonStyles: { root: { backgroundColor: isDark ? '#141414' : '#ffffff', color: '#0078d4' }, label: { color: '#0078d4', fontWeight: 600 }, icon: { color: '#0078d4' }, rootHovered: { backgroundColor: isDark ? '#2d2d2d' : '#f3f2f1' } },
-                },
-                {
-                  key: 'refresh',
-                  text: 'Refresh',
-                  iconProps: { iconName: 'Refresh' },
-                  buttonStyles: isDark ? { root: { backgroundColor: '#141414', color: '#f5f5f5' }, label: { color: '#f5f5f5' }, icon: { color: '#f5f5f5' }, rootHovered: { backgroundColor: '#2d2d2d' } } : {},
-                },
-              ] as ICommandBarItemProps[]}
-              farItems={[
-                {
-                  key: 'count',
-                  text: `${sorted.length} items`,
-                  disabled: true,
-                  buttonStyles: { root: { cursor: 'default', backgroundColor: isDark ? '#141414' : '#ffffff' }, rootDisabled: { backgroundColor: isDark ? '#141414' : '#ffffff' }, label: { color: isDark ? '#adadad' : '#323130' } },
-                },
-                {
-                  key: 'filter',
-                  text: 'Filter',
-                  iconProps: { iconName: 'Filter' },
-                  buttonStyles: isDark ? { root: { backgroundColor: '#141414', color: '#f5f5f5' }, label: { color: '#f5f5f5' }, icon: { color: '#f5f5f5' }, rootHovered: { backgroundColor: '#2d2d2d' } } : {},
-                },
-                {
-                  key: 'search',
-                  onRender: () => (
-                    <SearchBox
-                      placeholder="Search"
-                      value={search}
-                      onChange={(_, v) => setSearch(v ?? '')}
-                      onClear={() => setSearch('')}
-                      styles={{
-                        root: {
-                          width: 182, height: 26, alignSelf: 'center', margin: '0 8px',
-                          backgroundColor: isDark ? '#141414' : undefined,
-                          border: isDark ? '1px solid #555' : undefined,
-                        },
-                        field: { backgroundColor: isDark ? '#141414' : undefined, color: isDark ? '#f5f5f5' : undefined },
-                        icon: { color: isDark ? '#adadad' : undefined },
-                        clearButton: { color: isDark ? '#adadad' : undefined },
-                      }}
-                    />
-                  ),
-                },
-              ] as ICommandBarItemProps[]}
-              styles={{
-                root: {
-                  padding: 0,
-                  backgroundColor: isDark ? '#141414' : '#ffffff',
-                  borderTop: `1px solid ${isDark ? '#333333' : '#edebe9'}`,
-                },
-                primarySet: { backgroundColor: isDark ? '#141414' : '#ffffff' },
-                secondarySet: { backgroundColor: isDark ? '#141414' : '#ffffff' },
-              }}
-            />
+            <div className="border-t border-[#edebe9] dark:border-[#333333]">
+              <div className="flex flex-col gap-5 pt-2 pb-4">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex-1 min-w-0">
+                  <CommandBar
+                    items={commandItems}
+                    farItems={commandFarItems}
+                    styles={{
+                      root: {
+                        paddingLeft: 0,
+                        paddingRight: 0,
+                        backgroundColor: 'transparent',
+                      },
+                      primarySet: { gap: 8 },
+                      secondarySet: { gap: 8 },
+                    }}
+                  />
+                </div>
+                <div className="flex items-center justify-between lg:justify-end">
+                  <SearchBox
+                    placeholder="Search"
+                    value={search}
+                    onChange={(_, v) => setSearch(v ?? '')}
+                    onClear={() => setSearch('')}
+                    styles={{
+                      root: {
+                        width: 248,
+                        height: 38,
+                        backgroundColor: isDark ? '#141414' : '#ffffff',
+                        border: isDark ? '1px solid #555' : '1px solid #d1d1d1',
+                      },
+                      field: { backgroundColor: isDark ? '#141414' : undefined, color: isDark ? '#f5f5f5' : undefined },
+                      icon: { color: isDark ? '#adadad' : undefined },
+                      clearButton: { color: isDark ? '#adadad' : undefined },
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <span className={`text-[14px] font-semibold ${isDark ? 'text-[#f5f5f5]' : 'text-[#323130]'}`}>Filters:</span>
+                <div className="flex flex-wrap items-center gap-3">
+                  <StructureFilterChip label="Connection state" options={['Ready', 'Failed', 'Draft']} />
+                  <StructureFilterChip label="Type" options={['MCP', 'Synced']} />
+                  <StructureFilterChip label="Connector" options={['ServiceNow', 'Salesforce', 'Jira']} />
+                </div>
+              </div>
+            </div>
+            </div>
           </div>
 
           {/* ── DataGrid (v9) ─────────────────────────────────────────── */}
@@ -500,11 +576,17 @@ export default function ConnectorsPage() {
               {loading ? (
                 <div>
                   {/* Skeleton header */}
-                  <div style={{ display: 'flex', borderBottom: `1px solid ${isDark ? '#333' : '#edebe9'}`, height: 44, alignItems: 'center', padding: '0 12px', gap: 0 }}>
-                    {['Source name', 'Connection name', 'Connection State', 'Last sync'].map((label) => (
-                      <div key={label} style={{ flex: 1, fontSize: 12, fontWeight: 600, color: isDark ? '#adadad' : '#605e5c', paddingRight: 12 }}>{label}</div>
-                    ))}
-                  </div>
+                  <Table aria-label="Connections loading header" style={{ width: '100%' }}>
+                    <TableHeader>
+                      <FluentTableRow>
+                        {['Connection name', 'Display name', 'Connection state', 'Type', 'Last sync time'].map((label) => (
+                          <FluentTableHeaderCell key={label} style={{ color: isDark ? '#adadad' : '#605e5c', fontSize: 12, fontWeight: 600 }}>
+                            {label}
+                          </FluentTableHeaderCell>
+                        ))}
+                      </FluentTableRow>
+                    </TableHeader>
+                  </Table>
                   {/* Skeleton rows */}
                   {Array.from({ length: 6 }).map((_, i) => (
                     <div key={i} style={{ display: 'flex', borderBottom: `1px solid ${isDark ? '#2e2e2e' : '#f3f2f1'}`, minHeight: 48, alignItems: 'center', padding: '0 12px' }}>
@@ -516,6 +598,7 @@ export default function ConnectorsPage() {
                       </Skeleton>
                       <Skeleton style={{ flex: 1, paddingRight: 12 }}><SkeletonItem size={16} style={{ width: '65%' }} /></Skeleton>
                       <Skeleton style={{ flex: 1, paddingRight: 12 }}><SkeletonItem size={16} style={{ width: '50%' }} /></Skeleton>
+                      <Skeleton style={{ flex: 1, paddingRight: 12 }}><SkeletonItem size={16} style={{ width: '35%' }} /></Skeleton>
                       <Skeleton style={{ flex: 1 }}><SkeletonItem size={16} style={{ width: '55%' }} /></Skeleton>
                     </div>
                   ))}
@@ -524,13 +607,25 @@ export default function ConnectorsPage() {
                 <DataGrid
                   items={sorted}
                   columns={columns}
+                  resizableColumns
+                  columnSizingOptions={columnSizingOptions}
                   sortable
+                  size={gridSize}
                   getRowId={(item) => item.id}
                   style={{ width: '100%' }}
                 >
                   <DataGridHeader>
                     <DataGridRow>
-                      {({ renderHeaderCell }) => <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>}
+                      {(col) => (
+                        <DataGridHeaderCell
+                          style={{
+                            fontWeight: 600,
+                            ...(col.columnId === 'connectorType' ? { minWidth: 460, width: 460 } : {}),
+                          }}
+                        >
+                          {col.renderHeaderCell()}
+                        </DataGridHeaderCell>
+                      )}
                     </DataGridRow>
                   </DataGridHeader>
                   <DataGridBody<Connector>>
@@ -540,8 +635,17 @@ export default function ConnectorsPage() {
                         style={{ cursor: 'pointer', minHeight: 48 }}
                         onClick={() => setSelectedConnector(item)}
                       >
-                        {({ renderCell }) => (
-                          <DataGridCell style={{ minHeight: 48, display: 'flex', alignItems: 'center' }}>{renderCell(item)}</DataGridCell>
+                        {(col) => (
+                          <DataGridCell
+                            style={{
+                              minHeight: 48,
+                              display: 'flex',
+                              alignItems: 'center',
+                              ...(col.columnId === 'connectorType' ? { minWidth: 460, width: 460 } : {}),
+                            }}
+                          >
+                            {col.renderCell(item)}
+                          </DataGridCell>
                         )}
                       </DataGridRow>
                     )}
@@ -780,5 +884,13 @@ export default function ConnectorsPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function ConnectorsPage() {
+  return (
+    <Suspense fallback={null}>
+      <ConnectorsPageContent />
+    </Suspense>
   );
 }

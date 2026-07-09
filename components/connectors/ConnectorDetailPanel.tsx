@@ -14,7 +14,7 @@ import { InfoIcon, SyncIcon, ChevronDownIcon, StatusCircleCheckmarkIcon, StatusC
 import { DismissRegular } from '@fluentui/react-icons';
 import {
   FluentProvider, webLightTheme, webDarkTheme,
-  Text as FText, Button, tokens, Badge,
+  Text as FText, Button, tokens, Badge, ToggleButton,
   MessageBar, MessageBarBody, MessageBarTitle, MessageBarActions,
   Card, CardHeader, Divider,
   Skeleton, SkeletonItem, Spinner,
@@ -258,7 +258,7 @@ function ADOHealthSection({ connector, isDark, onEdit, lastSyncOpen, setLastSync
 
         <Separator />
 
-        {/* ── Row 3: Sync status + issues accordion ── */}
+        {/* ── Actions accordion (Fluent v8) ── */}
         <Stack
           horizontal
           verticalAlign="center"
@@ -272,40 +272,36 @@ function ADOHealthSection({ connector, isDark, onEdit, lastSyncOpen, setLastSync
             },
           }}
         >
-          <Badge
-            appearance="filled"
-            color={hasProblems ? 'danger' : 'success'}
-            size="medium"
-            shape="circular"
-            style={{ textTransform: 'uppercase', fontSize: 10, fontWeight: 700, letterSpacing: '0.05em' }}
-          >
-            {hasProblems ? 'Action required' : 'Healthy'}
-          </Badge>
-          <Stack horizontal verticalAlign="center" tokens={{ childrenGap: 8 }}>
-            {hasProblems && (
-              <FText size={300} weight="semibold" style={{ color: tokens.colorPaletteRedForeground3 }}>
-                Syncing blocked
-              </FText>
-            )}
-            <IconButton
-              iconProps={{ iconName: issuesExpanded ? 'ChevronUp' : 'ChevronDown' }}
-              styles={{ root: { width: 24, height: 24, color: isDark ? '#8a8886' : '#605e5c' }, icon: { fontSize: 11 } }}
-              onClick={(e) => { e.stopPropagation(); setIssuesExpanded((v) => !v); }}
-            />
-          </Stack>
+          <FText weight="semibold" size={400} style={{ color: isDark ? '#f5f5f5' : '#323130' }}>
+            Actions{activeIssues.length > 0 ? ` (${activeIssues.length})` : ''}
+          </FText>
+          <IconButton
+            iconProps={{ iconName: issuesExpanded ? 'ChevronUp' : 'ChevronDown' }}
+            styles={{ root: { width: 24, height: 24, color: isDark ? '#8a8886' : '#605e5c' }, icon: { fontSize: 11 } }}
+            onClick={(e) => { e.stopPropagation(); setIssuesExpanded((v) => !v); }}
+          />
         </Stack>
 
         {issuesExpanded && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalM, padding: '8px 0 12px 0' }}>
-            {!hasProblems ? (
-              <ActionStats blockers={0} suggestions={suggestions.length} />
-            ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalM, padding: '4px 0 12px 0' }}>
+            {!hasProblems ? null : (
               <>
-                {metrics.length > 0 && (
-                  <div style={{ paddingBottom: 16 }}>
-                    <ActionStats blockers={metrics.find(m => m.label.startsWith('Blocker'))?.count ?? 0} suggestions={metrics.find(m => m.label.startsWith('Suggestion'))?.count ?? 0} />
-                  </div>
-                )}
+                <ToggleButton
+                  shape="circular"
+                  size="small"
+                  checked
+                  style={{ marginBottom: 4, pointerEvents: 'none', alignSelf: 'flex-start' }}
+                  icon={
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      width: 18, height: 18, borderRadius: '50%', fontSize: 10, fontWeight: 700,
+                      backgroundColor: 'rgba(0,0,0,0.08)',
+                      color: tokens.colorNeutralForeground2,
+                    }}>{activeIssues.length}</span>
+                  }
+                >
+                  Needs action
+                </ToggleButton>
                 {activeIssues.map((issue) => (
                   <IssueCard
                     key={issue.id}
@@ -358,7 +354,7 @@ export default function ConnectorDetailPanel({ connector, onClose, onEdit }: Con
   const updatedAt = connector.lastSyncAt
     ? new Date(connector.lastSyncAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
     : '—';
-  const isADO = connector.connectorType === 'ADO' || connector.id === 'miro';
+  const isADO = connector.connectorType === 'ADO' || connector.id === 'miro' || connector.id === 'hr-benefits';
   const showHealthSection = isADO || connector.id === 'hr-policies';
   const isHRPolicies = connector.id === 'hr-policies';
 

@@ -1,6 +1,6 @@
 # Feature Registry
 
-A living list of concept branches. To resume a feature, check out its branch and ask Claude to continue.
+A living list of concept branches. To resume a feature, check out its branch and ask your coding assistant to continue.
 
 ---
 
@@ -31,5 +31,5 @@ A living list of concept branches. To resume a feature, check out its branch and
 ## How to resume a feature
 
 1. Check out the branch: `git checkout <branch>`
-2. Tell Claude: *"Resume the [feature-name] feature"*
-3. Claude will read this file and pick up where you left off.
+2. Tell Copilot: *"Resume the [feature-name] feature"*
+3. Copilot will read this file and pick up where you left off.

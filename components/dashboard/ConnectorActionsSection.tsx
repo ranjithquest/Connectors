@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useRef, useCallback } from 'react';
+import { Badge } from '@fluentui/react-components';
 import type { Connector, DiagnosticIssue, RecommendedAction } from '@/lib/types';
 import {
   WarningSolidIcon,
@@ -33,13 +34,10 @@ interface ActionCard {
 function SeverityBadge({ severity }: { severity: 'blocker' | 'warning' | 'suggestion' }) {
   if (severity === 'blocker') {
     return (
-      <span
-        className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[12px] font-semibold whitespace-nowrap"
-        style={{ background: '#fde7e9', color: '#a80000', border: '1px solid #f1bbbc' }}
-      >
-        <ErrorBadgeIcon style={{ fontSize: 12 }} />
+      <Badge appearance="tint" color="danger" size="small" shape="circular"
+        style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
         Needs attention
-      </span>
+      </Badge>
     );
   }
   if (severity === 'warning') {

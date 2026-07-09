@@ -8,28 +8,27 @@ const CLONE_CMD = 'git clone https://github.com/gim-home/Connectors.git';
 type SetupTab = 'vscode' | 'cli' | 'copilot';
 
 const SETUP_TABS: { key: SetupTab; label: string }[] = [
-  { key: 'vscode', label: 'VS Code + Claude Code' },
-  { key: 'cli', label: 'Claude Code CLI' },
+  { key: 'vscode', label: 'VS Code + GitHub Copilot' },
+  { key: 'cli', label: 'Manual CLI setup' },
   { key: 'copilot', label: 'GitHub Copilot' },
 ];
 
 const SETUP_CONTENT: Record<SetupTab, { body: string; steps: { text: string; code?: string }[] }> = {
   vscode: {
-    body: 'Install VS Code and the Claude Code extension. Clone the repo using the URL above, open the folder in VS Code, then run /setup to install dependencies and configure push access.',
+    body: 'Install VS Code and the GitHub Copilot extension. Clone the repo using the URL above, open the folder in VS Code, then run setup.sh to install dependencies and configure push access.',
     steps: [
-      { text: 'Install the Claude Code extension from the VS Code marketplace — search "Claude Code" by Anthropic.' },
+      { text: 'Install the GitHub Copilot extension from the VS Code marketplace.' },
       { text: 'Create a folder with a feature name on your system and open it in VS Code.' },
       { text: 'Clone the repo — VS Code will prompt you to sign in with GitHub to access this private repo.', code: CLONE_CMD },
-      { text: 'Open Claude Code and run /setup to install dependencies and configure push access.', code: '/setup' },
+      { text: 'Open a terminal and run setup.sh to install dependencies and configure push access.', code: './setup.sh' },
     ],
   },
   cli: {
-    body: 'Install Claude Code CLI, clone the repo, then run /setup inside it to install dependencies and configure push access.',
+    body: 'Clone the repo, then run setup.sh inside it to install dependencies and configure push access.',
     steps: [
-      { text: 'Install Claude Code CLI.', code: 'npm install -g @anthropic-ai/claude-code' },
       { text: 'Create a folder with a feature name on your system and open a terminal inside it.', code: 'mkdir my-connectors && cd my-connectors' },
       { text: 'Clone the repo — you will be prompted to sign in with GitHub to access this private repo.', code: CLONE_CMD },
-      { text: 'Run /setup to install dependencies and configure push access.', code: '/setup' },
+      { text: 'Run setup.sh to install dependencies and configure push access.', code: './setup.sh' },
     ],
   },
   copilot: {
@@ -93,25 +92,24 @@ const STEPS = [
     title: 'Set up the boilerplate',
     body: 'Choose your setup method below. Each path gets you running locally with the repo cloned, dependencies installed, and push access configured.',
     setupButton: true,
-    skills: [{ cmd: '/setup', desc: 'Install dependencies, start the app, and configure GitHub access', color: '#0e5c15', bg: '#f1faf1' }],
+    skills: [{ cmd: './setup.sh', desc: 'Install dependencies, start the app, and configure GitHub access', color: '#0e5c15', bg: '#f1faf1' }],
     resources: null as null | { label: string; href: string }[],
   },
   {
     num: '02',
     title: 'Design & share',
-    body: 'Share a product spec, user story, or Figma URL with Claude. It builds the concept directly in the app using Fluent UI components. Iterate freely.',
-    body2: 'Most Admin Center experiences use Fluent V8, with some areas migrating to V9. If Claude picks the wrong component, find the right one in the resources and paste its link into the chat — or just tell Claude explicitly, e.g. "Use MessageBar from Fluent V8".',
+    body: 'Share a product spec, user story, or Figma URL with Copilot. It builds the concept directly in the app using Fluent UI components. Iterate freely.',
+    body2: 'Most Admin Center experiences use Fluent V8, with some areas migrating to V9. If Copilot picks the wrong component, find the right one in the resources and paste its link into chat — or just tell Copilot explicitly, e.g. "Use MessageBar from Fluent V8".',
     body3: 'Each feature lives on its own git branch off main, so you can work on multiple in parallel without them stepping on each other. For each new feature:',
     featureSteps: [
-      { text: 'Create a new feature — either ask Claude/Copilot in chat ("create a new feature called dark mode toggle"), or click "New feature" on the about page. Both branch off main and switch you to the new branch automatically; just make sure you commit or stash any in-progress work first.' },
-      { text: 'Work on the feature with Claude or Copilot — iterate freely. Your changes stay isolated to this branch.' },
-      { text: 'When ready to share, run /publish — it commits your changes, pushes the branch, and gives you a shareable preview URL.', code: '/publish' },
-      { text: 'To switch between features locally, check out the branch in your terminal — Claude/Copilot will pick up where you left off on that branch.', code: 'git checkout owner/feature-name' },
+      { text: 'Create a new feature — either ask Copilot in chat ("create a new feature called dark mode toggle"), or click "New feature" on the about page. Both branch off main and switch you to the new branch automatically; just make sure you commit or stash any in-progress work first.' },
+      { text: 'Work on the feature with Copilot — iterate freely. Your changes stay isolated to this branch.' },
+      { text: 'When ready to share, run ./publish.sh — it commits your changes, pushes the branch, and gives you a shareable preview URL.', code: './publish.sh' },
+      { text: 'To switch between features locally, check out the branch in your terminal — Copilot will pick up where you left off on that branch.', code: 'git checkout owner/feature-name' },
       { text: 'The about page lists every feature you have locally under "Features on your local" and flags any with unpublished changes.' },
     ],
     setupButton: false,
     skills: [
-      { cmd: '/publish', desc: 'Branch, deploy, and share in one step', color: '#c50f1f', bg: '#fdf1f2' },
       { cmd: './publish.sh', desc: 'For GitHub Copilot users — branch, deploy, and share in one step', color: '#c50f1f', bg: '#fdf1f2' },
     ],
     resources: [
@@ -134,9 +132,9 @@ const STEPS = [
   {
     num: '04',
     title: 'Hand off to production',
-    body: 'Once stakeholders approve, run /handoff. Claude extracts production-ready components for the engineering team.',
+    body: 'Once stakeholders approve, cherry-pick only approved files into main for engineering handoff.',
     setupButton: false,
-    skills: [{ cmd: '/handoff', desc: 'Extract approved components for engineering', color: '#7719aa', bg: '#f7f0fb' }],
+    skills: [{ cmd: 'git checkout <feature-branch> -- <approved-files>', desc: 'Promote only approved files into main', color: '#7719aa', bg: '#f7f0fb' }],
     resources: null as null | { label: string; href: string }[],
   },
 ];
@@ -345,7 +343,7 @@ export default function GetStartedContent() {
                 {!step.setupButton && step.skills && (
                   <div style={{ marginTop: 16 }}>
                     <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#a0a0a0', marginBottom: 10 }}>
-                      Claude skill
+                      Command
                     </div>
                     {step.skills.map(sk => (
                       <div key={sk.cmd} style={{

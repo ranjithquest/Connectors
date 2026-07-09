@@ -28,6 +28,19 @@ function resolveRemote() {
 
 const REMOTE = resolveRemote();
 
+const BRANCH_META = {
+  'ranjith/actionable-errors': {
+    decks: [
+      { label: 'Actionable Errors — Concept v1', url: 'https://studious-adventure-j17vp6o.pages.github.io/ranjith/actionable-errors/deck' },
+      { label: 'Actionable Errors — Stakeholder Review', url: 'https://studious-adventure-j17vp6o.pages.github.io/ranjith/actionable-errors/deck' },
+    ],
+    walkthroughs: [
+      { label: 'Setup flow', url: 'https://studious-adventure-j17vp6o.pages.github.io/ranjith/actionable-errors/connectors?tour=true' },
+      { label: 'Error resolution flow', url: 'https://studious-adventure-j17vp6o.pages.github.io/ranjith/actionable-errors/connectors?tour=true' },
+    ],
+  },
+};
+
 function featureNameFromSlug(slug) {
   return slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
@@ -79,6 +92,7 @@ const features = branches.map(({ sha, branch }) => {
   }
 
   const featureSlug = branch.includes('/') ? branch.split('/').slice(1).join('/') : branch;
+  const meta = BRANCH_META[branch] || {};
 
   return {
     name: featureNameFromSlug(featureSlug),
@@ -88,8 +102,8 @@ const features = branches.map(({ sha, branch }) => {
     _rawDate: rawDate,
     previewUrl: `${BASE}/${branch}/connectors`,
     description: getBranchDescription(branch) || null,
-    decks: [],
-    walkthroughs: [],
+    decks: meta.decks || [],
+    walkthroughs: meta.walkthroughs || [],
   };
 });
 

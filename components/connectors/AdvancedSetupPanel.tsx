@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ChartHoverCard } from '@fluentui/react-charting';
-import { Dialog, DialogType, DialogFooter, TextField, Dropdown, ChoiceGroup, Toggle, Checkbox as FluentV8Checkbox, NormalPeoplePicker, Pivot, PivotItem, AnimationStyles, CommandBar } from '@fluentui/react';
+import { Dialog, DialogType, DialogFooter, TextField, Dropdown, ChoiceGroup, Toggle, Checkbox as FluentV8Checkbox, NormalPeoplePicker, Pivot, PivotItem, AnimationStyles, CommandBar, ActionButton } from '@fluentui/react';
 import { mergeStyles } from '@fluentui/merge-styles';
 
 const slideInClass = mergeStyles(AnimationStyles.slideDownIn10);
@@ -12,12 +12,12 @@ import { CONNECTOR_CATALOG } from '@/lib/gallery-data';
 import SetupGuideRail, { type GuideSection } from './SetupGuideRail';
 import {
   ChromeCloseIcon, EditIcon, OpenPaneMirroredIcon, SettingsIcon,
-  ChevronDownIcon, ChevronUpIcon, ChevronLeftIcon, ChevronRightIcon, CheckMarkIcon, InfoIcon, BackIcon,
+  ChevronDownIcon, ChevronUpIcon, ChevronLeftIcon, ChevronRightIcon, CheckMarkIcon, InfoIcon,
   OpenInNewWindowIcon, NavigateBackIcon, DiagnosticIcon,
-  StatusCircleCheckmarkIcon, ErrorBadgeIcon, StatusCircleSyncIcon,
-  WarningSolidIcon, AlertSolidIcon,
-  AddIcon, UploadIcon, RefreshIcon, CompletedSolidIcon, StatusCircleQuestionMarkIcon,
+  ErrorBadgeIcon, StatusCircleSyncIcon,
+  AddIcon, UploadIcon, RefreshIcon, CompletedSolidIcon, StatusCircleQuestionMarkIcon, CircleRingIcon, DownloadIcon, MoreIcon,
 } from '@fluentui/react-icons-mdl2';
+import { PlugConnectedRegular, ChatEmptyRegular } from '@fluentui/react-icons';
 import {
   Card,
   CardHeader,
@@ -27,7 +27,6 @@ import {
   ToggleButton,
   Text,
   ProgressBar,
-  Checkbox,
   MessageBar,
   MessageBarBody,
   tokens,
@@ -53,6 +52,8 @@ import {
   Spinner,
 } from '@fluentui/react-components';
 import { OverlayDrawer, DrawerBody } from '@fluentui/react-drawer';
+import ConnectionConfirmationView, { type ConnectionConfirmationStep } from './ConnectionConfirmationView';
+import { CONNECTION_VALIDATION_STEPS, createSetupEditIssues } from '@/lib/connection-flow';
 
 // ─── Guidance panel ───────────────────────────────────────────────────────────
 
@@ -242,6 +243,11 @@ const TAB_GUIDANCE: Record<string, GuideSection[]> = {
   Sync: SYNC_GUIDANCE_SECTIONS,
 };
 
+type ConnectionValidationState = 'idle' | 'pending' | 'validating' | 'failed' | 'passed' | 'syncing' | 'reflected';
+const VALIDATION_STEPS = CONNECTION_VALIDATION_STEPS;
+const VALIDATION_STEP_COMPLETE_LABELS = ['Authentication complete', 'Content preview complete', 'Configuration validation complete'] as const;
+const VALIDATION_STEP_FAILED_LABELS = ['Authentication failed', 'Content preview complete', 'Configuration validation complete'] as const;
+
 function InlineGuidance({ sectionId, active }: { sectionId: string; active?: string }) {
   const section = GUIDANCE_SECTIONS.find((s) => s.id === sectionId);
   if (!section?.content || active !== sectionId) return <div />;
@@ -253,7 +259,7 @@ function InlineGuidance({ sectionId, active }: { sectionId: string; active?: str
   );
 }
 
-function ConnectorIcon({ src, name, size, rounded = '8px' }: { src?: string | null; name: string; size: number; rounded?: string }) {
+function ConnectorIcon({ src, name, size, rounded = '4px' }: { src?: string | null; name: string; size: number; rounded?: string }) {
   const [failed, setFailed] = React.useState(false);
   const initials = name.split(' ').slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('');
   const fontSize = size <= 32 ? 10 : size <= 48 ? 13 : 16;
@@ -273,7 +279,99 @@ function ConnectorIcon({ src, name, size, rounded = '8px' }: { src?: string | nu
   );
 }
 
-function GuidanceRail({ highlightSection, accordionRefsCallback, sections = GUIDANCE_SECTIONS }: {
+const SEVERITY_CONFIG: Record<'blocker' | 'warning' | 'suggestion', { label: string; text: string }> = {
+  blocker: {
+    label: 'Blocker',
+    text: 'text-[#a80000] dark:text-[#ffb3b3]',
+  },
+  warning: {
+    label: 'Warning',
+    text: 'text-[#8a4300] dark:text-[#ffd7b5]',
+  },
+  suggestion: {
+    label: 'Suggestion',
+    text: 'text-[#605e5c] dark:text-[#c8c6c4]',
+  },
+};
+
+const SOURCE_CONFIG: Record<IssueSource, { label: string; icon: React.ReactNode }> = {
+  connector: {
+    label: 'Connector',
+    icon: <PlugConnectedRegular style={{ fontSize: 12 }} />,
+  },
+  servicenow: {
+    label: 'ServiceNow',
+    icon: <img src="/servicenow-logo.svg" alt="ServiceNow" style={{ width: 12, height: 12, objectFit: 'contain' }} />,
+  },
+  mismatch: {
+    label: 'ServiceNow',
+    icon: <img src="/servicenow-logo.svg" alt="ServiceNow" style={{ width: 12, height: 12, objectFit: 'contain' }} />,
+  },
+  unsupported: {
+    label: 'Unsupported',
+    icon: <ErrorBadgeIcon style={{ fontSize: 12 }} />,
+  },
+};
+
+const sourceBadgeStyle: React.CSSProperties = {
+  fontSize: 10,
+  fontWeight: 600,
+};
+
+function SourceTag({ source, connectorTab, onNavigate }: { source: IssueSource; connectorTab?: string; onNavigate?: () => void }) {
+  if (source === 'connector') {
+    return (
+      <Badge
+        appearance="outline"
+        color="informative"
+        size="small"
+        shape="circular"
+        icon={<PlugConnectedRegular style={{ fontSize: 12 }} />}
+        onClick={onNavigate ? (event: React.MouseEvent) => { event.stopPropagation(); onNavigate(); } : undefined}
+        style={{ ...sourceBadgeStyle, cursor: onNavigate ? 'pointer' : 'default' }}
+      >
+        {connectorTab ? `${connectorTab} tab` : SOURCE_CONFIG.connector.label}
+      </Badge>
+    );
+  }
+
+  if (source === 'servicenow') {
+    return (
+      <Badge
+        appearance="outline"
+        color="informative"
+        size="small"
+        shape="circular"
+        icon={<span style={{ display: 'flex', alignItems: 'center' }}>{SOURCE_CONFIG.servicenow.icon}</span>}
+        onClick={onNavigate ? (event: React.MouseEvent) => { event.stopPropagation(); onNavigate(); } : undefined}
+        style={{ ...sourceBadgeStyle, cursor: onNavigate ? 'pointer' : 'default' }}
+      >
+        ServiceNow
+      </Badge>
+    );
+  }
+
+  const cfg = SOURCE_CONFIG[source];
+
+  return (
+    <Badge
+      appearance="outline"
+      color="informative"
+      size="small"
+      shape="circular"
+      icon={<span style={{ display: 'flex', alignItems: 'center' }}>{cfg.icon}</span>}
+      style={sourceBadgeStyle}
+    >
+      {cfg.label}
+    </Badge>
+  );
+}
+
+function GuidanceRail({
+  highlightSection,
+  accordionRefsCallback,
+  sections = GUIDANCE_SECTIONS,
+}: {
   highlightSection?: string;
   accordionRefsCallback?: (refs: Record<string, HTMLDivElement | null>) => void;
   sections?: GuideSection[];
@@ -284,94 +382,6 @@ function GuidanceRail({ highlightSection, accordionRefsCallback, sections = GUID
       activeSection={highlightSection}
       accordionRefsCallback={accordionRefsCallback}
     />
-  );
-}
-
-// ─── Health rail (for existing connections) ───────────────────────────────────
-
-const SEVERITY_CONFIG = {
-  blocker: { label: 'Blocker', bg: 'bg-[#fdf1f1]', text: 'text-[#a80000]', border: 'border-[#f0c8c8]', dot: 'bg-[#a80000]', badgeBg: 'bg-[#a80000]' },
-  warning: { label: 'Blocker', bg: 'bg-[#fdf1f1]', text: 'text-[#a80000]', border: 'border-[#f0c8c8]', dot: 'bg-[#a80000]', badgeBg: 'bg-[#a80000]' },
-  suggestion: { label: 'Suggestion', bg: 'bg-[#f0f7ec]', text: 'text-[#2a5a18]', border: 'border-[#c8e0b8]', dot: 'bg-[#107c10]', badgeBg: 'bg-[#107c10]' },
-};
-
-const SOURCE_CONFIG: Record<IssueSource, { label: string; bg: string; text: string; icon: React.ReactNode }> = {
-  servicenow: {
-    label: 'ServiceNow',
-    bg: 'bg-[#f3f2f1]',
-    text: 'text-[#605e5c]',
-    icon: <img src="/servicenow-logo.svg" alt="ServiceNow" style={{ width: 12, height: 12, objectFit: 'contain', display: 'block' }} />,
-  },
-  connector: {
-    label: 'Connector settings',
-    bg: 'bg-[#f3f2f1]',
-    text: 'text-[#605e5c]',
-    icon: (
-      <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-        <circle cx="2.5" cy="5" r="1.5" stroke="#605e5c" strokeWidth="1" />
-        <circle cx="7.5" cy="2.5" r="1.5" stroke="#605e5c" strokeWidth="1" />
-        <circle cx="7.5" cy="7.5" r="1.5" stroke="#605e5c" strokeWidth="1" />
-        <path d="M4 5h2M6 5V2.5M6 5v2.5" stroke="#605e5c" strokeWidth="1" strokeLinecap="round" />
-      </svg>
-    ),
-  },
-  mismatch: {
-    label: 'Setup tab',
-    bg: 'bg-[#f3f2f1]',
-    text: 'text-[#605e5c]',
-    icon: (
-      <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-        <path d="M5 1L9 9H1L5 1Z" stroke="#605e5c" strokeWidth="1" strokeLinejoin="round" />
-        <path d="M5 4v2M5 7.5v.5" stroke="#605e5c" strokeWidth="1" strokeLinecap="round" />
-      </svg>
-    ),
-  },
-  unsupported: {
-    label: 'Not supported',
-    bg: 'bg-[#f3f2f1]',
-    text: 'text-[#605e5c]',
-    icon: (
-      <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-        <circle cx="5" cy="5" r="4.5" stroke="#605e5c" strokeWidth="1" />
-        <path d="M3 3l4 4M7 3L3 7" stroke="#605e5c" strokeWidth="1" strokeLinecap="round" />
-      </svg>
-    ),
-  },
-};
-
-function SourceTag({ source, connectorTab, onNavigate }: { source: IssueSource; connectorTab?: string; onNavigate?: () => void }) {
-  const cfg = SOURCE_CONFIG[source];
-  const label = (source === 'connector' && connectorTab) ? `${connectorTab} tab` : cfg.label;
-
-  if (source === 'mismatch') {
-    return (
-      <span style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalXS }}>
-        <Badge appearance="filled" color="subtle" size="small" shape="circular"
-          onClick={onNavigate ? (e: React.MouseEvent) => { e.stopPropagation(); onNavigate(); } : undefined}
-          style={{ cursor: onNavigate ? 'pointer' : 'default', fontSize: 10, fontWeight: 600 }}>
-          Setup tab
-        </Badge>
-        <Badge appearance="filled" color="subtle" size="small" shape="circular"
-          icon={<span style={{ display: 'flex', alignItems: 'center' }}>{SOURCE_CONFIG.servicenow.icon}</span>}
-          style={{ fontSize: 10, fontWeight: 600 }}>
-          ServiceNow
-        </Badge>
-      </span>
-    );
-  }
-
-  return (
-    <Badge
-      appearance="filled"
-      color="subtle"
-      size="small"
-      shape="circular"
-      icon={source === 'connector' ? undefined : <span style={{ display: 'flex', alignItems: 'center' }}>{cfg.icon}</span>}
-      onClick={onNavigate ? (e: React.MouseEvent) => { e.stopPropagation(); onNavigate(); } : undefined}
-      style={{ cursor: onNavigate ? 'pointer' : 'default', fontSize: 10, fontWeight: 600 }}
-    >
-      {label}
-    </Badge>
   );
 }
 
@@ -475,8 +485,8 @@ export function getSyncCycleLabel(detectedAt: string, syncHistory: SyncEvent[]):
   const detectedMs = new Date(detectedAt).getTime();
   const sorted = [...syncHistory].sort((a, b) => new Date(a.startedAt).getTime() - new Date(b.startedAt).getTime());
   const match = sorted.find((e) => new Date(e.startedAt).getTime() >= detectedMs) ?? sorted[sorted.length - 1];
-  if (!match) return 'unknown sync';
-  return new Date(match.startedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' sync';
+  if (!match) return 'Unknown';
+  return new Date(match.startedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 export function IssueCard({ issue, onToggle, detectedSyncLabel, isChecked, onCheck, onDismiss, onFix, unseen }: { issue: DiagnosticIssue; expanded: boolean; onToggle: () => void; onDiagnose?: () => void; detectedSyncLabel?: string; onNavigateToField?: (tab: string, fieldId: string) => void; isChecked?: boolean; onCheck?: () => void; onDismiss?: () => void; onFix?: () => void; unseen?: boolean }) {
@@ -489,38 +499,48 @@ export function IssueCard({ issue, onToggle, detectedSyncLabel, isChecked, onChe
       onClick={onToggle}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      appearance="filled"
+      appearance="outline"
       style={{
         cursor: 'pointer',
-        borderColor: hovered ? tokens.colorBrandStroke1 : isBlocker ? tokens.colorStatusDangerBorder1 : issue.severity === 'suggestion' ? tokens.colorStatusWarningBorder1 : tokens.colorNeutralStroke1,
-        borderWidth: isBlocker ? 1.5 : 1,
-        boxShadow: hovered ? tokens.shadow8 : tokens.shadow4,
-        transition: 'box-shadow 0.15s, border-color 0.15s',
+        backgroundColor: '#ffffff',
+        transition: 'box-shadow 0.15s',
+        boxShadow: hovered ? tokens.shadow8 : undefined,
       }}
     >
-      {/* Top row: severity badge + source tag + unseen dot */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS }}>
-        <Badge
-          appearance="ghost"
-          color={isBlocker ? 'danger' : 'warning'}
-          size="small"
-          shape="circular"
-style={{ textTransform: 'uppercase', fontSize: 10, fontWeight: 700, letterSpacing: '0.05em' }}
-        >
-          {isBlocker ? cfg.label : 'Suggestion'}
-        </Badge>
-        <SourceTag source={issue.source} connectorTab={issue.connectorTab} />
+      {/* Top row: source tag left, need action badge right */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: tokens.spacingHorizontalS, marginBottom: tokens.spacingVerticalS }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          {issue.connectorTab && (
+            <SourceTag source="connector" connectorTab={issue.connectorTab} />
+          )}
+          {(!issue.connectorTab || issue.source !== 'connector') && (
+            <SourceTag source={issue.source} connectorTab={issue.connectorTab} />
+          )}
+        </div>
+        {isBlocker ? (
+          <Badge
+            appearance="tint"
+            color="danger"
+            size="medium"
+            shape="circular"
+          >
+            Needs action
+          </Badge>
+        ) : (
+          <Badge
+            appearance="ghost"
+            color="warning"
+            size="medium"
+            shape="circular"
+          >
+            Suggestion
+          </Badge>
+        )}
       </div>
 
       <CardHeader
         header={
-          <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS }}>
-            {isBlocker
-              ? <AlertSolidIcon style={{ fontSize: 14, color: '#a80000', flexShrink: 0 }} />
-              : <WarningSolidIcon style={{ fontSize: 14, color: '#c87e00', flexShrink: 0 }} />
-            }
-            <Text weight="semibold" size={300}>{issue.title}</Text>
-          </div>
+          <Text weight="semibold" size={300} style={{ color: '#000000' }}>{issue.title}</Text>
         }
         description={issue.copilotImpact
           ? <Text style={{ fontSize: 14, color: tokens.colorNeutralForeground3, marginTop: tokens.spacingVerticalS }}>{issue.copilotImpact}</Text>
@@ -529,7 +549,7 @@ style={{ textTransform: 'uppercase', fontSize: 10, fontWeight: 700, letterSpacin
 
       <CardFooter>
         <span />
-        <Text size={100} style={{ color: tokens.colorNeutralForeground4, marginLeft: 'auto' }}>{detectedSyncLabel ?? '—'}</Text>
+        <Text size={200} style={{ color: tokens.colorNeutralForeground3, marginLeft: 'auto' }}>{detectedSyncLabel ?? '—'}</Text>
       </CardFooter>
     </Card>
   );
@@ -584,6 +604,16 @@ function GuideSection({ steps }: { steps: { step: number; title: string; descrip
 // ─── Recommended-actions helpers (used inside ActionFocusView) ─────────────────
 
 const ISSUE_ERROR_LOGS: Record<string, string[]> = {
+  'setup-edit-authentication-failed': [
+    '[Validation] Authentication failed during setup edit flow.',
+    '[Validation] Connector creation blocked until credentials are re-authenticated.',
+    '[Validation] Action required: Update credentials in Setup and retry connection creation.',
+  ],
+  'setup-edit-content-filetype-semantic-label': [
+    '[Validation] Content property mapping check failed during setup edit flow.',
+    '[Validation] Property "Filetype" is missing a semantic label required for correct indexing.',
+    '[Validation] Action required: Add the correct semantic label from the source in Manage properties.',
+  ],
   'sn-1': [
     '[2026-03-17 06:02:11] POST https://contoso.service-now.com/api/now/table/kb_knowledge → 403 Forbidden',
     '[2026-03-17 06:02:11] Response: {"error":{"message":"User Not Authenticated","detail":"Required to provide Auth information"}}',
@@ -654,10 +684,10 @@ function RecommendedActionsTable({ actions, onNavigateToField, onAnyApplied, app
     createTableColumn<RecommendedAction>({ columnId: 'expand' }),
   ];
 
-  const { getRows, selection: { toggleRow, isRowSelected } } = useTableFeatures(
+  const { getRows, selection: { isRowSelected } } = useTableFeatures(
     { columns, items: actions, getRowId: (item) => item.id },
     [useTableSelection({
-      selectionMode: 'multiselect',
+      selectionMode: 'single',
       selectedItems: expandedRows,
       onSelectionChange: (_e, data) => setExpandedRows(data.selectedItems as Set<string>),
     })]
@@ -668,20 +698,33 @@ function RecommendedActionsTable({ actions, onNavigateToField, onAnyApplied, app
     const selected = isRowSelected(row.rowId);
     return {
       ...row,
-      onClick: (e: React.MouseEvent) => { if (hasSteps) toggleRow(e, row.rowId); },
-      onKeyDown: (e: React.KeyboardEvent) => { if (e.key === ' ' && hasSteps) { e.preventDefault(); toggleRow(e, row.rowId); } },
+      onClick: (e: React.MouseEvent) => {
+        if (!hasSteps) return;
+        e.preventDefault();
+        setExpandedRows(selected ? new Set() : new Set([String(row.rowId)]));
+      },
+      onKeyDown: (e: React.KeyboardEvent) => {
+        if (!hasSteps) return;
+        if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          setExpandedRows(selected ? new Set() : new Set([String(row.rowId)]));
+        }
+      },
       selected,
       appearance: (selected ? 'brand' : 'none') as 'brand' | 'none',
     };
   });
 
   return (
-    <Table aria-label="Recommended actions" style={{ minWidth: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalS }}>
+      <Table aria-label="Recommended actions" style={{ minWidth: '100%' }}>
       <TableBody>
         {rows.map(({ item, selected, onClick, onKeyDown, appearance }) => {
           const isApplied = appliedRows.has(item.id);
           const hasSteps = !!(item.steps && item.steps.length > 0);
           const isExpanded = hasSteps && selected;
+          const badgeTab = item.steps?.find((step) => step.tab)?.tab;
+          const showServiceNowBadge = item.where === 'servicenow';
 
           return (
             <React.Fragment key={item.id}>
@@ -692,28 +735,42 @@ function RecommendedActionsTable({ actions, onNavigateToField, onAnyApplied, app
                 appearance={appearance}
                 style={{ cursor: hasSteps ? 'pointer' : 'default' }}
               >
-                <TableCell style={{ width: 28, padding: '12px 0' }}>
-                  <span style={isApplied ? {
-                    ['--colorCompoundBrandBackground' as string]: tokens.colorPaletteGreenBackground3,
-                    ['--colorCompoundBrandBackgroundHover' as string]: tokens.colorPaletteGreenBackground3,
-                    ['--colorCompoundBrandBackgroundPressed' as string]: tokens.colorPaletteGreenBackground3,
-                    ['--colorNeutralForegroundOnBrand' as string]: '#ffffff',
-                  } : undefined}>
-                    <Checkbox
-                      checked={isApplied}
-                      onChange={(e) => { e.stopPropagation(); setAppliedRows(s => { const n = new Set(s); isApplied ? n.delete(item.id) : n.add(item.id); return n; }); }}
-                      onClick={(e) => e.stopPropagation()}
-                      shape="circular"
-                    />
-                  </span>
-                </TableCell>
-                <TableCell style={item.recommended ? { paddingBottom: 12 } : undefined}>
+                <TableCell style={item.recommended ? { paddingTop: 12, paddingBottom: 16 } : { paddingTop: 12, paddingBottom: 12 }}>
                   <TableCellLayout truncate>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                      <Text size={300} weight="semibold" style={{ color: tokens.colorBrandForeground1 }}>{item.label}</Text>
-                      {item.recommended && (
-                        <Badge appearance="tint" color="success" size="small" shape="circular" style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', alignSelf: 'flex-start' }}>Recommended</Badge>
-                      )}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, overflow: 'visible', flex: 1 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 6, width: '100%' }}>
+                        {(badgeTab || showServiceNowBadge) && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        {badgeTab && (
+                          <Badge
+                            appearance="outline"
+                            color="informative"
+                            size="medium"
+                            shape="circular"
+                            icon={badgeTab === 'ServiceNow'
+                              ? <span style={{ display: 'flex', alignItems: 'center' }}>{SOURCE_CONFIG.servicenow.icon}</span>
+                              : <PlugConnectedRegular style={{ fontSize: 12 }} />}
+                            style={sourceBadgeStyle}
+                          >
+                            {badgeTab === 'ServiceNow' ? 'ServiceNow' : `${badgeTab} tab`}
+                          </Badge>
+                        )}
+                        {showServiceNowBadge && badgeTab !== 'ServiceNow' && (
+                          <Badge
+                            appearance="outline"
+                            color="informative"
+                            size="medium"
+                            shape="circular"
+                            icon={<span style={{ display: 'flex', alignItems: 'center' }}>{SOURCE_CONFIG.servicenow.icon}</span>}
+                            style={sourceBadgeStyle}
+                          >
+                            ServiceNow
+                          </Badge>
+                        )}
+                          </div>
+                        )}
+                        <Text size={300} weight="semibold" style={{ color: tokens.colorNeutralForeground1, flex: 1, minWidth: 0 }}>{item.label}</Text>
+                      </div>
                     </div>
                   </TableCellLayout>
                 </TableCell>
@@ -728,37 +785,34 @@ function RecommendedActionsTable({ actions, onNavigateToField, onAnyApplied, app
 
               {isExpanded && (
                 <TableRow appearance="none">
-                  <TableCell colSpan={3} style={{ padding: '12px 0 20px 4px' }}>
+                  <TableCell colSpan={2} style={{ padding: '12px 0 20px 4px' }}>
                     <TableCellLayout>
                       <div className={slideInClass} style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalL }}>
                         {item.steps!.map((step, i) => {
                           const isNavigable = !!(step.tab && step.fieldId && onNavigateToField);
                           const stepApplied = isApplied && step.executable;
+                          const stepCopy = step.description ?? step.label;
                           return (
                             <div key={i} style={{ display: 'flex', gap: tokens.spacingHorizontalM, alignItems: 'flex-start' }}>
-                              <span style={{ flexShrink: 0, width: 20, height: 20, borderRadius: '50%', background: stepApplied ? tokens.colorPaletteGreenBackground3 : tokens.colorNeutralBackground3, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 2 }}>
-                                {stepApplied
-                                  ? <StatusCircleCheckmarkIcon style={{ fontSize: 12, color: tokens.colorPaletteGreenForeground2 }} />
-                                  : <Text size={100} weight="semibold" style={{ color: tokens.colorNeutralForeground2 }}>{i + 1}</Text>
-                                }
+                              <span style={{ flexShrink: 0, width: 20, height: 20, borderRadius: '50%', background: tokens.colorNeutralBackground3, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 2 }}>
+                                <Text size={100} weight="semibold" style={{ color: tokens.colorNeutralForeground2 }}>{i + 1}</Text>
                               </span>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1 }}>
+                              <div style={{ flex: 1 }}>
                                 {step.executable ? (
                                   stepApplied ? (
                                     <Text size={300} weight="semibold" style={{ color: tokens.colorPaletteGreenForeground2 }}>{step.confirmationMessage ?? step.label}</Text>
                                   ) : (
                                     <button onClick={(e) => { e.stopPropagation(); setAppliedRows(s => new Set(s).add(item.id)); }} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
-                                      <Text size={300}>{step.label}</Text>
+                                      <Text size={300}>{stepCopy}</Text>
                                     </button>
                                   )
                                 ) : isNavigable ? (
                                   <button onClick={(e) => { e.stopPropagation(); onNavigateToField!(step.tab!, step.fieldId!); }} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
-                                    <Text size={300} style={{ color: tokens.colorBrandForeground1, textDecoration: 'underline' }}>{step.label}</Text>
+                                    <Text size={300} style={{ color: tokens.colorBrandForeground1, textDecoration: 'underline' }}>{stepCopy}</Text>
                                   </button>
                                 ) : (
-                                  <Text size={300}>{step.label}</Text>
+                                  <Text size={300}>{stepCopy}</Text>
                                 )}
-                                {step.description && <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>{step.description}</Text>}
                               </div>
                             </div>
                           );
@@ -771,40 +825,10 @@ function RecommendedActionsTable({ actions, onNavigateToField, onAnyApplied, app
             </React.Fragment>
           );
         })}
-        {onSync && (
-          <TableRow key="__sync__" style={{ cursor: 'pointer' }} onClick={onSync}>
-            <TableCell style={{ width: 28, padding: '12px 0', verticalAlign: 'middle' }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, marginLeft: 2 }}>
-                <StatusCircleSyncIcon style={{ fontSize: 24, color: tokens.colorBrandForeground1 }} />
-              </span>
-            </TableCell>
-            <TableCell colSpan={2}>
-              <TableCellLayout>
-                <Text size={300} weight="semibold" style={{ color: tokens.colorBrandForeground1 }}>Sync changes now</Text>
-              </TableCellLayout>
-            </TableCell>
-          </TableRow>
-        )}
         {isSuggestion && (() => {
           const isDismissed = appliedRows.has('__dismiss__');
           return (
             <TableRow key="__dismiss__" style={{ cursor: 'pointer' }} onClick={() => setAppliedRows(s => { const n = new Set(s); isDismissed ? n.delete('__dismiss__') : n.add('__dismiss__'); return n; })}>
-              <TableCell style={{ width: 28, padding: '12px 0' }}>
-                <span style={isDismissed ? {
-                  ['--colorCompoundBrandBackground' as string]: tokens.colorPaletteGreenBackground3,
-                  ['--colorCompoundBrandBackgroundHover' as string]: tokens.colorPaletteGreenBackground3,
-                  ['--colorCompoundBrandBackgroundPressed' as string]: tokens.colorPaletteGreenBackground3,
-                  ['--colorNeutralForegroundOnBrand' as string]: '#ffffff',
-                } : undefined}>
-                  <Checkbox
-                    checked={isDismissed}
-                    onChange={(e) => e.stopPropagation()}
-                    onClick={(e) => e.stopPropagation()}
-                    shape="circular"
-                    style={{ pointerEvents: 'none' }}
-                  />
-                </span>
-              </TableCell>
               <TableCell colSpan={2}>
                 <TableCellLayout>
                   <Text size={300} weight="semibold" style={{ color: tokens.colorBrandForeground1 }}>Dismiss suggestion</Text>
@@ -815,25 +839,14 @@ function RecommendedActionsTable({ actions, onNavigateToField, onAnyApplied, app
         })()}
       </TableBody>
     </Table>
+    </div>
   );
 }
 
 function useIssueErrorLog(issueId: string) {
-  const [open, setOpen] = React.useState(false);
   const logs = ISSUE_ERROR_LOGS[issueId];
   const hasLogs = !!(logs && logs.length > 0);
-  return { open, setOpen, logs, hasLogs };
-}
-
-function IssueErrorLogPanel({ logs, open }: { logs: string[]; open: boolean }) {
-  if (!open) return null;
-  return (
-    <div style={{ borderRadius: 6, background: '#1e1e1e', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalXS, overflowX: 'auto' }}>
-      {logs.map((line, i) => (
-        <span key={i} style={{ fontSize: 10, lineHeight: '16px', whiteSpace: 'pre', fontFamily: 'monospace', color: '#d4d4d4' }}>{line}</span>
-      ))}
-    </div>
-  );
+  return { logs, hasLogs };
 }
 
 function ActionFocusView({ issue, onBack, detectedSyncLabel, onNavigateToField, currentIndex, total, onPrev, onNext, isResolved, appliedRows, onAppliedRowsChange, onGoToResolved, style }: {
@@ -855,6 +868,17 @@ function ActionFocusView({ issue, onBack, detectedSyncLabel, onNavigateToField, 
     setAnyActionApplied(val);
   };
   const errorLog = useIssueErrorLog(issue.id);
+  const handleDownloadErrorLog = React.useCallback(() => {
+    if (!errorLog.logs || errorLog.logs.length === 0) return;
+    const content = errorLog.logs.join('\n');
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${issue.id}-error-log.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }, [errorLog.logs, issue.id]);
   const handleNavigate = (issue.connectorTab && issue.connectorFieldId && onNavigateToField)
     ? () => onNavigateToField!(issue.connectorTab!, issue.connectorFieldId!)
     : undefined;
@@ -869,64 +893,55 @@ function ActionFocusView({ issue, onBack, detectedSyncLabel, onNavigateToField, 
         : { text: 'Unsupported configuration', external: true };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', ...style }}>
-      {/* CommandBar — 48px */}
+    <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#ffffff', ...style }}>
+      {/* Command strip */}
       <div style={{ flexShrink: 0, height: 48, padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Button
-          appearance="transparent"
-          icon={<BackIcon style={{ fontSize: 14 }} />}
-          onClick={onBack}
-          size="small"
-          style={{ padding: '0 4px', minWidth: 0, color: tokens.colorNeutralForeground3 }}
-        />
-        <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS }}>
-          {total !== undefined && total > 1 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalXS }}>
-              {(isResolved || (appliedRows && appliedRows.size > 0)) && (
-                <Text size={100} style={{ color: tokens.colorNeutralForeground4, cursor: onGoToResolved ? 'pointer' : 'default', textDecoration: onGoToResolved ? 'underline' : 'none' }} onClick={onGoToResolved}>Resolved</Text>
-              )}
-              <Button appearance="subtle" size="small" onClick={onPrev} disabled={!onPrev} style={{ minWidth: 0, padding: '0 8px', height: 28 }}>Back</Button>
-              {onNext
-                ? <Button size="small" onClick={onNext} style={{ minWidth: 0, padding: '0 8px', height: 28 }}>Next</Button>
-                : <Button appearance="subtle" size="small" icon={<ChevronRightIcon style={{ fontSize: 12 }} />} disabled />
-              }
-            </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalXS }}>
+          <ActionButton
+            ariaLabel="Back"
+            iconProps={{ iconName: 'Back' }}
+            onClick={onBack}
+            styles={{ root: { minWidth: 0, padding: '0 8px', height: 28 } }}
+          />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalXS }}>
+          <ActionButton
+            ariaLabel="Previous issue"
+            iconProps={{ iconName: 'Up' }}
+            onClick={onPrev}
+            disabled={!onPrev}
+            styles={{ root: { minWidth: 0, padding: '0 8px', height: 28 } }}
+          />
+          <ActionButton
+            ariaLabel="Next issue"
+            iconProps={{ iconName: 'Down' }}
+            onClick={onNext}
+            disabled={!onNext}
+            styles={{ root: { minWidth: 0, padding: '0 8px', height: 28 } }}
+          />
+          {(isResolved || (appliedRows && appliedRows.size > 0)) && (
+            <Text size={100} style={{ color: tokens.colorNeutralForeground4, cursor: onGoToResolved ? 'pointer' : 'default', textDecoration: onGoToResolved ? 'underline' : 'none', marginLeft: 6 }} onClick={onGoToResolved}>Resolved</Text>
           )}
         </div>
       </div>
 
       {/* Scrollable body */}
-      <div ref={(el) => { if (el) el.scrollTop = 0; }} key={issue.id} style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', padding: '8px 24px 32px' }}>
+      <div data-action-focus-body="true" ref={(el) => { if (el) el.scrollTop = 0; }} key={issue.id} style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%', boxSizing: 'border-box', padding: '8px 24px 32px' }}>
 
-          {/* Badge + source */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS, flexWrap: 'wrap', marginBottom: tokens.spacingVerticalS }}>
-            <Badge appearance="tint" color={isBlocker ? 'danger' : 'warning'} size="small" shape="circular"
-              style={{ textTransform: 'uppercase', fontSize: 10, fontWeight: 700, letterSpacing: '0.05em' }}>
-              {isBlocker ? cfg.label : 'Suggestion'}
-            </Badge>
-            <SourceTag source={issue.source} connectorTab={issue.connectorTab} onNavigate={handleNavigate} />
+          {/* Status row: Need action */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS, marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS }}>
+              <Badge appearance="tint" color={isBlocker ? 'danger' : 'warning'} size="medium" shape="circular">
+                {isBlocker ? 'Needs action' : 'Suggestion'}
+              </Badge>
+            </div>
           </div>
 
           {/* Title */}
-          <Text as="h2" style={{ fontSize: 20, fontWeight: 700, lineHeight: '28px', margin: '0 0 6px' }}>{issue.title}</Text>
+          <Text as="h2" style={{ fontSize: 20, fontWeight: 700, lineHeight: '28px', margin: '0 0 12px' }}>{issue.title}</Text>
 
-          {/* Sync date */}
-          <Text size={200} style={{ color: tokens.colorNeutralForeground4, display: 'block', marginBottom: 20 }}>{detectedSyncLabel ?? '—'}</Text>
-
-          {/* Copilot impact */}
-          {issue.copilotImpact && (() => {
-            const isWarning = issue.severity === 'suggestion';
-            const showUnblocked = anyActionApplied && actionTakenThisSession.current;
-            const intent = showUnblocked ? 'success' : isWarning ? 'warning' : 'error';
-            return (
-              <MessageBar intent={intent} layout="multiline" style={{ marginBottom: 20 }}>
-                <MessageBarBody>
-                  {showUnblocked ? <><Text weight="semibold">Copilot unblocked</Text>{' '}Applying this fix will restore Copilot indexing.</> : issue.copilotImpact}
-                </MessageBarBody>
-              </MessageBar>
-            );
-          })()}
+          <Text size={200} style={{ color: tokens.colorNeutralForeground3, display: 'block', marginBottom: 12 }}>{detectedSyncLabel ?? '—'}</Text>
 
           {/* Description */}
           <Text size={300} style={{ color: tokens.colorNeutralForeground2, lineHeight: '22px', display: 'block', marginBottom: 32 }}>{issue.description}</Text>
@@ -934,35 +949,30 @@ function ActionFocusView({ issue, onBack, detectedSyncLabel, onNavigateToField, 
           {/* Recommended actions */}
           {issue.recommendedActions && issue.recommendedActions.length > 0 && (
             <div key={issue.id} className={slideInClass} style={{ marginBottom: 0 }}>
-              <Text weight="semibold" size={200} style={{ display: 'block', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.05em', color: tokens.colorNeutralForeground3 }}>Recommended actions</Text>
               <RecommendedActionsTable actions={issue.recommendedActions} onNavigateToField={onNavigateToField} onAnyApplied={handleAnyActionApplied} appliedRowsControlled={appliedRows} onAppliedRowsChange={onAppliedRowsChange} isSuggestion={issue.severity === 'suggestion'} onSync={() => {}} />
             </div>
           )}
 
           {/* Footer */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 0 }}>
-            <div style={{ height: 24 }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 'auto', paddingTop: 24, alignItems: 'flex-start' }}>
 
-            {/* Show response — for blockers, at the bottom */}
+            {/* Direct log download action — for blockers, at the bottom */}
             {isBlocker && (
-              <div>
-                <Button appearance="transparent" size="small" onClick={() => errorLog.setOpen(v => !v)} style={{ padding: 0, minWidth: 0 }}>
-                  <Text size={200} weight="semibold">Show response</Text>
-                  <ChevronDownIcon style={{ fontSize: 10, marginLeft: 4, transition: 'transform 0.2s', transform: errorLog.open ? 'rotate(180deg)' : 'rotate(0deg)' }} />
-                </Button>
-                {errorLog.open && errorLog.logs && <div style={{ marginTop: tokens.spacingVerticalS }}><IssueErrorLogPanel logs={errorLog.logs} open={errorLog.open} /></div>}
+              <div style={{ width: '100%' }}>
+                <ActionButton
+                  onRenderIcon={() => <DownloadIcon style={{ fontSize: 16 }} />}
+                  text="Download error log"
+                  onClick={handleDownloadErrorLog}
+                  disabled={!errorLog.hasLogs}
+                />
               </div>
             )}
 
-            <a
-              href="https://support.microsoft.com/en-us/contactus"
-              target="_blank" rel="noreferrer"
-              style={{ fontSize: 14, fontWeight: 600, color: tokens.colorNeutralForeground2, textDecoration: 'none' }}
-              onMouseOver={e => (e.currentTarget.style.textDecoration = 'underline')}
-              onMouseOut={e => (e.currentTarget.style.textDecoration = 'none')}
-            >
-              Raise a support ticket
-            </a>
+            <ActionButton
+              onRenderIcon={() => <ChatEmptyRegular style={{ fontSize: 16 }} />}
+              text="Raise a support ticket"
+              onClick={() => window.open('https://support.microsoft.com/en-us/contactus', '_blank', 'noopener,noreferrer')}
+            />
           </div>
 
         </div>
@@ -1136,7 +1146,7 @@ export function SyncHealthChart({ connector }: { connector: Connector }) {
       <div className="flex items-center gap-4 pt-2 flex-wrap">
         {[
           { color: '#107c10', label: 'Healthy' },
-          { color: '#c87e00', label: 'Good' },
+          { color: '#c87e00', label: 'Needs attention' },
           { color: '#a80000', label: 'Fix' },
         ].map((l) => (
           <div key={l.label} className="flex items-center gap-2">
@@ -1190,11 +1200,11 @@ export function ActionStats({ blockers, suggestions }: { blockers: number; sugge
   );
 }
 
-export function ActionRail({ connector, onNavigateToField, onFocusedChange, backTrigger, appliedRowsMap, setAppliedRowsMap }: { connector: Connector; onNavigateToField?: (tab: string, fieldId: string) => void; onFocusedChange?: (focused: boolean) => void; backTrigger?: number; appliedRowsMap: Map<string, Set<string>>; setAppliedRowsMap: React.Dispatch<React.SetStateAction<Map<string, Set<string>>>> }) {
+export function ActionRail({ connector, onNavigateToField, onFocusedChange, backTrigger, appliedRowsMap, setAppliedRowsMap, validationIssue }: { connector: Connector; onNavigateToField?: (tab: string, fieldId: string) => void; onFocusedChange?: (focused: boolean) => void; backTrigger?: number; appliedRowsMap: Map<string, Set<string>>; setAppliedRowsMap: React.Dispatch<React.SetStateAction<Map<string, Set<string>>>>; validationIssue?: DiagnosticIssue }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [trendOpen, setTrendOpen] = useState(false);
   const [diagnosing, setDiagnosing] = useState<DiagnosticIssue | null>(null);
-  const [activeFilter, setActiveFilter] = useState<'todo' | 'pending'>('todo');
+  const [activeFilter, setActiveFilter] = useState<'todo'>('todo');
   const [fixModeActive, setFixModeActive] = useState(false);
   const [fixStep, setFixStep] = useState(0);
   // Checklist state
@@ -1202,28 +1212,90 @@ export function ActionRail({ connector, onNavigateToField, onFocusedChange, back
   const [syncedIds, setSyncedIds] = useState<Set<string>>(new Set());
   const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
   const [syncDialogOpen, setSyncDialogOpen] = useState(false);
-  const [syncState, setSyncState] = useState<'idle' | 'saving' | 'syncing'>('idle');
+  const [syncState, setSyncState] = useState<'idle' | 'saving' | 'validating' | 'syncing'>('idle');
   const [syncElapsed, setSyncElapsed] = useState(0);
+  const [syncCurrentIssueId, setSyncCurrentIssueId] = useState<string | null>(null);
+  const [syncCompletedCount, setSyncCompletedCount] = useState(0);
+  const [syncTotalCount, setSyncTotalCount] = useState(0);
   const syncStartRef = React.useRef<number>(0);
   const syncTargetIds = React.useRef<string[]>([]);
+  const syncTimersRef = React.useRef<number[]>([]);
+
+  const clearSyncTimers = React.useCallback(() => {
+    syncTimersRef.current.forEach((id) => window.clearTimeout(id));
+    syncTimersRef.current = [];
+  }, []);
+
+  const getDetectedLabel = React.useCallback((issue: DiagnosticIssue) => {
+    if (issue.id.startsWith('setup-edit-')) {
+      const detected = new Date(issue.detectedAt);
+      if (!Number.isNaN(detected.getTime())) {
+        return detected.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+        });
+      }
+    }
+    return getSyncCycleLabel(issue.detectedAt, connector.syncHistory);
+  }, [connector.syncHistory]);
+
+  React.useEffect(() => {
+    return () => clearSyncTimers();
+  }, [clearSyncTimers]);
+
+  const runSyncIssue = React.useCallback((ids: string[], index: number) => {
+    if (index >= ids.length) {
+      setSyncState('idle');
+      setSyncCurrentIssueId(null);
+      setSyncCompletedCount(ids.length);
+      setActiveFilter('todo');
+      return;
+    }
+
+    const issueId = ids[index];
+    setSyncCurrentIssueId(issueId);
+    syncStartRef.current = Date.now();
+    setSyncState('validating');
+
+    const validateTimer = window.setTimeout(() => {
+      setSyncState('syncing');
+      syncStartRef.current = Date.now();
+
+      const syncTimer = window.setTimeout(() => {
+        setSyncedIds(prev => {
+          const n = new Set(prev);
+          n.add(issueId);
+          return n;
+        });
+        setSyncCompletedCount(index + 1);
+        runSyncIssue(ids, index + 1);
+      }, 1500);
+
+      syncTimersRef.current.push(syncTimer);
+    }, 1500);
+
+    syncTimersRef.current.push(validateTimer);
+  }, []);
 
   const handleSyncIssues = (ids: string[]) => {
+    clearSyncTimers();
     syncTargetIds.current = ids;
     setSyncState('saving');
     setSyncElapsed(0);
-    setTimeout(() => {
-      syncStartRef.current = Date.now();
-      setSyncState('syncing');
-      setTimeout(() => {
-        setSyncedIds(prev => { const n = new Set(prev); ids.forEach(id => n.add(id)); return n; });
-        setSyncState('idle');
-        setActiveFilter('todo');
-      }, 3000);
-    }, 1500);
+    setSyncCurrentIssueId(null);
+    setSyncCompletedCount(0);
+    setSyncTotalCount(ids.length);
+
+    const saveTimer = window.setTimeout(() => {
+      runSyncIssue(ids, 0);
+    }, 1000);
+
+    syncTimersRef.current.push(saveTimer);
   };
 
   useEffect(() => {
-    if (syncState !== 'syncing') return;
+    if (syncState !== 'syncing' && syncState !== 'validating') return;
     const id = setInterval(() => setSyncElapsed(Math.floor((Date.now() - syncStartRef.current) / 1000)), 1000);
     return () => clearInterval(id);
   }, [syncState]);
@@ -1244,7 +1316,7 @@ export function ActionRail({ connector, onNavigateToField, onFocusedChange, back
   React.useEffect(() => { if (backTrigger) { setFocused(null); } }, [backTrigger]);
 
   if (diagnosing) {
-    return <DiagnosticDrillDown issue={diagnosing} onBack={() => setDiagnosing(null)} detectedSyncLabel={getSyncCycleLabel(diagnosing.detectedAt, connector.syncHistory)} onNavigateToField={onNavigateToField} />;
+    return <DiagnosticDrillDown issue={diagnosing} onBack={() => setDiagnosing(null)} detectedSyncLabel={getDetectedLabel(diagnosing)} onNavigateToField={onNavigateToField} />;
   }
 
   if (focusedAction) {
@@ -1266,7 +1338,7 @@ export function ActionRail({ connector, onNavigateToField, onFocusedChange, back
         style={{ position: 'absolute', inset: 0 }}
         issue={focusedAction}
         onBack={() => setFocused(null)}
-        detectedSyncLabel={getSyncCycleLabel(focusedAction.detectedAt, connector.syncHistory)}
+        detectedSyncLabel={getDetectedLabel(focusedAction)}
         onNavigateToField={onNavigateToField}
         currentIndex={focusedUnresolvedIdx >= 0 ? focusedUnresolvedIdx : focusedIdx}
         total={unresolvedIssues.length}
@@ -1275,12 +1347,13 @@ export function ActionRail({ connector, onNavigateToField, onFocusedChange, back
         isResolved={focusedIsResolved}
         appliedRows={appliedRowsMap.get(focusedAction.id) ?? new Set()}
         onAppliedRowsChange={(rows) => setAppliedRowsMap(m => { const n = new Map(m); n.set(focusedAction.id, rows); return n; })}
-        onGoToResolved={() => { setFocused(null); setActiveFilter('pending'); }}
+        onGoToResolved={() => { setFocused(null); }}
       />
     );
   }
 
-  const activeIssues = connector.issues.filter((i) => !i.resolvedAt && !syncedIds.has(i.id));
+  const connectorIssues = connector.issues.filter((i) => !i.resolvedAt && !syncedIds.has(i.id));
+  const activeIssues = validationIssue ? [validationIssue, ...connectorIssues] : connectorIssues;
   const isFixed = (i: DiagnosticIssue) =>
     (i.severity === 'blocker' || i.severity === 'warning')
       ? checkedIds.has(i.id) || (appliedRowsMap.get(i.id)?.size ?? 0) > 0
@@ -1325,7 +1398,7 @@ export function ActionRail({ connector, onNavigateToField, onFocusedChange, back
   const toggleChecked = (id: string) => {
     setCheckedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else { next.add(id); setActiveFilter('pending'); }
+      if (next.has(id)) next.delete(id); else { next.add(id); }
       return next;
     });
   };
@@ -1348,49 +1421,17 @@ export function ActionRail({ connector, onNavigateToField, onFocusedChange, back
       {activeIssues.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
 
-          {/* Blockers / Suggestions stat row */}
-          <div style={{ marginBottom: 16 }}>
-            <ActionStats blockers={blockerIssues.length} suggestions={suggestionIssues.length} />
-          </div>
-
-          {/* Buttons — 16px below stat row, 24px above pills */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalS, marginBottom: 24 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS }}>
-              <Button appearance="primary" onClick={handleFixNext} disabled={syncState !== 'idle'}>Resolve</Button>
-              <Button
-                appearance="subtle"
-                icon={<RefreshIcon style={{ fontSize: 14 }} />}
-                disabled={syncState === 'syncing'}
-                onClick={() => {
-                  if (syncState === 'saving') return;
-                  handleSyncIssues(pendingSync.map(i => i.id));
-                }}
-              >
-                {syncState !== 'idle' ? 'Stop syncing' : 'Sync changes'}
-              </Button>
-            </div>
-            {syncState !== 'idle' && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS }}>
-                <Spinner size="extra-tiny" />
-                <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
-                  {syncState === 'saving' ? 'Saving...' : `Syncing — ${formatSyncElapsed(syncElapsed)}`}
-                </Text>
-              </div>
-            )}
-          </div>
-
-          {/* Group filter pills — 24px below buttons */}
+          {/* Group filter pills */}
           <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS, marginBottom: 24 }}>
             {([
-              { key: 'todo', label: 'Open', count: notStarted.length },
-              { key: 'pending', label: 'Awaiting sync', count: pendingSync.length },
+              { key: 'todo', label: 'Needs action', count: notStarted.length },
             ] as const).map((pill) => (
               <ToggleButton
                 key={pill.key}
                 shape="circular"
                 size="small"
                 checked={activeFilter === pill.key}
-                onClick={() => setActiveFilter(pill.key as any)}
+                onClick={() => setActiveFilter('todo')}
                 icon={pill.count > 0 ? (
                   <span style={{
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -1419,7 +1460,7 @@ export function ActionRail({ connector, onNavigateToField, onFocusedChange, back
                       expanded={false}
                       onToggle={() => { setFocused(issue); if (issue.connectorTab && issue.connectorFieldId && onNavigateToField) onNavigateToField(issue.connectorTab, issue.connectorFieldId); }}
                       onDiagnose={() => setDiagnosing(issue)}
-                      detectedSyncLabel={getSyncCycleLabel(issue.detectedAt, connector.syncHistory)}
+                      detectedSyncLabel={getDetectedLabel(issue)}
                       onNavigateToField={onNavigateToField}
                       isChecked={false}
                       unseen={!seenIds.has(issue.id)}
@@ -1434,7 +1475,7 @@ export function ActionRail({ connector, onNavigateToField, onFocusedChange, back
           )}
 
           {/* Fixed, pending sync */}
-          {(activeFilter === 'pending') && pendingSync.length > 0 && (
+          {pendingSync.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalS }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Text size={200} weight="semibold" style={{ color: tokens.colorNeutralForeground3, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -1445,9 +1486,20 @@ export function ActionRail({ connector, onNavigateToField, onFocusedChange, back
                   disabled={syncState !== 'idle'}
                   style={{ minWidth: 0, height: 26, padding: '0 10px', fontSize: 12 }}
                 >
-                  {syncState !== 'idle' ? `Syncing — ${formatSyncElapsed(syncElapsed)}` : `Sync ${pendingSync.length} fix${pendingSync.length !== 1 ? 'es' : ''}`}
+                  {syncState === 'saving'
+                    ? 'Saving changes...'
+                    : syncState === 'validating'
+                      ? `Validating ${Math.min(syncCompletedCount + 1, syncTotalCount)} of ${syncTotalCount} — ${formatSyncElapsed(syncElapsed)}`
+                      : syncState === 'syncing'
+                        ? `Syncing ${Math.min(syncCompletedCount + 1, syncTotalCount)} of ${syncTotalCount} — ${formatSyncElapsed(syncElapsed)}`
+                        : `Sync ${pendingSync.length} fix${pendingSync.length !== 1 ? 'es' : ''}`}
                 </Button>
               </div>
+              {syncState !== 'idle' && syncCurrentIssueId && (
+                <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+                  {syncState === 'validating' ? 'Validating action:' : syncState === 'syncing' ? 'Syncing action:' : 'Preparing action:'} {pendingSync.find((i) => i.id === syncCurrentIssueId)?.title ?? syncCurrentIssueId}
+                </Text>
+              )}
               <div className="flex flex-col gap-3">
                 {pendingSync.map((issue) => (
                   <IssueCard
@@ -1845,6 +1897,10 @@ type SetupTab = typeof SETUP_TABS[number];
 
 export default function AdvancedSetupPanel({ connectorType, existingConnector, onClose, onSwitchToSimple, initialFieldFocus, embedded }: AdvancedSetupPanelProps) {
   const isEdit = !!existingConnector;
+  const isSetupEditFlow = existingConnector?.id?.startsWith('setup-edit-') ?? false;
+  const [showSetupEditRail, setShowSetupEditRail] = useState(false);
+  const isRailEditMode = isEdit || showSetupEditRail;
+  const isEffectiveSetupEditFlow = isSetupEditFlow || showSetupEditRail;
   const [typeName, setTypeName] = useState(existingConnector?.connectorType ?? connectorType ?? 'ServiceNow Knowledge');
 
   // Resolve logo from gallery catalog when no existingConnector logo available
@@ -1853,8 +1909,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
   );
   const resolvedLogoUrl = existingConnector?.logoUrl ?? catalogItem?.logoUrl;
   const [activeTab, setActiveTab] = useState<SetupTab>('Setup');
-  const [rightRailTab, setRightRailTab] = useState<'actions' | 'guide'>(isEdit ? 'actions' : 'guide');
-  const railActionCount = existingConnector ? existingConnector.issues.filter((i) => !i.resolvedAt).length : 0;
+  const [rightRailTab, setRightRailTab] = useState<'actions' | 'guide'>(isRailEditMode ? 'actions' : 'guide');
   const MIN_CONTENT = 520;
   const MIN_RAIL = 280;
   const RAIL_THRESHOLD = MIN_CONTENT + MIN_RAIL; // 800px
@@ -1960,7 +2015,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
   const [displayName, setDisplayName] = useState(existingConnector?.displayName ?? '');
   const [userCriteria, setUserCriteria] = useState<UserCriteriaType>(existingConnector?.userCriteriaType ?? 'simple');
   const [instanceUrl, setInstanceUrl] = useState(existingConnector?.instanceUrl ?? '');
-  const [authMethod, setAuthMethod] = useState<AuthMethod>(existingConnector?.authMethod ?? 'none');
+  const [authMethod, setAuthMethod] = useState<AuthMethod>(isEffectiveSetupEditFlow ? 'oauth2' : (existingConnector?.authMethod ?? 'none'));
   const [basicUsername, setBasicUsername] = useState(existingConnector?.basicUsername ?? '');
   const [basicPassword, setBasicPassword] = useState(existingConnector?.basicPassword ?? '');
   const [clientId, setClientId] = useState('');
@@ -1974,53 +2029,541 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
     { value: 'it-pilot-group', name: 'IT Pilot Group' },
   ];
   const [selectedPeople, setSelectedPeople] = useState<string[]>(isEdit ? ['alex-johnson', 'maria-garcia', 'it-pilot-group'] : []);
+  const [managementTeamPeople, setManagementTeamPeople] = useState<string[]>(isEdit ? ['alex-johnson'] : []);
   const [notifyPeople, setNotifyPeople] = useState<string[]>(isEdit ? ['alex-johnson'] : []);
   const [rolloutLimited, setRolloutLimited] = useState(isEdit);
   const [hasChanges, setHasChanges] = useState(false);
   const [creating, setCreating] = useState(false);
   const [created, setCreated] = useState(false);
-  const [validating, setValidating] = useState(false);
-  const [validateProgress, setValidateProgress] = useState(0);
-  const [validateDone, setValidateDone] = useState(false);
+  const [createProgressStep, setCreateProgressStep] = useState(0);
+  const [syncingConfirm, setSyncingConfirm] = useState(false);
+  const [syncCompleted, setSyncCompleted] = useState(false);
+  const [validationState, setValidationState] = useState<ConnectionValidationState>(isEdit ? 'reflected' : 'idle');
+  const [validationStepIndex, setValidationStepIndex] = useState<number>(-1);
+  const [validationElapsedSeconds, setValidationElapsedSeconds] = useState<number>(0);
+  const [validationCompletedAt, setValidationCompletedAt] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [validationHasErrors, setValidationHasErrors] = useState(false);
+  const [validationFailureSequenceStep, setValidationFailureSequenceStep] = useState(0);
+  const [configVersion, setConfigVersion] = useState(1);
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+  const [lastReflectedAt, setLastReflectedAt] = useState<string | null>(existingConnector?.lastSyncAt ?? null);
+  const validationTimeoutsRef = React.useRef<Array<ReturnType<typeof setTimeout>>>([]);
+  const validationStartedAtRef = React.useRef<number | null>(null);
+  const shouldShowActionableErrors = catalogItem?.showActionableErrorsOnValidationFailure ?? false;
 
-  function markChanged() { setHasChanges(true); setValidateDone(false); }
+  const clearValidationTimers = React.useCallback(() => {
+    validationTimeoutsRef.current.forEach((t) => clearTimeout(t));
+    validationTimeoutsRef.current = [];
+  }, []);
 
-  function handleValidate() {
-    if (!hasChanges || validating) return;
-    setValidating(true);
-    setValidateProgress(0);
-    setValidateDone(false);
-    let pct = 0;
-    const interval = setInterval(() => {
-      pct += Math.random() * 18 + 6;
-      if (pct >= 100) {
-        clearInterval(interval);
-        setValidateProgress(100);
-        setValidateDone(true);
-        setValidating(false);
-        setHasChanges(false);
-      } else {
-        setValidateProgress(Math.round(pct));
-      }
-    }, 300);
+  const validationStillActive = createProgressStep <= 3 || validationHasErrors;
+
+  // Setup-edit validation issues (shown in Actions rail when in setup-edit flow)
+  const [setupEditValidationIssue, setupEditContentIssue] = React.useMemo(
+    () => createSetupEditIssues(validationCompletedAt),
+    [validationCompletedAt],
+  );
+
+  const setupEditRailConnector = React.useMemo<Connector>(() => ({
+    id: `setup-edit-${catalogItem?.id ?? 'connector'}`,
+    displayName,
+    connectorType: typeName,
+    logoUrl: resolvedLogoUrl,
+    userCriteriaType: userCriteria,
+    instanceUrl,
+    authMethod: (authMethod ?? 'none') as Connector['authMethod'],
+    basicUsername,
+    basicPassword,
+    healthStatus: 'error',
+    blockerCount: 2,
+    warningCount: 0,
+    suggestionCount: 0,
+    issues: [setupEditValidationIssue, setupEditContentIssue],
+    guideSteps: [],
+    syncHistory: [],
+    createdAt: new Date().toISOString(),
+    userCreated: true,
+  }), [authMethod, basicPassword, basicUsername, catalogItem?.id, displayName, instanceUrl, resolvedLogoUrl, setupEditContentIssue, setupEditValidationIssue, typeName, userCriteria]);
+
+  // Enhanced connector for ActionRail - includes setup-edit issues when in setup-edit flow
+  const connectorForRail = React.useMemo<Connector | undefined>(() => {
+    if (!existingConnector) {
+      return showSetupEditRail ? setupEditRailConnector : undefined;
+    }
+    if (!isEffectiveSetupEditFlow) return existingConnector;
+    
+    return {
+      ...existingConnector,
+      issues: [setupEditValidationIssue, setupEditContentIssue, ...existingConnector.issues.filter((i) => !i.id.startsWith('setup-edit-'))],
+      blockerCount: 2,
+    };
+  }, [existingConnector, isEffectiveSetupEditFlow, setupEditContentIssue, setupEditRailConnector, setupEditValidationIssue, showSetupEditRail]);
+
+  const railActionCount = connectorForRail
+    ? (isEffectiveSetupEditFlow ? 2 : 0) + connectorForRail.issues.filter((i) => !i.resolvedAt && !i.id.startsWith('setup-edit-')).length
+    : 0;
+  const isReturnedSetupEditMode = showSetupEditRail && !isEdit;
+  const shouldShowSetupEditDualButtons = isReturnedSetupEditMode || isSetupEditFlow;
+  const primaryFooterLabel = shouldShowSetupEditDualButtons
+    ? 'Create'
+    : isEdit
+      ? 'Save'
+      : 'Create';
+
+  React.useEffect(() => () => clearValidationTimers(), [clearValidationTimers]);
+
+  React.useEffect(() => {
+    if (validationState !== 'validating' || validationStartedAtRef.current === null) return;
+    const id = setInterval(() => {
+      const startedAt = validationStartedAtRef.current;
+      if (startedAt === null) return;
+      setValidationElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [validationState]);
+
+  function markChanged() {
+    setHasChanges(true);
+    setValidationState('pending');
+    setValidationError(null);
+    setValidationHasErrors(false);
+    setValidationFailureSequenceStep(0);
   }
+
+  const runValidationAndSync = React.useCallback((syncAfterValidation: boolean) => {
+    clearValidationTimers();
+    setValidationState('validating');
+    setValidationCompletedAt(null);
+    setValidationError(null);
+    setValidationHasErrors(false);
+    setValidationFailureSequenceStep(0);
+    setValidationStepIndex(0);
+    validationStartedAtRef.current = Date.now();
+    setValidationElapsedSeconds(0);
+
+    const shouldFailAuth = authMethod === 'basic' && (
+      basicUsername.toLowerCase().includes('invalid') ||
+      basicUsername.toLowerCase().includes('fail') ||
+      basicPassword.toLowerCase().includes('invalid') ||
+      basicPassword.toLowerCase().includes('fail')
+    );
+
+    const t1 = setTimeout(() => {
+      setValidationStepIndex(1);
+    }, 1600);
+    const t2 = setTimeout(() => {
+      setValidationStepIndex(2);
+    }, 3200);
+    const t3 = setTimeout(() => {
+      if (!isEdit && shouldShowActionableErrors) {
+        setValidationHasErrors(true);
+        setValidationFailureSequenceStep(0);
+
+        const t4 = setTimeout(() => {
+          setValidationFailureSequenceStep(1);
+        }, 1400);
+        const t5 = setTimeout(() => {
+          setValidationFailureSequenceStep(2);
+        }, 2800);
+        const t6 = setTimeout(() => {
+          setValidationFailureSequenceStep(3);
+          setValidationState('failed');
+          setValidationError('Validation issues found');
+          setValidationCompletedAt(new Date().toISOString());
+        }, 4200);
+
+        validationTimeoutsRef.current.push(t4, t5, t6);
+        return;
+      }
+
+      if (shouldFailAuth) {
+        setValidationHasErrors(true);
+        setValidationFailureSequenceStep(3);
+        setValidationStepIndex(0);
+        setValidationState('failed');
+        setValidationError('401 Unauthorized');
+        return;
+      }
+      setValidationState('passed');
+      setValidationCompletedAt(new Date().toISOString());
+      if (!syncAfterValidation) return;
+      const t4 = setTimeout(() => {
+        setValidationState('syncing');
+      }, 400);
+      const t5 = setTimeout(() => {
+        setValidationState('reflected');
+        setLastReflectedAt(new Date().toISOString());
+      }, 2400);
+      validationTimeoutsRef.current.push(t4, t5);
+    }, 5000);
+
+    validationTimeoutsRef.current.push(t1, t2, t3);
+  }, [authMethod, basicPassword, basicUsername, clearValidationTimers, isEdit, shouldShowActionableErrors]);
+
+  const runCreateConfirmationSequence = React.useCallback(() => {
+    clearValidationTimers();
+    setCreating(false);
+    setCreated(false);
+    setCreateProgressStep(1);
+    setValidationCompletedAt(null);
+    setValidationError(null);
+    setValidationState('idle');
+    setValidationStepIndex(-1);
+    setValidationHasErrors(false);
+    setValidationFailureSequenceStep(0);
+
+    const t1 = setTimeout(() => setCreateProgressStep(2), 1400);
+    const t2 = setTimeout(() => setCreateProgressStep(3), 2800);
+
+    if (shouldShowActionableErrors) {
+      const t3 = setTimeout(() => {
+        setValidationHasErrors(true);
+        setValidationFailureSequenceStep(0);
+      }, 1400);
+      const t4 = setTimeout(() => {
+        setValidationFailureSequenceStep(1);
+      }, 2800);
+      const t5 = setTimeout(() => {
+        setValidationFailureSequenceStep(2);
+      }, 4200);
+      const t6 = setTimeout(() => {
+        setValidationFailureSequenceStep(3);
+        setValidationState('failed');
+        setValidationError('Validation issues found');
+        setValidationCompletedAt(new Date().toISOString());
+      }, 5600);
+
+      validationTimeoutsRef.current.push(t1, t2, t3, t4, t5, t6);
+      return;
+    }
+
+    const t3 = setTimeout(() => {
+      setValidationCompletedAt(new Date().toISOString());
+      setCreateProgressStep(4);
+    }, 4200);
+    const t4 = setTimeout(() => {
+      setCreateProgressStep(5);
+    }, 4600);
+    const t5 = setTimeout(() => {
+      setCreateProgressStep(6);
+      setCreated(true);
+    }, 5000);
+
+    validationTimeoutsRef.current.push(t1, t2, t3, t4, t5);
+  }, [clearValidationTimers, shouldShowActionableErrors]);
+
+  const handleSaveEdits = React.useCallback((syncAfterSave: boolean) => {
+    if (isEdit) {
+      if (!hasChanges && !syncAfterSave && validationState !== 'failed') return;
+      if (hasChanges) {
+        setConfigVersion((v) => v + 1);
+        setLastSavedAt(new Date().toISOString());
+      }
+      setHasChanges(false);
+      setValidationState('pending');
+      if (syncAfterSave) {
+        setSyncingConfirm(true);
+        setSyncCompleted(false);
+        setTimeout(() => {
+          runValidationAndSync(true);
+        }, 300);
+      }
+      return;
+    }
+
+    // For new connector creation, show validation confirmation screen
+    setSyncingConfirm(true);
+    setSyncCompleted(false);
+    runCreateConfirmationSequence();
+  }, [hasChanges, isEdit, runCreateConfirmationSequence, runValidationAndSync, validationState]);
+
+  const handleSaveSetupEdit = React.useCallback(() => {
+    if (!shouldShowSetupEditDualButtons || !hasChanges) return;
+    setConfigVersion((v) => v + 1);
+    setLastSavedAt(new Date().toISOString());
+    setHasChanges(false);
+    setValidationState('pending');
+  }, [hasChanges, shouldShowSetupEditDualButtons]);
+
+  const handleCreateSetupEdit = React.useCallback(() => {
+    if (!shouldShowSetupEditDualButtons || !hasChanges) return;
+    setSyncingConfirm(true);
+    setSyncCompleted(false);
+    runCreateConfirmationSequence();
+  }, [hasChanges, runCreateConfirmationSequence, shouldShowSetupEditDualButtons]);
+
+  React.useEffect(() => {
+    if (syncingConfirm && validationState === 'reflected') {
+      setSyncCompleted(true);
+    }
+  }, [syncingConfirm, validationState]);
+
+  const validationIssue = React.useMemo<DiagnosticIssue | undefined>(() => {
+    if (validationState !== 'failed') return undefined;
+    return {
+      id: 'validation-auth-failed',
+      rank: 0,
+      severity: 'blocker',
+      source: 'connector',
+      title: 'Auth validation failed',
+      description: 'We could not validate credentials for the latest saved changes. Sync is blocked until this is fixed.',
+      technicalDetail: validationError ?? undefined,
+      detectedAt: new Date().toISOString(),
+      connectorTab: 'Setup',
+      connectorFieldId: 'auth-credentials',
+      recommendedActions: [
+        {
+          id: 'fix-auth-validation',
+          label: 'Fix credentials in Setup',
+          where: 'connector',
+          recommended: true,
+          steps: [
+            { label: 'Open Setup tab and update username/password.', tab: 'Setup', fieldId: 'auth-credentials' },
+            { label: 'Save and sync again to rerun validation.' },
+          ],
+        },
+      ],
+    };
+  }, [validationError, validationState]);
+
+  const canSyncNow = isEdit && (hasChanges || validationState === 'pending' || validationState === 'failed' || validationState === 'passed');
+  const showValidationProgress = isEdit && (validationState === 'validating' || validationState === 'syncing');
+  const activeValidationIndex = validationState === 'syncing' ? VALIDATION_STEPS.length : Math.max(0, validationStepIndex);
+  const validationProgressValue = validationState === 'syncing' ? 1 : Math.min(1, (activeValidationIndex + 1) / VALIDATION_STEPS.length);
 
   const canCreate = sourceName.trim().length > 0 && displayName.trim().length > 0 &&
     instanceUrl.trim().length > 0 && authMethod !== 'none' && privacyAccepted;
 
   const isDarkMode = typeof window !== 'undefined' && document.documentElement.classList.contains('dark');
 
+  const formatValidationElapsed = React.useCallback((seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }, []);
+
+  const calculateValidationRemaining = React.useCallback(() => {
+    if (validationState !== 'validating') return null;
+
+    if (validationElapsedSeconds < 1) {
+      return `${VALIDATION_STEPS.length} mins remaining`;
+    }
+
+    const stepsCompleted = Math.max(1, validationStepIndex + 1);
+    const avgSecondsPerStep = Math.ceil(validationElapsedSeconds / stepsCompleted);
+    const remainingSteps = Math.max(0, VALIDATION_STEPS.length - stepsCompleted);
+    const estimatedRemainingSeconds = remainingSteps * avgSecondsPerStep;
+    const mins = Math.max(1, Math.ceil(estimatedRemainingSeconds / 60));
+
+    return `${mins} min${mins > 1 ? 's' : ''} remaining`;
+  }, [validationState, validationElapsedSeconds, validationStepIndex]);
+
+  const formatValidationCompletedAt = React.useCallback((value: string | null) => {
+    if (!value) return null;
+    const completedAt = new Date(value);
+    if (Number.isNaN(completedAt.getTime())) return null;
+    const timePart = completedAt.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+    const datePart = completedAt.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+    return `Completed at ${timePart}, ${datePart}`;
+  }, []);
+
+  const formatValidationTimestamp = React.useCallback((value: string | null) => {
+    if (!value) return null;
+    const completedAt = new Date(value);
+    if (Number.isNaN(completedAt.getTime())) return null;
+    const timePart = completedAt.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+    const datePart = completedAt.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+    return `${timePart}, ${datePart}`;
+  }, []);
+
+  const confirmationSteps = React.useMemo<ConnectionConfirmationStep[]>(() => {
+    if (!isEdit && shouldShowActionableErrors) {
+      const failureStage = validationHasErrors ? validationFailureSequenceStep : 0;
+      const activeStep = createProgressStep >= 1 && createProgressStep <= 3 ? createProgressStep - 1 : -1;
+      const failureActiveStep = validationHasErrors && validationFailureSequenceStep < 3
+        ? validationFailureSequenceStep
+        : -1;
+
+      return CONNECTION_VALIDATION_STEPS.map((step, idx) => {
+        const isCompleted = validationHasErrors
+          ? (idx === 1 && failureStage >= 2)
+          : (createProgressStep >= 4 || idx < activeStep);
+        const isActive = validationHasErrors
+          ? ((idx === 0 && failureStage === 0) || (idx === 1 && failureStage === 1) || (idx === 2 && failureStage === 2))
+          : ((idx === activeStep && !validationHasErrors) || idx === failureActiveStep);
+        const isFailed = validationHasErrors
+          ? ((idx === 0 && failureStage >= 1) || (idx === 2 && failureStage >= 3))
+          : false;
+
+        let label = step;
+        if (isFailed && idx === 0) {
+          label = 'Test authentication failed';
+        } else if (isFailed && idx === 2) {
+          label = 'Configuration validation failed';
+        } else if (isCompleted) {
+          label = idx === 0 ? 'Authentication complete' : idx === 1 ? 'Content preview complete' : 'Configuration validation complete';
+        }
+
+        return {
+          key: step,
+          label,
+          status: isFailed ? 'error' : isActive ? 'active' : isCompleted ? 'success' : 'idle',
+        };
+      });
+    }
+
+    return CONNECTION_VALIDATION_STEPS.map((step, idx) => {
+      const isCurrentStep = validationState === 'validating' && idx === validationStepIndex;
+      const isCompleted = validationState === 'passed' || validationState === 'syncing' || validationState === 'reflected'
+        ? true
+        : validationState === 'failed'
+          ? idx === 1
+          : validationState === 'validating' && idx < validationStepIndex;
+      const isFailed = validationState === 'failed' && (idx === 0 || idx === 2);
+
+      let label = step;
+      if (isFailed && idx === 0) {
+        label = 'Test authentication failed';
+      } else if (isFailed && idx === 2) {
+        label = 'Configuration validation failed';
+      } else if (isCompleted) {
+        label = idx === 0 ? 'Authentication complete' : idx === 1 ? 'Content preview complete' : 'Configuration validation complete';
+      }
+
+      return {
+        key: step,
+        label,
+        status: isFailed ? 'error' : isCurrentStep ? 'active' : isCompleted ? 'success' : 'idle',
+      };
+    });
+  }, [createProgressStep, isEdit, shouldShowActionableErrors, validationFailureSequenceStep, validationHasErrors, validationState, validationStepIndex]);
+
+  const createConfirmationMeta = React.useMemo(() => {
+    if (validationHasErrors) {
+      if (shouldShowActionableErrors && validationFailureSequenceStep < 3) {
+        return '8 Mins remaining...';
+      }
+
+      return '';
+    }
+
+    if (createProgressStep >= 4) {
+      return formatValidationCompletedAt(validationCompletedAt) ?? 'Completed';
+    }
+
+    if (createProgressStep >= 1 && createProgressStep <= 3) {
+      return '8 Mins remaining...';
+    }
+
+    return 'Validation has not started';
+  }, [createProgressStep, formatValidationCompletedAt, shouldShowActionableErrors, validationCompletedAt, validationFailureSequenceStep, validationHasErrors]);
+
+  const createConfirmationHelper = ((createProgressStep >= 1 && createProgressStep <= 3 && !validationHasErrors) || (validationHasErrors && shouldShowActionableErrors && validationFailureSequenceStep < 3))
+    ? 'Validation running in the background. You may close this panel.'
+    : null;
+
   const content = (
-      <DrawerBody style={{ padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
-        {creating ? (
+    <DrawerBody
+      style={{
+        padding: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        flex: 1,
+      }}
+    >
+      {syncingConfirm ? (
+          <ConnectionConfirmationView
+            title={isEdit ? 'Save & sync changes' : 'Creating connection'}
+            actionLabel={isEdit ? 'Saving changes' : 'Creating connection'}
+            displayName={displayName}
+            connectorName={typeName}
+            logoUrl={resolvedLogoUrl}
+            isDarkMode={isDarkMode}
+            containerClassName={slideInClass}
+            actionStatus={isEdit
+              ? (validationState === 'passed' ? 'active' : validationState === 'syncing' || validationState === 'reflected' ? 'success' : syncCompleted ? 'success' : 'idle')
+              : (createProgressStep === 4 && !validationHasErrors ? 'active' : createProgressStep >= 5 && !validationHasErrors ? 'success' : created ? 'success' : 'idle')}
+            actionDimmed={isEdit ? (validationState === 'validating' || validationState === 'failed') : (validationStillActive && createProgressStep < 5)}
+            validationStatus={isEdit
+              ? (validationState === 'failed' ? 'error' : validationState === 'validating' ? 'active' : validationState === 'passed' || validationState === 'syncing' || validationState === 'reflected' ? 'success' : 'idle')
+              : (validationHasErrors && shouldShowActionableErrors && validationFailureSequenceStep < 3 ? 'active' : validationHasErrors ? 'error' : createProgressStep >= 1 && createProgressStep <= 3 ? 'active' : createProgressStep >= 4 ? 'success' : 'idle')}
+            validationSteps={confirmationSteps}
+            validationMetaText={isEdit
+              ? (validationState === 'failed' ? null : (validationState === 'validating' || validationState === 'passed') ? (validationCompletedAt ? formatValidationCompletedAt(validationCompletedAt) : '8 Mins remaining...') : null)
+              : createConfirmationMeta}
+            validationHelperText={isEdit ? (validationState === 'validating' ? 'Validation running in the background. You may close this panel.' : null) : createConfirmationHelper}
+            validationFooterContent={!isEdit && validationHasErrors && (!shouldShowActionableErrors || validationFailureSequenceStep >= 3) ? (
+              <div style={{ marginTop: 12, marginBottom: 8, maxWidth: 640 }}>
+                {formatValidationTimestamp(validationCompletedAt) && (
+                  <span style={{ display: 'block', marginBottom: 8, fontSize: 14, lineHeight: '20px', color: isDarkMode ? '#adadad' : '#484644' }}>
+                    {`Validation failed at ${formatValidationTimestamp(validationCompletedAt)}`}
+                  </span>
+                )}
+                <span style={{ display: 'block', marginBottom: 10, fontSize: 13, lineHeight: '18px', color: isDarkMode ? '#adadad' : '#484644' }}>
+                  Please check and resolve the validation errors before syncing data.
+                </span>
+                <Button
+                  appearance="primary"
+                  onClick={() => {
+                    clearValidationTimers();
+                    setSyncingConfirm(false);
+                    setSyncCompleted(false);
+                    setCreating(false);
+                    setCreateProgressStep(0);
+                    setCreated(false);
+                    setShowSetupEditRail(true);
+                    setRightRailTab('actions');
+                    setHealthFocused(false);
+                    setHealthBackTrigger((n) => n + 1);
+                    setRailOpen(true);
+                    setValidationState('pending');
+                    setValidationStepIndex(-1);
+                    setValidationError(null);
+                    setValidationHasErrors(false);
+                    setValidationFailureSequenceStep(0);
+                  }}
+                  style={isDarkMode ? { background: '#479ef5', color: '#000', border: 'none', fontSize: 13 } : { fontSize: 13 }}
+                >Back to edit settings</Button>
+              </div>
+            ) : undefined}
+            syncStatus={isEdit
+              ? (validationState === 'failed' ? 'idle' : validationState === 'syncing' || validationState === 'reflected' ? 'active' : 'idle')
+              : (validationHasErrors ? 'idle' : createProgressStep >= 5 ? 'active' : 'idle')}
+            syncDimmed={isEdit ? (validationState === 'validating' || validationState === 'failed') : (validationStillActive || (createProgressStep >= 4 && createProgressStep < 5))}
+            syncText={isEdit
+              ? (validationState === 'failed' ? 'Indexing did not start because validation failed.' : 'This may take a while and will continue to run in the background')
+              : 'This may take a while and will continue to run in the background'}
+            issues={isEdit && validationState === 'failed' && isSetupEditFlow ? [setupEditValidationIssue, setupEditContentIssue] : undefined}
+            closeDisabled={isEdit ? validationState === 'validating' : false}
+            onClose={() => { setSyncingConfirm(false); setSyncCompleted(false); setCreateProgressStep(0); }}
+          />
+        ) : creating ? (
           <>
             <div className={`flex-1 overflow-y-auto bg-white dark:bg-[#212121] ${slideInClass}`} style={{ padding: '16px 32px 24px' }}>
               {/* Heading */}
               <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS, marginBottom: tokens.spacingVerticalXXL }}>
                 <CompletedSolidIcon style={{ fontSize: 20, color: created ? '#107c10' : '#c8c6c4' }} />
-                <span style={{ fontSize: 20, fontWeight: 600, color: isDarkMode ? '#f5f5f5' : '#323130' }}>
+                <Text size={500} weight="semibold" style={{ color: isDarkMode ? '#f5f5f5' : '#323130' }}>
                   {created ? 'Success' : 'Creating connection...'}
-                </span>
+                </Text>
               </div>
               {/* Rows — no outer border, just dividers */}
               <div style={{ maxWidth: 640 }}>
@@ -2028,20 +2571,12 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                 <div style={{ display: 'flex', alignItems: 'center', padding: '10px 0', borderBottom: `1px solid ${isDarkMode ? '#3d3d3d' : '#e1e1e1'}` }}>
                   <div style={{ width: 200, display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS, flexShrink: 0 }}>
                     <CompletedSolidIcon style={{ fontSize: 20, color: created ? '#107c10' : '#c8c6c4', flexShrink: 0 }} />
-                    <span style={{ fontSize: 14, color: isDarkMode ? '#f5f5f5' : '#323130' }}>Created connection</span>
+                    <Text size={300} style={{ color: isDarkMode ? '#f5f5f5' : '#323130' }}>Saving changes</Text>
                   </div>
                   <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS }}>
                     <ConnectorIcon src={resolvedLogoUrl} name={typeName} size={20} />
-                    <span style={{ fontSize: 14, color: isDarkMode ? '#f5f5f5' : '#323130' }}>{displayName}</span>
+                    <Text size={300} style={{ color: isDarkMode ? '#f5f5f5' : '#323130' }}>{displayName}</Text>
                   </div>
-                </div>
-                {/* Row 2 */}
-                <div style={{ display: 'flex', alignItems: 'center', padding: '10px 0', borderBottom: `1px solid ${isDarkMode ? '#3d3d3d' : '#e1e1e1'}` }}>
-                  <div style={{ width: 200, display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS, flexShrink: 0 }}>
-                    <StatusCircleSyncIcon style={{ fontSize: 20, color: created ? '#0078d4' : '#c8c6c4', animation: created ? 'spin 1.2s linear infinite' : 'none', flexShrink: 0 }} />
-                    <span style={{ fontSize: 14, color: isDarkMode ? (created ? '#f5f5f5' : '#707070') : (created ? '#323130' : '#a19f9d') }}>Indexing data</span>
-                  </div>
-                  <span style={{ fontSize: 14, color: isDarkMode ? '#adadad' : '#484644' }}>This may take a while and will continue to run in the background</span>
                 </div>
               </div>
             </div>
@@ -2053,7 +2588,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
           </>
         ) : (
         <>
-        {/* Content row: form (right rail is overlay) */}
+        {/* Content row: form + in-panel right rail */}
         <div ref={panelRef} className="flex flex-row flex-1 overflow-hidden relative" style={{ minHeight: 0 }}>
         {/* Left column: form + footer */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden" style={{ minHeight: 0, minWidth: 0 }}>
@@ -2312,6 +2847,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                         required
                         value={clientId}
                         onChange={(_, v) => { setClientId(v ?? ''); markChanged(); }}
+                        onFocus={() => { setGuidanceHighlight('auth-types'); if (!suppressGuidanceSwitch.current) { setRightRailTab('guide'); setHealthFocused(false); setHealthBackTrigger(n => n + 1); } }}
                         styles={{ root: { flex: 1 } }}
                       />
                       <TextField
@@ -2321,6 +2857,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                         canRevealPassword
                         value={clientSecret}
                         onChange={(_, v) => { setClientSecret(v ?? ''); markChanged(); }}
+                        onFocus={() => { setGuidanceHighlight('auth-types'); if (!suppressGuidanceSwitch.current) { setRightRailTab('guide'); setHealthFocused(false); setHealthBackTrigger(n => n + 1); } }}
                         styles={{ root: { flex: 1 } }}
                       />
                     </div>
@@ -2328,35 +2865,49 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                       <Button
                         appearance="primary"
                         disabled={!clientId.trim() || !clientSecret.trim() || authorizing}
-                        style={{ borderRadius: 4, minWidth: 100 }}
-                        onClick={() => { setAuthorizing(true); setTimeout(() => setAuthorizing(false), 3000); }}
+                        onClick={() => {
+                          setAuthorizing(true);
+                          setTimeout(() => setAuthorizing(false), 3000);
+                        }}
                       >
-                        {authorizing ? <Spinner size="extra-tiny" /> : 'Authorize'}
+                        {authorizing ? 'Authorizing...' : 'Authorize'}
                       </Button>
                     </div>
                   </div>
                 ) : (
-                  <>
-                    <Dropdown
-                      label="Authentication type"
-                      required
-                      selectedKey={authMethod === 'none' ? null : authMethod}
-                      placeholder="Select a method"
-                      options={AUTH_OPTIONS.map(o => ({ key: o.value, text: o.label })) as IDropdownOption[]}
-                      onChange={(_, opt) => { if (opt) { setAuthMethod(opt.key as AuthMethod); markChanged(); autoApplyForField('auth-types'); } }}
-                      onFocus={() => { setGuidanceHighlight('auth-types'); if (!suppressGuidanceSwitch.current) { setRightRailTab('guide'); setHealthFocused(false); setHealthBackTrigger(n => n + 1); } }}
-                      styles={{ root: { width: '100%' } }}
-                    />
-                    {/* Basic Auth credential inputs */}
+                  <div className="flex flex-col gap-3">
+                    <FluentDropdown
+                      value={AUTH_OPTIONS.find((option) => option.value === authMethod)?.label ?? 'Select authentication'}
+                      selectedOptions={authMethod ? [authMethod] : []}
+                      onOptionSelect={(_, data) => {
+                        if (!data.optionValue) return;
+                        setAuthMethod(data.optionValue as AuthMethod);
+                        markChanged();
+                      }}
+                      onOpenChange={() => {
+                        setGuidanceHighlight('auth-types');
+                        if (!suppressGuidanceSwitch.current) {
+                          setRightRailTab('guide');
+                          setHealthFocused(false);
+                          setHealthBackTrigger((n) => n + 1);
+                        }
+                      }}
+                    >
+                      {AUTH_OPTIONS.map((option) => (
+                        <Option key={option.value} value={option.value}>
+                          {option.label}
+                        </Option>
+                      ))}
+                    </FluentDropdown>
+
                     {authMethod === 'basic' && (
-                      <div ref={(el) => { fieldRefs.current['auth-credentials'] = el; }} className={`flex flex-col gap-3 mt-3 transition-colors duration-500 rounded-[4px] -mx-2 px-2 py-1 ${fieldHighlight === 'auth-credentials' ? 'bg-[#eff6ff]' : ''}`}>
+                      <>
                         <TextField
                           label="Username"
                           required
-                          componentRef={credentialsUsernameRef as React.RefObject<any>}
                           value={basicUsername}
-                          onChange={(_, v) => { setBasicUsername(v ?? ''); markChanged(); autoApplyForField('auth-credentials'); }}
-                          placeholder="e.g. svc-copilot@contoso.com"
+                          onChange={(_, v) => { setBasicUsername(v ?? ''); markChanged(); }}
+                          onFocus={() => { setGuidanceHighlight('auth-types'); if (!suppressGuidanceSwitch.current) { setRightRailTab('guide'); setHealthFocused(false); setHealthBackTrigger(n => n + 1); } }}
                           styles={{ root: { width: '100%' } }}
                         />
                         <TextField
@@ -2365,38 +2916,89 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                           type="password"
                           canRevealPassword
                           value={basicPassword}
-                          onChange={(_, v) => { setBasicPassword(v ?? ''); markChanged(); autoApplyForField('auth-credentials'); }}
+                          onChange={(_, v) => { setBasicPassword(v ?? ''); markChanged(); }}
+                          onFocus={() => { setGuidanceHighlight('auth-types'); if (!suppressGuidanceSwitch.current) { setRightRailTab('guide'); setHealthFocused(false); setHealthBackTrigger(n => n + 1); } }}
                           styles={{ root: { width: '100%' } }}
                         />
-                      </div>
+                      </>
                     )}
-                  </>
+
+                    {authMethod === 'oauth2' && (
+                      <>
+                        <TextField
+                          label="Client ID"
+                          required
+                          value={clientId}
+                          onChange={(_, v) => { setClientId(v ?? ''); markChanged(); }}
+                          onFocus={() => { setGuidanceHighlight('auth-types'); if (!suppressGuidanceSwitch.current) { setRightRailTab('guide'); setHealthFocused(false); setHealthBackTrigger(n => n + 1); } }}
+                          styles={{ root: { width: '100%' } }}
+                        />
+                        <TextField
+                          label="Client secret"
+                          required
+                          type="password"
+                          canRevealPassword
+                          value={clientSecret}
+                          onChange={(_, v) => { setClientSecret(v ?? ''); markChanged(); }}
+                          onFocus={() => { setGuidanceHighlight('auth-types'); if (!suppressGuidanceSwitch.current) { setRightRailTab('guide'); setHealthFocused(false); setHealthBackTrigger(n => n + 1); } }}
+                          styles={{ root: { width: '100%' } }}
+                        />
+                        <div>
+                          <Button
+                            appearance="primary"
+                            disabled={!clientId.trim() || !clientSecret.trim() || authorizing}
+                            onClick={() => {
+                              setAuthorizing(true);
+                              setTimeout(() => setAuthorizing(false), 3000);
+                            }}
+                          >
+                            {authorizing ? 'Authorizing...' : 'Authorize'}
+                          </Button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 )}
               </div>
 
-              {/* Notification contacts */}
+              {/* Connection management team */}
               <div>
-                <p className="text-[14px] font-semibold text-[#323130] dark:text-[#f5f5f5]" style={{ marginBottom: 8 }}>Connector diagnosis team</p>
+                <p className="text-[14px] font-semibold text-[#323130]" style={{ marginBottom: tokens.spacingVerticalS }}>Connection management team</p>
                 <NormalPeoplePicker
-                  selectedItems={notifyPeople.map(val => {
-                    const p = allPeople.find(x => x.value === val) ?? { name: val, value: val };
-                    return { key: p.value, text: p.name } as IPersonaProps;
+                  selectedItems={managementTeamPeople.map((val) => {
+                    const person = allPeople.find((x) => x.value === val);
+                    return { key: val, text: person?.name ?? val } as IPersonaProps;
                   })}
                   onResolveSuggestions={(filter: string) =>
                     allPeople
-                      .filter(p => !notifyPeople.includes(p.value) && p.name.toLowerCase().includes(filter.toLowerCase()))
-                      .map(p => ({ key: p.value, text: p.name } as IPersonaProps))
+                      .filter((p) => !managementTeamPeople.includes(p.value) && p.name.toLowerCase().includes(filter.toLowerCase()))
+                      .map((p) => ({ key: p.value, text: p.name } as IPersonaProps))
                   }
-                  onChange={(items?: IPersonaProps[]) => setNotifyPeople((items ?? []).map(i => i.key as string))}
-                  inputProps={{ placeholder: 'Add people or groups' }}
+                  onChange={(items?: IPersonaProps[]) => {
+                    setManagementTeamPeople((items ?? []).map((i) => i.key as string));
+                    markChanged();
+                  }}
+                  inputProps={{
+                    placeholder: 'Select users/groups',
+                    onFocus: () => {
+                      setGuidanceHighlight('staged-rollout');
+                      if (!suppressGuidanceSwitch.current) {
+                        setRightRailTab('guide');
+                        setHealthFocused(false);
+                        setHealthBackTrigger((n) => n + 1);
+                      }
+                    },
+                  }}
                   pickerSuggestionsProps={{ suggestionsHeaderText: 'Suggested people', noResultsFoundText: 'No results found' }}
                   styles={{
                     root: { width: '100%' },
-                    ...(isDarkMode ? {
-                      text: { background: '#212121', borderColor: '#616161', selectors: { ':hover': { borderColor: '#adadad' }, '::after': { borderColor: '#479ef5' } } },
-                      input: { background: '#212121', color: '#f5f5f5', selectors: { '::placeholder': { color: '#8a8886' } } },
-                      itemsWrapper: { background: '#212121' },
-                    } : {}),
+                    ...(isDarkMode
+                      ? {
+                          text: { background: '#212121', borderColor: '#616161', selectors: { ':hover': { borderColor: '#adadad' }, '::after': { borderColor: '#479ef5' } } },
+                          input: { background: '#212121', color: '#f5f5f5', selectors: { '::placeholder': { color: '#8a8886' } } },
+                          itemsWrapper: { background: '#212121' },
+                        }
+                      : {}),
                   }}
                 />
               </div>
@@ -2492,23 +3094,25 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
           {isEdit ? 'Actions & Guide' : 'Setup Guide'}
         </button>}
 
-        {/* Right rail overlay — narrow panel only */}
+        {/* Right rail — collapsible in-panel column for narrower widths */}
         {railOpen && !panelWide && (
           <div
             style={{
               display: 'flex', flexDirection: 'column',
-              position: 'absolute', top: 0, right: 0, bottom: 0,
-              width: 400, zIndex: 40,
+              width: 360, flexShrink: 0,
+              position: 'relative',
               background: isDarkMode ? '#212121' : '#faf9f8',
               borderLeft: `1px solid ${isDarkMode ? '#3d3d3d' : '#e1e1e1'}`,
-              boxShadow: '-4px 0 16px rgba(0,0,0,0.12)',
+              overflow: 'hidden',
             }}
           >
             {/* Rail header + body */}
-            <button onClick={() => setRailOpen(false)} style={{ position: 'absolute', top: 12, right: 16, zIndex: 1, background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', color: isDarkMode ? '#adadad' : '#605e5c' }}>
-              <ChromeCloseIcon style={{ fontSize: 12 }} />
-            </button>
-            {isEdit && existingConnector && !actionFocused ? (
+            {!actionFocused && (
+              <button onClick={() => setRailOpen(false)} style={{ position: 'absolute', top: 12, right: 16, zIndex: 1, background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', color: isDarkMode ? '#adadad' : '#605e5c' }}>
+                <ChromeCloseIcon style={{ fontSize: 12 }} />
+              </button>
+            )}
+              {isRailEditMode && connectorForRail && !actionFocused ? (
               <div data-tour="error-tab">
               <Pivot
                 selectedKey={rightRailTab}
@@ -2518,7 +3122,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                   if (key === 'guide') { setHealthFocused(false); setHealthBackTrigger(n => n + 1); }
                 }}
                 styles={{
-                root: { paddingLeft: 16, paddingTop: 44, flexShrink: 0 },
+                root: { paddingLeft: 16, paddingTop: 44, paddingBottom: 12, flexShrink: 0 },
                 itemContainer: { display: 'none' },
                 link: isDarkMode ? { color: '#adadad', selectors: { ':hover': { color: '#f5f5f5', backgroundColor: '#3d3d3d' } } } : {},
                 linkIsSelected: isDarkMode ? { color: '#f5f5f5', selectors: { '::before': { backgroundColor: '#479ef5' } } } : {},
@@ -2541,8 +3145,8 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
             {/* Rail body */}
             <div ref={railScrollRef} style={{ flex: 1, minHeight: 0, overflow: (actionFocused && rightRailTab === 'actions') ? 'hidden' : 'auto', padding: (actionFocused && rightRailTab === 'actions') ? 0 : '0 24px 24px', position: 'relative' }}>
               <div key={rightRailTab} className={actionFocused ? undefined : slideInClass} style={actionFocused ? { height: '100%' } : undefined}>
-                {isEdit && existingConnector && rightRailTab === 'actions'
-                  ? <div data-tour="error-content"><ActionRail connector={existingConnector} onNavigateToField={handleNavigateToField} onFocusedChange={setHealthFocused} backTrigger={actionBackTrigger} appliedRowsMap={appliedRowsMap} setAppliedRowsMap={setAppliedRowsMap} /></div>
+                {isRailEditMode && connectorForRail && rightRailTab === 'actions'
+                  ? <div data-tour="error-content"><ActionRail connector={connectorForRail} onNavigateToField={handleNavigateToField} onFocusedChange={setHealthFocused} backTrigger={actionBackTrigger} appliedRowsMap={appliedRowsMap} setAppliedRowsMap={setAppliedRowsMap} validationIssue={validationIssue} /></div>
                   : <GuidanceRail
                       highlightSection={guidanceHighlight}
                       accordionRefsCallback={(refs) => { accordionRefsCache.current = refs; }}
@@ -2556,7 +3160,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
 
         {/* Right rail — static side column when panel is wide enough */}
         {panelWide && <div style={{ display: 'flex', flexDirection: 'column', width: 360, flexShrink: 0, background: isDarkMode ? '#212121' : '#faf9f8', borderLeft: `1px solid ${isDarkMode ? '#3d3d3d' : '#e1e1e1'}`, overflow: 'hidden' }}>
-          {isEdit && existingConnector && !actionFocused ? (
+          {isRailEditMode && connectorForRail && !actionFocused ? (
             <div data-tour="error-tab">
             <Pivot
               selectedKey={rightRailTab}
@@ -2566,7 +3170,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
                 if (key === 'guide') { setHealthFocused(false); setHealthBackTrigger(n => n + 1); }
               }}
               styles={{
-                root: { paddingLeft: 16, paddingTop: 44, flexShrink: 0 },
+                root: { paddingLeft: 16, paddingTop: 44, paddingBottom: 12, flexShrink: 0 },
                 itemContainer: { display: 'none' },
                 link: isDarkMode ? { color: '#adadad', selectors: { ':hover': { color: '#f5f5f5', backgroundColor: '#3d3d3d' } } } : {},
                 linkIsSelected: isDarkMode ? { color: '#f5f5f5', selectors: { '::before': { backgroundColor: '#479ef5' } } } : {},
@@ -2587,8 +3191,8 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
           ) : null}
           <div ref={railScrollRef} className="flex-1" style={{ minHeight: 0, overflow: (actionFocused && rightRailTab === 'actions') ? 'hidden' : 'auto', padding: (actionFocused && rightRailTab === 'actions') ? 0 : '24px', position: 'relative' }}>
             <div key={rightRailTab} className={actionFocused ? undefined : slideInClass} style={actionFocused ? { height: '100%' } : undefined}>
-              {isEdit && existingConnector && rightRailTab === 'actions'
-                ? <div data-tour="error-content"><ActionRail connector={existingConnector} onNavigateToField={handleNavigateToField} onFocusedChange={setHealthFocused} backTrigger={actionBackTrigger} appliedRowsMap={appliedRowsMap} setAppliedRowsMap={setAppliedRowsMap} /></div>
+              {isRailEditMode && connectorForRail && rightRailTab === 'actions'
+                ? <div data-tour="error-content"><ActionRail connector={connectorForRail} onNavigateToField={handleNavigateToField} onFocusedChange={setHealthFocused} backTrigger={actionBackTrigger} appliedRowsMap={appliedRowsMap} setAppliedRowsMap={setAppliedRowsMap} validationIssue={validationIssue} /></div>
                 : <GuidanceRail
                     highlightSection={guidanceHighlight}
                     accordionRefsCallback={(refs) => { accordionRefsCache.current = refs; }}
@@ -2598,21 +3202,34 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
             </div>
           </div>
         </div>}
-        </div>{/* end content row */}
 
+
+        </div>{/* end content row */}
         {/* Footer — full width across panel */}
         <div className="border-t border-[#e1e1e1] dark:border-[#3d3d3d] px-8 py-4 flex items-center justify-between flex-shrink-0 bg-white dark:bg-[#212121] z-10">
           <div className="flex items-center gap-3">
             <Button
               appearance="primary"
               disabled={!hasChanges}
-              onClick={() => {
-                if (isEdit && hasChanges) { setHasChanges(false); setValidateDone(false); }
-                else if (!isEdit) { setCreating(true); setTimeout(() => setCreated(true), 2500); }
-              }}
+              onClick={shouldShowSetupEditDualButtons ? handleCreateSetupEdit : () => handleSaveEdits(false)}
             >
-              {isEdit ? 'Save' : 'Create'}
+              {primaryFooterLabel}
             </Button>
+            {shouldShowSetupEditDualButtons ? (
+              <Button
+                disabled={!hasChanges}
+                onClick={handleSaveSetupEdit}
+              >
+                Save
+              </Button>
+            ) : isEdit && (
+              <Button
+                disabled={!canSyncNow || validationState === 'validating' || validationState === 'syncing'}
+                onClick={() => handleSaveEdits(true)}
+              >
+                {validationState === 'validating' || validationState === 'syncing' ? 'Running...' : 'Save & sync now'}
+              </Button>
+            )}
           </div>
           <div className="flex items-center gap-4">
             <Button onClick={onClose}>Cancel</Button>
@@ -2623,7 +3240,7 @@ export default function AdvancedSetupPanel({ connectorType, existingConnector, o
       </DrawerBody>
   );
 
-  if (embedded) return content;
+  if (embedded) return <>{content}</>;
 
   return (
     <OverlayDrawer

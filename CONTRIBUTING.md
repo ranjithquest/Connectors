@@ -25,12 +25,12 @@ git checkout -b your-name/feature-name
 ```
 
 ### 2. Build your concept
-- Use Claude Code with the spec or Figma file
-- Follow the component and icon rules in `CLAUDE.md`
+- Use GitHub Copilot with the spec or Figma file
+- Follow the component and icon rules in `.github/copilot-instructions.md`
 - Update `lib/mock-data.ts` for any new data states you need
 
 ### 3. Push and get your preview URL
-Use `/publish` in Claude Code — it handles branching, committing, pushing, and gives you the preview URL.
+Use `./publish.sh` — it handles branching, committing, pushing, and gives you the preview URL.
 
 Or manually:
 ```bash
@@ -49,7 +49,7 @@ Push more commits to the same branch — each push updates the same preview URL.
 Share the preview with your product/design stakeholders. Document which components/files are approved for promotion.
 
 ### 6. Promote approved parts to main
-Use `/handoff` in Claude Code — it cherry-picks only the approved files into `main`.
+Promote only approved files into `main`.
 
 Or manually:
 ```bash
@@ -76,14 +76,13 @@ git branch -d your-name/feature-name
 
 ---
 
-## Working with Claude Code
+## Working with GitHub Copilot
 
-If you're using Claude Code to prototype:
-1. Make sure the **Figma** and **Playwright** MCP plugins are installed
-2. Claude will follow the rules in `CLAUDE.md` automatically
-3. Claude will always work on a feature branch — never directly on `main`
-4. Use `/publish` to push and get a preview URL
-5. Use `/handoff` to cherry-pick approved files into `main`
+If you're using GitHub Copilot to prototype:
+1. Keep `.github/copilot-instructions.md` up to date with project rules
+2. Always work on a feature branch — never directly on `main`
+3. Use `./publish.sh` to push and get a preview URL
+4. Cherry-pick or selectively checkout approved files into `main`
 
 ---
 
