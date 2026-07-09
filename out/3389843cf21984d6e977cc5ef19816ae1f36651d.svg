@@ -1,0 +1,16 @@
+<svg preserveAspectRatio="none" width="100%" height="100%" overflow="visible" style="display: block;" viewBox="0 0 21.9999 36.9758" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Shape">
+<path d="M16.0842 0C16.0842 0 20.2345 0.402116 20.9999 0.402116L21.9999 7.97444L17 12.9746L12 16.4502V20.4579C12 23.257 13.4628 25.8525 15.8573 27.302L21.121 30.4883L9.99998 36.9758H7.85504L3.85735 34.5559C1.46285 33.1064 0 30.5109 0 27.7118V14.2353C0 11.4352 1.46378 8.83899 3.8595 7.38982L15.8595 0.130999C15.9338 0.0860187 16.0842 0 16.0842 0Z" fill="url(#paint0_radial_12089_80563)"/>
+<path d="M16.0842 0C16.0842 0 20.2345 0.402116 20.9999 0.402116L21.9999 7.97444L17 12.9746L12 16.4502V20.4579C12 23.257 13.4628 25.8525 15.8573 27.302L21.121 30.4883L9.99998 36.9758H7.85504L3.85735 34.5559C1.46285 33.1064 0 30.5109 0 27.7118V14.2353C0 11.4352 1.46378 8.83899 3.8595 7.38982L15.8595 0.130999C15.9338 0.0860187 16.0842 0 16.0842 0Z" fill="url(#paint1_linear_12089_80563)"/>
+</g>
+<defs>
+<radialGradient id="paint0_radial_12089_80563" cx="0" cy="0" r="1" gradientTransform="matrix(-11.3657 28.1875 -22.7971 -8.99674 17.0722 11.9003)" gradientUnits="userSpaceOnUse">
+<stop offset="0.206732" stop-color="#45D586"/>
+<stop offset="0.875628" stop-color="#128245"/>
+</radialGradient>
+<linearGradient id="paint1_linear_12089_80563" x1="16.5599" y1="33.4631" x2="13.3975" y2="25.8352" gradientUnits="userSpaceOnUse">
+<stop stop-color="#0B4F28"/>
+<stop offset="1" stop-color="#128647" stop-opacity="0"/>
+</linearGradient>
+</defs>
+</svg>
