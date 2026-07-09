@@ -1,7 +1,7 @@
 name: Deploy to GitHub Pages
 
 on:
-  push:
+  workflow_dispatch: # disabled — project now deployed via Vercel
 
 permissions:
   contents: write
